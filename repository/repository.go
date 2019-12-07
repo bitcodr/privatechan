@@ -35,63 +35,69 @@ func RegisterChannel(bot *tb.Bot, m *tb.Message) {
 				log.Println(err)
 			}
 			if !results.Next() {
+				//start transaction
+				transaction, err := db.Begin()
+				if err != nil {
+					log.Println(err)
+				}
 				//insert channel
-				channelInserted, err := db.Query("INSERT INTO `channels` (channelURL,channelID,channelName,createdAt,updatedAt) VALUES('" + channelURL + "','" + channelID + "','" + m.Chat.Title + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+				channelInserted, err := transaction.Exec("INSERT INTO `channels` (channelURL,channelID,channelName,createdAt,updatedAt) VALUES('" + channelURL + "','" + channelID + "','" + m.Chat.Title + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
 				if err != nil {
+					transaction.Rollback()
 					log.Println(err)
 				}
-				defer channelInserted.Close()
-				//check if channel created
-				createdChannel, err := db.Query("SELECT id FROM `channels` where channelID=" + channelID)
-				if err != nil {
-					log.Println(err)
-				}
-				if createdChannel.Next() {
-					channelModel := new(model.Channel)
-					if err := createdChannel.Scan(channelModel); err != nil {
+				insertedChannelID, err := channelInserted.LastInsertId()
+				if err == nil {
+					fmt.Println("ok1")
+					//company name
+					companyFlag := channelDetails[1]
+					fmt.Println(companyFlag)
+					//check if company is not exist
+					companyExists, err := transaction.Query("SELECT id FROM `companies` where companyName=" + companyFlag)
+					fmt.Println(companyExists)
+					if err != nil {
+						transaction.Rollback()
 						log.Println(err)
 					}
-					//company name
-					companyName := channelDetails[1]
-					//check if company is not exist
-					companyExists, err := db.Query("SELECT id FROM `companies` where companyName=" + companyName)
+					fmt.Println("ok2")
+					if !companyExists.Next() {
+						fmt.Println("ok2")
+						//insert company
+						companyInserted, err := transaction.Exec("INSERT INTO `companies` (companyName,createdAt,updatedAt) VALUES('" + companyFlag + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+						if err != nil {
+							transaction.Rollback()
+							log.Println(err)
+						}
+						insertedCompanyID, err := companyInserted.LastInsertId()
+						fmt.Println("ok3")
+						if err == nil {
+							companyModelID := strconv.FormatInt(insertedCompanyID, 10)
+							channelModelID := strconv.FormatInt(insertedChannelID, 10)
+							//insert company channel pivot
+							_, err := transaction.Exec("INSERT INTO `companies_channels` (companyID,channelID,createdAt) VALUES('" + companyModelID + "','" + channelModelID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+							if err != nil {
+								transaction.Rollback()
+								log.Println(err)
+							}
+						}
+					}
+					_ = transaction.Commit()
+					successMessage, _ := bot.Send(m.Chat, "You're channel registered successfully")
+					time.Sleep(3 * time.Second)
+					if err := bot.Delete(successMessage); err != nil {
+						log.Println(err)
+					}
+					pinMessage, err := bot.Send(m.Chat, "You can send a message in this channel, by https://t.me/"+viper.GetString("APP.BOTUSERNAME")+"?start=join_group"+channelID)
 					if err != nil {
 						log.Println(err)
 					}
-					if !companyExists.Next() {
-						//insert company
-						companyInserted, err := db.Query("INSERT INTO `companies` (companyName,createdAt,updatedAt) VALUES('" + companyName + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
-						if err != nil {
-							log.Println(err)
-						}
-						defer companyInserted.Close()
-						//check if company created
-						company, err := db.Query("SELECT id FROM `companies` where companyName=" + companyName + "limit 1")
-						if err != nil {
-							log.Println(err)
-						}
-						if company.Next() {
-							companyModel := new(model.Company)
-							if err := company.Scan(companyModel); err != nil {
-								log.Println(err)
-							}
-							companyModelID := strconv.FormatInt(companyModel.ID, 10)
-							channelModelID := strconv.FormatInt(channelModel.ID, 10)
-							//insert company channel pivot
-							channelCompanyInserted, err := db.Query("INSERT INTO `companies_channels` (companyID,channelID,createdAt) VALUES('" + companyModelID + "','" + channelModelID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
-							if err != nil {
-								log.Println(err)
-							}
-							defer channelCompanyInserted.Close()
-						}
+					if err := bot.Pin(pinMessage); err != nil {
+						log.Println(err)
+					}
+					if err := bot.Delete(m); err != nil {
+						log.Println(err)
 					}
 				}
-				successMessage, _ := bot.Send(m.Chat, "You're channel registered successfully")
-				time.Sleep(3 * time.Second)
-				_ = bot.Delete(successMessage)
-				pinMessage, _ := bot.Send(m.Chat, "You can send a message in this channel, by https://t.me/"+viper.GetString("APP.BOTUSERNAME")+"?start=join_group"+channelID)
-				_ = bot.Pin(pinMessage)
-				_ = bot.Delete(m)
 			}
 		}
 	}
