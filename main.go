@@ -37,8 +37,8 @@ func main() {
 	bot.Handle(tb.OnText, func(m *tb.Message) {
 		//TODO check user if registered then show keyboard
 		//TODO check user is not registered show verification email
-		if strings.Contains(m.Text, " join_group"){
-			
+		if strings.Contains(m.Text, " join_group") {
+			repository.JoinFromChannel(bot, m)
 		}
 	})
 
