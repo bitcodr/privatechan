@@ -205,20 +205,20 @@ func checkAndInsertUserChannel(bot *tb.Bot, m *tb.Message, queryUserID int64, ch
 			transaction.Rollback()
 			log.Println(err)
 		}
+		//inactive user last active channels
+		_, err = transaction.Exec("update `users_current_active_channel` set `status`='INACTIVE' where `userID`='" + userModelID + "'")
+		if err != nil {
+			transaction.Rollback()
+			log.Println(err)
+		}
+		//set user active channel
+		_, err = transaction.Exec("INSERT INTO `users_current_active_channel` (`userID`,`channelID`,`createdAt`,`updatedAt`) VALUES('" + userModelID + "','" + channelModelID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+		if err != nil {
+			transaction.Rollback()
+			log.Println(err)
+		}
 		transaction.Commit()
 		if checkUserChannelActivity.Next() {
-			//inactive user last active channels
-			_, err := transaction.Exec("update `users_current_active_channel` set `status`='INACTIVE' where `userID`='" + userModelID + "'")
-			if err != nil {
-				transaction.Rollback()
-				log.Println(err)
-			}
-			//set user active channel
-			_, err = transaction.Exec("INSERT INTO `users_current_active_channel` (`userID`,`channelID`,`createdAt`,`updatedAt`) VALUES('" + userModelID + "','" + channelModelID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
-			if err != nil {
-				transaction.Rollback()
-				log.Println(err)
-			}
 			//send welcome message and show inline keyboards
 			_, err = bot.Send(m.Chat, "Welcome to the channel "+channelModelData.ChannelName+" the channel blongs to company "+companyModel.CompanyName+" You can use the inline keyboards to do an action on the channel or etc...", &tb.ReplyMarkup{
 				InlineKeyboard: inlineKeys,
@@ -254,12 +254,12 @@ func GetUserCurrentActiveChannel(bot *tb.Bot, m *tb.Message) *model.Channel {
 	}
 	defer db.Close()
 	userID := strconv.Itoa(m.Sender.ID)
-	userActiveChannel, err := db.Query("SELECT ch.`channelID`,ch.`channelName`,ch.`channelURL`, from `channels` as ch inner join `users_current_active_channel` as uc on ch.id=uc.channelID and uc.status='ACTIVE' inner join `users` as us on uc.userID=us.id and us.userID='" + userID + "' and us.`status`='ACTIVE'")
+	userActiveChannel, err := db.Query("SELECT ch.channelID,ch.channelName,ch.channelURL from `channels` as ch inner join `users_current_active_channel` as uc on ch.id=uc.channelID and uc.status='ACTIVE' inner join `users` as us on uc.userID=us.id and us.userID='" + userID + "' and us.`status`='ACTIVE'")
 	if err != nil {
 		log.Println(err)
 	}
 	if userActiveChannel.Next() {
-		channelModel := new(model.Channel)    
+		channelModel := new(model.Channel)
 		if err := userActiveChannel.Scan(&channelModel.ChannelID, &channelModel.ChannelName, &channelModel.ChannelURL); err != nil {
 			log.Println(err)
 		}
