@@ -60,8 +60,13 @@ func main() {
 			repository.SaveUserLastState(bot, m.Sender.ID, "join_group")
 			repository.JoinFromChannel(bot, m, inlineKeys)
 		}
-		fmt.Println(repository.GetUserCurrentActiveChannel(bot, m))
-		fmt.Println(repository.GetUserLastState(bot, m))
+		lastState := repository.GetUserLastState(bot, m)
+		if lastState !=nil{
+			switch lastState.State{
+			case "new_message_to_group":
+				repository.SaveAndSendMessage(bot, m)
+			}
+		}
 	})
 
 	//new message inline message handler

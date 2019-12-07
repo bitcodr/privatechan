@@ -244,7 +244,15 @@ func NewMessageHandler(bot *tb.Bot, c *tb.Callback) {
 }
 
 func SaveAndSendMessage(bot *tb.Bot, m *tb.Message) {
-
+	//TODO save message to db
+	//TODO create link for message
+	//TODO create direct link message for user dm
+	//TODO deactive user last state
+	//TODO restart the bot and show keyboards again
+	activeChannel := GetUserCurrentActiveChannel(bot, m)
+	if activeChannel != nil{
+		bot.Send(activeChannel, m.Text)
+	}
 }
 
 func GetUserCurrentActiveChannel(bot *tb.Bot, m *tb.Message) *model.Channel {
