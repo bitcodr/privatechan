@@ -88,10 +88,10 @@ func RegisterChannel(bot *tb.Bot, m *tb.Message) {
 				}
 				successMessage, _ := bot.Send(m.Chat, "You're channel registered successfully")
 				time.Sleep(3 * time.Second)
-				bot.Delete(successMessage)
+				_ = bot.Delete(successMessage)
 				pinMessage, _ := bot.Send(m.Chat, "You can send a message in this channel, by https://t.me/"+viper.GetString("APP.BOTUSERNAME")+"?start=join_group"+channelID)
-				bot.Pin(pinMessage)
-				bot.Delete(m)
+				_ = bot.Pin(pinMessage)
+				_ = bot.Delete(m)
 			}
 		}
 	}
