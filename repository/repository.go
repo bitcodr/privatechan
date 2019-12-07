@@ -208,9 +208,9 @@ func checkAndInsertUserChannel(bot *tb.Bot, m *tb.Message, queryUserID int64, ch
 		transaction.Commit()
 		if checkUserChannelActivity.Next() {
 			//active use must show all keyboard for do some action
-			newGroup := tb.InlineButton{
+			joinGroup := tb.InlineButton{
 				Unique: "join_group-" + channelID,
-				Text:   "Join To The other Company Channels",
+				Text:   "Join To The Other Company Channels",
 			}
 			newMessage := tb.InlineButton{
 				Unique: "new_message_to_group-" + channelID,
@@ -222,15 +222,17 @@ func checkAndInsertUserChannel(bot *tb.Bot, m *tb.Message, queryUserID int64, ch
 			}
 			newReply := tb.InlineButton{
 				Unique: "reply_to_message_on_group-" + channelID,
-				Text:   "Reply To Message On Group",
+				Text:   "Reply To a Message On Channel",
 			}
 			newDM := tb.InlineButton{
 				Unique: "reply_by_dm_to_user_on_group-" + channelID,
-				Text:   "Reply By Direct Message To User On Group",
+				Text:   "Reply By Direct Message To User On Channel",
 			}
 			inlineKeys := [][]tb.InlineButton{
-				[]tb.InlineButton{newGroup, newMessage},
-				[]tb.InlineButton{newSurvey, newReply},
+				[]tb.InlineButton{joinGroup},
+				[]tb.InlineButton{newMessage},
+				[]tb.InlineButton{newSurvey},
+				[]tb.InlineButton{newReply},
 				[]tb.InlineButton{newDM},
 			}
 			_, err := bot.Send(m.Chat, "Welcome to the channel "+channelModelData.ChannelName+" the channel blongs to company "+companyModel.CompanyName+" You can use the inline keyboards to do an action on the channel or etc...", &tb.ReplyMarkup{
