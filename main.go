@@ -29,41 +29,41 @@ func main() {
 		return
 	}
 
+	joinGroup := tb.InlineButton{
+		Unique: "join_group",
+		Text:   "Join To The Other Company Channels",
+	}
+	newSurvey := tb.InlineButton{
+		Unique: "new_survey_to_group",
+		Text:   "New Survey To The Channel",
+	}
+	newMessage := tb.InlineButton{
+		Unique: "new_message_to_group",
+		Text:   "New Message To The Channel",
+	}
+
+	inlineKeys := [][]tb.InlineButton{
+		[]tb.InlineButton{joinGroup},
+		[]tb.InlineButton{newMessage},
+		[]tb.InlineButton{newSurvey},
+	}
+
 	//register a channel with the company name directly from channel
 	bot.Handle(tb.OnChannelPost, func(m *tb.Message) {
 		repository.RegisterChannel(bot, m)
 	})
 
+	//redirect user from channel to bot for sending message or etc
 	bot.Handle(tb.OnText, func(m *tb.Message) {
-		//TODO check user if registered then show keyboard
-		//TODO check user is not registered show verification email
 		if strings.Contains(m.Text, " join_group") {
-			repository.JoinFromChannel(bot, m)
+			repository.JoinFromChannel(bot, m, inlineKeys)
 		}
+		fmt.Println(m)
 	})
 
-	bot.Handle("/join_group", func(m *tb.Message) {
-		_, _ = bot.Send(m.Sender, "hello world")
-	})
-
-	bot.Handle("/new_group", func(m *tb.Message) {
-		_, _ = bot.Send(m.Sender, "hello world")
-	})
-
-	bot.Handle("/new_message_to_group", func(m *tb.Message) {
-		_, _ = bot.Send(m.Sender, "hello world")
-	})
-
-	bot.Handle("/new_survey_to_group", func(m *tb.Message) {
-		_, _ = bot.Send(m.Sender, "hello world")
-	})
-
-	bot.Handle("/reply_to_message_on_group", func(m *tb.Message) {
-		_, _ = bot.Send(m.Sender, "hello world")
-	})
-
-	bot.Handle("/reply_by_dm_to_user_on_group", func(m *tb.Message) {
-		_, _ = bot.Send(m.Sender, "hello world")
+	//new message inline message handler
+	bot.Handle(&newMessage, func(c *tb.Callback) {
+		repository.NewMessageHandler(bot, c)
 	})
 
 	bot.Start()

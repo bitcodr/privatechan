@@ -108,7 +108,7 @@ func RegisterChannel(bot *tb.Bot, m *tb.Message) {
 	}
 }
 
-func JoinFromChannel(bot *tb.Bot, m *tb.Message) {
+func JoinFromChannel(bot *tb.Bot, m *tb.Message, inlineKeys [][]tb.InlineButton) {
 	data := strings.Split(m.Text, "join_group")
 	if len(data) == 2 {
 		channelID := data[1]
@@ -146,19 +146,19 @@ func JoinFromChannel(bot *tb.Bot, m *tb.Message) {
 				transaction.Rollback()
 				log.Println(err)
 			}
-			checkAndInsertUserChannel(bot, m, insertedUserID, channelID, db, transaction)
+			checkAndInsertUserChannel(bot, m, insertedUserID, channelID, db, transaction, inlineKeys)
 		} else {
 			userModel := new(model.User)
 			if err := results.Scan(&userModel.ID); err != nil {
 				transaction.Rollback()
 				log.Println(err)
 			}
-			checkAndInsertUserChannel(bot, m, userModel.ID, channelID, db, transaction)
+			checkAndInsertUserChannel(bot, m, userModel.ID, channelID, db, transaction, inlineKeys)
 		}
 	}
 }
 
-func checkAndInsertUserChannel(bot *tb.Bot, m *tb.Message, queryUserID int64, channelID string, db *sql.DB, transaction *sql.Tx) {
+func checkAndInsertUserChannel(bot *tb.Bot, m *tb.Message, queryUserID int64, channelID string, db *sql.DB, transaction *sql.Tx, inlineKeys [][]tb.InlineButton) {
 	userModelID := strconv.FormatInt(queryUserID, 10)
 	//check if channel for user is exists
 	checkUserChannel, err := db.Query("SELECT ch.id as id FROM `channels` as ch inner join `users_channels` as uc on uc.channelID = ch.id and uc.userID='" + userModelID + "' and ch.channelID='" + channelID + "'")
@@ -207,41 +207,27 @@ func checkAndInsertUserChannel(bot *tb.Bot, m *tb.Message, queryUserID int64, ch
 		}
 		transaction.Commit()
 		if checkUserChannelActivity.Next() {
-			//active use must show all keyboard for do some action
-			joinGroup := tb.InlineButton{
-				Unique: "join_group-" + channelID,
-				Text:   "Join To The Other Company Channels",
+			//inactive user last active channels
+			_, err := transaction.Exec("update `users_current_active_channel` set `status`='INACTIVE' where `userID`='" + userModelID + "'")
+			if err != nil {
+				transaction.Rollback()
+				log.Println(err)
 			}
-			newMessage := tb.InlineButton{
-				Unique: "new_message_to_group-" + channelID,
-				Text:   "New Message To The Channel",
+			//set user active channel
+			_, err = transaction.Exec("INSERT INTO `users_current_active_channel` (`userID`,`channelID`,`createdAt`,`updatedAt`) VALUES('" + userModelID + "','" + channelModelID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+			if err != nil {
+				transaction.Rollback()
+				log.Println(err)
 			}
-			newSurvey := tb.InlineButton{
-				Unique: "new_survey_to_group-" + channelID,
-				Text:   "New Survey To The Channel",
-			}
-			newReply := tb.InlineButton{
-				Unique: "reply_to_message_on_group-" + channelID,
-				Text:   "Reply To a Message On Channel",
-			}
-			newDM := tb.InlineButton{
-				Unique: "reply_by_dm_to_user_on_group-" + channelID,
-				Text:   "Reply By Direct Message To User On Channel",
-			}
-			inlineKeys := [][]tb.InlineButton{
-				[]tb.InlineButton{joinGroup},
-				[]tb.InlineButton{newMessage},
-				[]tb.InlineButton{newSurvey},
-				[]tb.InlineButton{newReply},
-				[]tb.InlineButton{newDM},
-			}
-			_, err := bot.Send(m.Chat, "Welcome to the channel "+channelModelData.ChannelName+" the channel blongs to company "+companyModel.CompanyName+" You can use the inline keyboards to do an action on the channel or etc...", &tb.ReplyMarkup{
+			//send welcome message and show inline keyboards
+			_, err = bot.Send(m.Chat, "Welcome to the channel "+channelModelData.ChannelName+" the channel blongs to company "+companyModel.CompanyName+" You can use the inline keyboards to do an action on the channel or etc...", &tb.ReplyMarkup{
 				InlineKeyboard: inlineKeys,
 			})
 			if err != nil {
 				log.Println(err)
 			}
 		} else {
+			//show a message for verification because the user isn't verify
 			_, err := bot.Send(m.Chat, "You trying to join to the channel "+channelModelData.ChannelName+" blongs to company "+companyModel.CompanyName+" If do want to send a message on channel you should send and verify your email address")
 			if err != nil {
 				log.Println(err)
@@ -251,4 +237,12 @@ func checkAndInsertUserChannel(bot *tb.Bot, m *tb.Message, queryUserID int64, ch
 			//TODO if user is active in one company channels the user should be active in other company channels
 		}
 	}
+}
+
+func NewMessageHandler(bot *tb.Bot, c *tb.Callback) {
+	bot.Send(c.Sender, "Please send your message:")
+}
+
+func SaveAndSendMessage(bot *tb.Bot, m *tb.Message) {
+
 }
