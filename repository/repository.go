@@ -3,7 +3,6 @@ package repository
 
 import (
 	"database/sql"
-	"fmt"
 	"github.com/amiraliio/tgbp/config"
 	"github.com/amiraliio/tgbp/model"
 	_ "github.com/go-sql-driver/mysql"
@@ -14,8 +13,6 @@ import (
 	"strings"
 	"time"
 )
-
-//TODO some methods need transactions
 
 //RegisterChannel
 func RegisterChannel(bot *tb.Bot, m *tb.Message) {
@@ -150,8 +147,6 @@ func JoinFromChannel(bot *tb.Bot, m *tb.Message) {
 				log.Println(err)
 			}
 			checkAndInsertUserChannel(bot, m, insertedUserID, channelID, db, transaction)
-			//TODO add channel and userId if channel for user is not exist
-			//TODO show verification btn and send email
 		} else {
 			userModel := new(model.User)
 			if err := results.Scan(&userModel.ID); err != nil {
@@ -212,14 +207,46 @@ func checkAndInsertUserChannel(bot *tb.Bot, m *tb.Message, queryUserID int64, ch
 		}
 		transaction.Commit()
 		if checkUserChannelActivity.Next() {
-			//TODO show all keyboards
-			fmt.Println("active")
+			//active use must show all keyboard for do some action
+			newGroup := tb.InlineButton{
+				Unique: "join_group-" + channelID,
+				Text:   "Join To The other Company Channels",
+			}
+			newMessage := tb.InlineButton{
+				Unique: "new_message_to_group-" + channelID,
+				Text:   "New Message To The Channel",
+			}
+			newSurvey := tb.InlineButton{
+				Unique: "new_survey_to_group-" + channelID,
+				Text:   "New Survey To The Channel",
+			}
+			newReply := tb.InlineButton{
+				Unique: "reply_to_message_on_group-" + channelID,
+				Text:   "Reply To Message On Group",
+			}
+			newDM := tb.InlineButton{
+				Unique: "reply_by_dm_to_user_on_group-" + channelID,
+				Text:   "Reply By Direct Message To User On Group",
+			}
+			inlineKeys := [][]tb.InlineButton{
+				[]tb.InlineButton{newGroup, newMessage},
+				[]tb.InlineButton{newSurvey, newReply},
+				[]tb.InlineButton{newDM},
+			}
+			_, err := bot.Send(m.Chat, "Welcome to the channel "+channelModelData.ChannelName+" the channel blongs to company "+companyModel.CompanyName+" You can use the inline keyboards to do an action on the channel or etc...", &tb.ReplyMarkup{
+				InlineKeyboard: inlineKeys,
+			})
+			if err != nil {
+				log.Println(err)
+			}
 		} else {
 			_, err := bot.Send(m.Chat, "You trying to join to the channel "+channelModelData.ChannelName+" blongs to company "+companyModel.CompanyName+" If do want to send a message on channel you should send and verify your email address")
 			if err != nil {
 				log.Println(err)
 			}
 			//TODO show verification btn and get user email to send a code for activation
+			//TODO active user verification in the pivot table
+			//TODO if user is active in one company channels the user should be active in other company channels
 		}
 	}
 }
