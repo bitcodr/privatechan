@@ -267,3 +267,52 @@ func GetUserCurrentActiveChannel(bot *tb.Bot, m *tb.Message) *model.Channel {
 	}
 	return nil
 }
+
+func GetUserLastState(bot *tb.Bot, m *tb.Message) *model.UserLastState {
+	db, err := config.DB()
+	if err != nil {
+		log.Println(err)
+	}
+	defer db.Close()
+	userID := strconv.Itoa(m.Sender.ID)
+	userLastStateQuery, err := db.Query("SELECT ch.state from `users_last_state` as ch inner join `users` as us on ch.userID=us.id and us.userID='" + userID + "' and us.`status`='ACTIVE' where ch.status='ACTIVE'")
+	if err != nil {
+		log.Println(err)
+	}
+	if userLastStateQuery.Next() {
+		userLastState := new(model.UserLastState)
+		if err := userLastStateQuery.Scan(&userLastState.State); err != nil {
+			log.Println(err)
+		}
+		return userLastState
+	}
+	return nil
+}
+
+func SaveUserLastState(bot *tb.Bot, userDataID int, state string) {
+	db, err := config.DB()
+	if err != nil {
+		log.Println(err)
+	}
+	defer db.Close()
+	userID := strconv.Itoa(userDataID)
+	results, err := db.Query("SELECT id FROM `users` where `status`= 'ACTIVE' and `userID`='" + userID + "'")
+	if err != nil {
+		log.Println(err)
+	}
+	if results.Next() {
+		userModel := new(model.User)
+		if err := results.Scan(&userModel.ID); err != nil {
+			log.Println(err)
+		}
+		userModelID := strconv.FormatInt(userModel.ID, 10)
+		_, err = db.Query("update `users_last_state` set `status`='INACTIVE' where `userID`='" + userModelID + "'")
+		if err != nil {
+			log.Println(err)
+		}
+		_, err = db.Query("INSERT INTO `users_last_state` (`userID`,`state`,`createdAt`,`updatedAt`) VALUES('" + userModelID + "','" + state + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+		if err != nil {
+			log.Println(err)
+		}
+	}
+}

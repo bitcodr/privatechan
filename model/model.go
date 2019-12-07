@@ -76,3 +76,13 @@ type UsersCurrentActiveChannel struct {
 	User      User    `json:"user"`
 	Channel   Channel `json:"channel"`
 }
+
+type UserLastState struct {
+	ID        int64  `json:"id"`
+	Status    string `json:"status"`
+	State     string `json:"state"`
+	UserID    int64  `json:"userID"`
+	CreatedAt string `json:"createdAt"`
+	UpdatedAt string `json:"updatedAt"`
+	User      User   `json:"user"`
+}

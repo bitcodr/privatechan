@@ -50,19 +50,23 @@ func main() {
 
 	//register a channel with the company name directly from channel
 	bot.Handle(tb.OnChannelPost, func(m *tb.Message) {
+		repository.SaveUserLastState(bot, m.Sender.ID, "register_channel")
 		repository.RegisterChannel(bot, m)
 	})
 
 	//redirect user from channel to bot for sending message or etc
 	bot.Handle(tb.OnText, func(m *tb.Message) {
 		if strings.Contains(m.Text, " join_group") {
+			repository.SaveUserLastState(bot, m.Sender.ID, "join_group")
 			repository.JoinFromChannel(bot, m, inlineKeys)
 		}
 		fmt.Println(repository.GetUserCurrentActiveChannel(bot, m))
+		fmt.Println(repository.GetUserLastState(bot, m))
 	})
 
 	//new message inline message handler
 	bot.Handle(&newMessage, func(c *tb.Callback) {
+		repository.SaveUserLastState(bot, c.Sender.ID, "new_message_to_group")
 		repository.NewMessageHandler(bot, c)
 	})
 
