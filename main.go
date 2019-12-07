@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/amiraliio/tgbp/repository"
 	"github.com/spf13/viper"
@@ -31,6 +32,14 @@ func main() {
 	//register a channel with the company name directly from channel
 	bot.Handle(tb.OnChannelPost, func(m *tb.Message) {
 		repository.RegisterChannel(bot, m)
+	})
+
+	bot.Handle(tb.OnText, func(m *tb.Message) {
+		//TODO check user if registered then show keyboard
+		//TODO check user is not registered show verification email
+		if strings.Contains(m.Text, " join_group"){
+			
+		}
 	})
 
 	bot.Handle("/join_group", func(m *tb.Message) {
