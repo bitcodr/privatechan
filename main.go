@@ -58,7 +58,7 @@ func main() {
 		if strings.Contains(m.Text, " join_group") {
 			repository.JoinFromChannel(bot, m, inlineKeys)
 		}
-		fmt.Println(m)
+		fmt.Println(repository.GetUserCurrentActiveChannel(bot, m))
 	})
 
 	//new message inline message handler

@@ -246,3 +246,24 @@ func NewMessageHandler(bot *tb.Bot, c *tb.Callback) {
 func SaveAndSendMessage(bot *tb.Bot, m *tb.Message) {
 
 }
+
+func GetUserCurrentActiveChannel(bot *tb.Bot, m *tb.Message) *model.Channel {
+	db, err := config.DB()
+	if err != nil {
+		log.Println(err)
+	}
+	defer db.Close()
+	userID := strconv.Itoa(m.Sender.ID)
+	userActiveChannel, err := db.Query("SELECT ch.`channelID`,ch.`channelName`,ch.`channelURL`, from `channels` as ch inner join `users_current_active_channel` as uc on ch.id=uc.channelID and uc.status='ACTIVE' inner join `users` as us on uc.userID=us.id and us.userID='" + userID + "' and us.`status`='ACTIVE'")
+	if err != nil {
+		log.Println(err)
+	}
+	if userActiveChannel.Next() {
+		channelModel := new(model.Channel)    
+		if err := userActiveChannel.Scan(&channelModel.ChannelID, &channelModel.ChannelName, &channelModel.ChannelURL); err != nil {
+			log.Println(err)
+		}
+		return channelModel
+	}
+	return nil
+}

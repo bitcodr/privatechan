@@ -53,3 +53,26 @@ type UserChannel struct {
 	User      User    `json:"user"`
 	Channel   Channel `json:"channel"`
 }
+
+type Message struct {
+	ID        int64     `json:"id"`
+	CreatedAt string    `json:"createdAt"`
+	UpdatedAt string    `json:"updatedAt"`
+	UserID    int64     `json:"userID"`
+	ChannelID int64     `json:"channelID"`
+	ParentID  int64     `json:"parentID"`
+	Messages  []Message `json:"messages"`
+	User      User      `json:"user"`
+	Channel   Channel   `json:"channel"`
+}
+
+type UsersCurrentActiveChannel struct {
+	ID        int64   `json:"id"`
+	CreatedAt string  `json:"createdAt"`
+	UpdatedAt string  `json:"updatedAt"`
+	UserID    int64   `json:"userID"`
+	ChannelID int64   `json:"channelID"`
+	Status    string  `json:"status"`
+	User      User    `json:"user"`
+	Channel   Channel `json:"channel"`
+}
