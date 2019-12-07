@@ -41,7 +41,7 @@ func RegisterChannel(bot *tb.Bot, m *tb.Message) {
 					log.Println(err)
 				}
 				//insert channel
-				channelInserted, err := transaction.Exec("INSERT INTO `channels` (channelURL,channelID,channelName,createdAt,updatedAt) VALUES('" + channelURL + "','" + channelID + "','" + m.Chat.Title + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+				channelInserted, err := transaction.Exec("INSERT INTO `channels` (`channelURL`,`channelID`,`channelName`,`createdAt`,`updatedAt`) VALUES('" + channelURL + "','" + channelID + "','" + m.Chat.Title + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
 				if err != nil {
 					transaction.Rollback()
 					log.Println(err)
@@ -53,7 +53,7 @@ func RegisterChannel(bot *tb.Bot, m *tb.Message) {
 					companyFlag := channelDetails[1]
 					fmt.Println(companyFlag)
 					//check if company is not exist
-					companyExists, err := transaction.Query("SELECT id FROM `companies` where companyName=" + companyFlag)
+					companyExists, err := transaction.Query("SELECT id FROM `companies` where `companyName`='" + companyFlag + "'")
 					fmt.Println(companyExists)
 					if err != nil {
 						transaction.Rollback()
@@ -61,9 +61,9 @@ func RegisterChannel(bot *tb.Bot, m *tb.Message) {
 					}
 					fmt.Println("ok2")
 					if !companyExists.Next() {
-						fmt.Println("ok2")
+						fmt.Println("ok3")
 						//insert company
-						companyInserted, err := transaction.Exec("INSERT INTO `companies` (companyName,createdAt,updatedAt) VALUES('" + companyFlag + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+						companyInserted, err := transaction.Exec("INSERT INTO `companies` (`companyName`,`createdAt`,`updatedAt`) VALUES('" + companyFlag + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
 						if err != nil {
 							transaction.Rollback()
 							log.Println(err)
@@ -74,7 +74,7 @@ func RegisterChannel(bot *tb.Bot, m *tb.Message) {
 							companyModelID := strconv.FormatInt(insertedCompanyID, 10)
 							channelModelID := strconv.FormatInt(insertedChannelID, 10)
 							//insert company channel pivot
-							_, err := transaction.Exec("INSERT INTO `companies_channels` (companyID,channelID,createdAt) VALUES('" + companyModelID + "','" + channelModelID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+							_, err := transaction.Exec("INSERT INTO `companies_channels` (`companyID`,`channelID`,`createdAt`) VALUES('" + companyModelID + "','" + channelModelID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
 							if err != nil {
 								transaction.Rollback()
 								log.Println(err)
