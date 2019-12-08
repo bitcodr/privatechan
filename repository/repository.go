@@ -3,6 +3,7 @@ package repository
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"strconv"
 	"strings"
@@ -337,8 +338,6 @@ func SendAndSaveReplyMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserLa
 						}
 						ChannelMessageDataID, err := strconv.Atoi(messageModel.ChannelMessageID)
 						if err == nil {
-							// chatModel := new(tb.Chat)
-							// chatModel.ID =
 							sendMessageModel := new(tb.Message)
 							sendMessageModel.ID = ChannelMessageDataID
 							newReplyModel := new(tb.ReplyMarkup)
@@ -363,6 +362,76 @@ func SendAndSaveReplyMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserLa
 									defer insertedMessage.Close()
 									bot.Send(m.Sender, "Your Reply Message Has Been Sent")
 									SaveUserLastState(bot, "", m.Sender.ID, "reply_message_sent")
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+func SendAndSaveDirectMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserLastState) {
+	if lastState.Data != "" {
+		ids := strings.TrimPrefix(lastState.Data, "/start reply_by_dm_to_user_on_group_")
+		if ids != "" {
+			data := strings.Split(ids, "_")
+			if len(data) == 3 {
+				channelID := data[0]
+				userID := data[1]
+				botMessageID := data[2]
+				senderID := strconv.Itoa(m.Sender.ID)
+				newBotMessageID := strconv.Itoa(m.ID)
+				userIDInInt, err := strconv.Atoi(userID)
+				if err == nil {
+					db, err := config.DB()
+					if err != nil {
+						log.Println(err)
+					}
+					defer db.Close()
+					message := db.QueryRow("SELECT me.id,me.channelMessageID from `messages` as me inner join `channels` as ch on me.channelID=ch.id and ch.channelID='" + channelID + "' where me.`botMessageID`='" + botMessageID + "' and me.`userID`='" + userID + "'")
+					messageModel := new(model.Message)
+					if err := message.Scan(&messageModel.ID, &messageModel.ChannelMessageID); err == nil {
+						newReply := tb.InlineButton{
+							Unique: "reply_by_dm_to_user_on_group_" + channelID + "_" + senderID + "_" + newBotMessageID,
+							Text:   "Direct Reply",
+							URL:    "https://t.me/" + viper.GetString("APP.BOTUSERNAME") + "?start=reply_by_dm_to_user_on_group_" + channelID + "_" + senderID + "_" + newBotMessageID,
+						}
+						inlineKeys := [][]tb.InlineButton{
+							[]tb.InlineButton{newReply},
+						}
+						ChannelMessageDataID, err := strconv.Atoi(messageModel.ChannelMessageID)
+						fmt.Println(ChannelMessageDataID)
+						if err == nil {
+							// sendMessageModel := new(tb.Message)
+							// sendMessageModel.ID = ChannelMessageDataID
+							newReplyModel := new(tb.ReplyMarkup)
+							newReplyModel.InlineKeyboard = inlineKeys
+							newSendOption := new(tb.SendOptions)
+							// newSendOption.ReplyTo = sendMessageModel
+							newSendOption.ReplyMarkup = newReplyModel
+							user := new(tb.User)
+							user.ID = userIDInInt
+							sendMessage, err := bot.Send(user, m.Text, newSendOption)
+							fmt.Println(err)
+							if err == nil {
+
+								newChannelMessageID := strconv.Itoa(sendMessage.ID)
+								parentID := strconv.FormatInt(messageModel.ID, 10)
+								currentChannel := db.QueryRow("SELECT id from `channels` where channelID='" + channelID + "'")
+								newChannelModel := new(model.Channel)
+								if err := currentChannel.Scan(&newChannelModel.ID); err == nil {
+																											fmt.Println("oeek")
+
+									newChannelModelID := strconv.FormatInt(newChannelModel.ID, 10)
+									insertedMessage, err := db.Query("INSERT INTO `messages` (`message`,`userID`,`channelID`,`channelMessageID`,`botMessageID`,`parentID`,`createdAt`) VALUES('" + m.Text + "','" + senderID + "','" + newChannelModelID + "','" + newChannelMessageID + "','" + newBotMessageID + "','" + parentID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+									if err != nil {
+										log.Println(err)
+									}
+									defer insertedMessage.Close()
+									bot.Send(m.Sender, "Your Direct Message Has Been Sent To The User")
+									SaveUserLastState(bot, "", m.Sender.ID, "direct_message_sent")
 								}
 							}
 						}

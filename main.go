@@ -82,7 +82,9 @@ func main() {
 			case lastState.State == "new_message_to_group":
 				repository.SaveAndSendMessage(bot, m)
 			case lastState.State == "reply_to_message_on_group" && !strings.Contains(m.Text, "reply_to_message_on_group_"):
-				repository.SendAndSaveReplyMessage(bot, m,lastState)
+				repository.SendAndSaveReplyMessage(bot, m, lastState)
+			case lastState.State == "reply_by_dm_to_user_on_group" && !strings.Contains(m.Text, "reply_by_dm_to_user_on_group_"):
+				repository.SendAndSaveDirectMessage(bot, m, lastState)
 			}
 		}
 	})
