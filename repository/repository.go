@@ -282,9 +282,15 @@ func SaveAndSendMessage(bot *tb.Bot, m *tb.Message) {
 				if err != nil {
 					log.Println(err)
 				}
+				bot.Send(m.Sender, "Your Message Has Been Sent")
+				SaveUserLastState(bot, "", m.Sender.ID, "message_sent")
 			}
 		}
 	}
+}
+
+func SendAndSaveReplyMessage(bot *tb.Bot, m *tb.Message) {
+
 }
 
 func GetUserCurrentActiveChannel(bot *tb.Bot, m *tb.Message) *model.Channel {
@@ -358,9 +364,9 @@ func SaveUserLastState(bot *tb.Bot, data string, userDataID int, state string) {
 }
 
 func SendReply(bot *tb.Bot, m *tb.Message) {
-	bot.Send(m.Sender, "Please send your reply to the message")
+	bot.Send(m.Sender, "Please send your reply to the message:")
 }
 
 func SanedDM(bot *tb.Bot, m *tb.Message) {
-	bot.Send(m.Sender, "Please send your direct message to the user")
+	bot.Send(m.Sender, "Please send your direct message to the user:")
 }
