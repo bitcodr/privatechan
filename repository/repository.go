@@ -3,16 +3,20 @@ package repository
 
 import (
 	"database/sql"
+	"fmt"
+	"log"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/amiraliio/tgbp/config"
 	"github.com/amiraliio/tgbp/model"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/spf13/viper"
 	tb "gopkg.in/tucnak/telebot.v2"
-	"log"
-	"strconv"
-	"strings"
-	"time"
 )
+
+//TODO change query to queryRow
 
 //RegisterChannel
 func RegisterChannel(bot *tb.Bot, m *tb.Message) {
@@ -243,6 +247,14 @@ func NewMessageHandler(bot *tb.Bot, c *tb.Callback) {
 	bot.Send(c.Sender, "Please send your message:")
 }
 
+func SendReply(bot *tb.Bot, m *tb.Message) {
+	bot.Send(m.Sender, "Please send your reply to the message:")
+}
+
+func SanedDM(bot *tb.Bot, m *tb.Message) {
+	bot.Send(m.Sender, "Please send your direct message to the user:")
+}
+
 func SaveAndSendMessage(bot *tb.Bot, m *tb.Message) {
 	//TODO inactive user last state
 	//TODO restart the bot and show keyboards again
@@ -278,10 +290,11 @@ func SaveAndSendMessage(bot *tb.Bot, m *tb.Message) {
 					log.Println(err)
 				}
 				defer db.Close()
-				_, err = db.Query("INSERT INTO `messages` (`message`,`userID`,`channelID`,`channelMessageID`,`botMessageID`,`createdAt`) VALUES('" + m.Text + "','" + senderID + "','" + channelID + "','" + channelMessageID + "','" + botMessageID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+				insertedMessage, err := db.Query("INSERT INTO `messages` (`message`,`userID`,`channelID`,`channelMessageID`,`botMessageID`,`createdAt`) VALUES('" + m.Text + "','" + senderID + "','" + channelID + "','" + channelMessageID + "','" + botMessageID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
 				if err != nil {
 					log.Println(err)
 				}
+				defer insertedMessage.Close()
 				bot.Send(m.Sender, "Your Message Has Been Sent")
 				SaveUserLastState(bot, "", m.Sender.ID, "message_sent")
 			}
@@ -289,8 +302,28 @@ func SaveAndSendMessage(bot *tb.Bot, m *tb.Message) {
 	}
 }
 
-func SendAndSaveReplyMessage(bot *tb.Bot, m *tb.Message) {
-
+func SendAndSaveReplyMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserLastState) {
+	if lastState.Data != "" {
+		ids := strings.TrimPrefix(lastState.Data, "/start reply_to_message_on_group_")
+		if ids != "" {
+			data := strings.Split(ids, "_")
+			if len(data) == 3 {
+				// channelID := data[0]
+				userID := data[1]
+				botMessageID := data[2]
+				db, err := config.DB()
+				if err != nil {
+					log.Println(err)
+				}
+				defer db.Close()
+				message := db.QueryRow("SELECT id,channelMessageID from `messages` where `botMessageID`='" + botMessageID + "' and `userID`='" + userID + "'")
+				messageModel := new(model.Message)
+				if err := message.Scan(&messageModel.ID, &messageModel.ChannelMessageID); err !=nil{
+					fmt.Println(message)
+				}
+			}
+		}
+	}
 }
 
 func GetUserCurrentActiveChannel(bot *tb.Bot, m *tb.Message) *model.Channel {
@@ -321,13 +354,13 @@ func GetUserLastState(bot *tb.Bot, m *tb.Message) *model.UserLastState {
 	}
 	defer db.Close()
 	userID := strconv.Itoa(m.Sender.ID)
-	userLastStateQuery, err := db.Query("SELECT ch.state from `users_last_state` as ch inner join `users` as us on ch.userID=us.id and us.userID='" + userID + "' and us.`status`='ACTIVE' where ch.status='ACTIVE'")
+	userLastStateQuery, err := db.Query("SELECT ch.data,ch.state from `users_last_state` as ch inner join `users` as us on ch.userID=us.id and us.userID='" + userID + "' and us.`status`='ACTIVE' where ch.status='ACTIVE'")
 	if err != nil {
 		log.Println(err)
 	}
 	if userLastStateQuery.Next() {
 		userLastState := new(model.UserLastState)
-		if err := userLastStateQuery.Scan(&userLastState.State); err != nil {
+		if err := userLastStateQuery.Scan(&userLastState.Data, &userLastState.State); err != nil {
 			log.Println(err)
 		}
 		return userLastState
@@ -352,21 +385,15 @@ func SaveUserLastState(bot *tb.Bot, data string, userDataID int, state string) {
 			log.Println(err)
 		}
 		userModelID := strconv.FormatInt(userModel.ID, 10)
-		_, err = db.Query("update `users_last_state` set `status`='INACTIVE' where `userID`='" + userModelID + "'")
+		updatedLastState, err := db.Query("update `users_last_state` set `status`='INACTIVE' where `userID`='" + userModelID + "'")
 		if err != nil {
 			log.Println(err)
 		}
-		_, err = db.Query("INSERT INTO `users_last_state` (`userID`,`state`,`data`,`createdAt`,`updatedAt`) VALUES('" + userModelID + "','" + state + "','" + data + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+		defer updatedLastState.Close()
+		insertedLastState, err := db.Query("INSERT INTO `users_last_state` (`userID`,`state`,`data`,`createdAt`,`updatedAt`) VALUES('" + userModelID + "','" + state + "','" + data + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
 		if err != nil {
 			log.Println(err)
 		}
+		defer insertedLastState.Close()
 	}
-}
-
-func SendReply(bot *tb.Bot, m *tb.Message) {
-	bot.Send(m.Sender, "Please send your reply to the message:")
-}
-
-func SanedDM(bot *tb.Bot, m *tb.Message) {
-	bot.Send(m.Sender, "Please send your direct message to the user:")
 }
