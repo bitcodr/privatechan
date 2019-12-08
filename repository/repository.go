@@ -244,14 +244,46 @@ func NewMessageHandler(bot *tb.Bot, c *tb.Callback) {
 }
 
 func SaveAndSendMessage(bot *tb.Bot, m *tb.Message) {
-	//TODO save message to db
-	//TODO create link for message
-	//TODO create direct link message for user dm
-	//TODO deactive user last state
+	//TODO inactive user last state
 	//TODO restart the bot and show keyboards again
 	activeChannel := GetUserCurrentActiveChannel(bot, m)
-	if activeChannel != nil{
-		bot.Send(activeChannel, m.Text)
+	if activeChannel != nil {
+		senderID := strconv.Itoa(m.Sender.ID)
+		botMessageID := strconv.Itoa(m.ID)
+		newReply := tb.InlineButton{
+			Unique: "reply_to_message_on_group_" + activeChannel.ChannelID + "_" + senderID + "_" + botMessageID,
+			Text:   "Reply",
+			URL:    "https://t.me/" + viper.GetString("APP.BOTUSERNAME") + "?start=reply_to_message_on_group_" + activeChannel.ChannelID + "_" + senderID + "_" + botMessageID,
+		}
+		newDM := tb.InlineButton{
+			Unique: "reply_by_dm_to_user_on_group_" + activeChannel.ChannelID + "_" + senderID + "_" + botMessageID,
+			Text:   "Direct Message",
+			URL:    "https://t.me/" + viper.GetString("APP.BOTUSERNAME") + "?start=reply_by_dm_to_user_on_group_" + activeChannel.ChannelID + "_" + senderID + "_" + botMessageID,
+		}
+		inlineKeys := [][]tb.InlineButton{
+			[]tb.InlineButton{newReply, newDM},
+		}
+		activeChannelID, err := strconv.Atoi(activeChannel.ChannelID)
+		if err == nil {
+			user := new(tb.User)
+			user.ID = activeChannelID
+			message, err := bot.Send(user, m.Text, &tb.ReplyMarkup{
+				InlineKeyboard: inlineKeys,
+			})
+			if err == nil {
+				channelMessageID := strconv.Itoa(message.ID)
+				channelID := strconv.FormatInt(activeChannel.ID, 10)
+				db, err := config.DB()
+				if err != nil {
+					log.Println(err)
+				}
+				defer db.Close()
+				_, err = db.Query("INSERT INTO `messages` (`message`,`userID`,`channelID`,`channelMessageID`,`botMessageID`,`createdAt`) VALUES('" + m.Text + "','" + senderID + "','" + channelID + "','" + channelMessageID + "','" + botMessageID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+				if err != nil {
+					log.Println(err)
+				}
+			}
+		}
 	}
 }
 
@@ -262,13 +294,13 @@ func GetUserCurrentActiveChannel(bot *tb.Bot, m *tb.Message) *model.Channel {
 	}
 	defer db.Close()
 	userID := strconv.Itoa(m.Sender.ID)
-	userActiveChannel, err := db.Query("SELECT ch.channelID,ch.channelName,ch.channelURL from `channels` as ch inner join `users_current_active_channel` as uc on ch.id=uc.channelID and uc.status='ACTIVE' inner join `users` as us on uc.userID=us.id and us.userID='" + userID + "' and us.`status`='ACTIVE'")
+	userActiveChannel, err := db.Query("SELECT ch.id,ch.channelID,ch.channelName,ch.channelURL from `channels` as ch inner join `users_current_active_channel` as uc on ch.id=uc.channelID and uc.status='ACTIVE' inner join `users` as us on uc.userID=us.id and us.userID='" + userID + "' and us.`status`='ACTIVE'")
 	if err != nil {
 		log.Println(err)
 	}
 	if userActiveChannel.Next() {
 		channelModel := new(model.Channel)
-		if err := userActiveChannel.Scan(&channelModel.ChannelID, &channelModel.ChannelName, &channelModel.ChannelURL); err != nil {
+		if err := userActiveChannel.Scan(&channelModel.ID, &channelModel.ChannelID, &channelModel.ChannelName, &channelModel.ChannelURL); err != nil {
 			log.Println(err)
 		}
 		return channelModel
@@ -297,7 +329,7 @@ func GetUserLastState(bot *tb.Bot, m *tb.Message) *model.UserLastState {
 	return nil
 }
 
-func SaveUserLastState(bot *tb.Bot, userDataID int, state string) {
+func SaveUserLastState(bot *tb.Bot, data string, userDataID int, state string) {
 	db, err := config.DB()
 	if err != nil {
 		log.Println(err)
@@ -318,9 +350,17 @@ func SaveUserLastState(bot *tb.Bot, userDataID int, state string) {
 		if err != nil {
 			log.Println(err)
 		}
-		_, err = db.Query("INSERT INTO `users_last_state` (`userID`,`state`,`createdAt`,`updatedAt`) VALUES('" + userModelID + "','" + state + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+		_, err = db.Query("INSERT INTO `users_last_state` (`userID`,`state`,`data`,`createdAt`,`updatedAt`) VALUES('" + userModelID + "','" + state + "','" + data + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
 		if err != nil {
 			log.Println(err)
 		}
 	}
+}
+
+func SendReply(bot *tb.Bot, m *tb.Message) {
+	bot.Send(m.Sender, "Please send your reply to the message")
+}
+
+func SanedDM(bot *tb.Bot, m *tb.Message) {
+	bot.Send(m.Sender, "Please send your direct message to the user")
 }

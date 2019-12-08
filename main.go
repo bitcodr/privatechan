@@ -50,20 +50,38 @@ func main() {
 
 	//register a channel with the company name directly from channel
 	bot.Handle(tb.OnChannelPost, func(m *tb.Message) {
-		repository.SaveUserLastState(bot, m.Sender.ID, "register_channel")
+		if m.Sender != nil {
+			repository.SaveUserLastState(bot,m.Text, m.Sender.ID, "register_channel")
+		}
 		repository.RegisterChannel(bot, m)
 	})
 
 	//redirect user from channel to bot for sending message or etc
 	bot.Handle(tb.OnText, func(m *tb.Message) {
 		if strings.Contains(m.Text, " join_group") {
-			repository.SaveUserLastState(bot, m.Sender.ID, "join_group")
+			if m.Sender != nil {
+				repository.SaveUserLastState(bot,m.Text, m.Sender.ID, "join_group")
+			}
 			repository.JoinFromChannel(bot, m, inlineKeys)
 		}
+		if strings.Contains(m.Text, "reply_to_message_on_group_") {
+			if m.Sender != nil {
+				repository.SaveUserLastState(bot,m.Text, m.Sender.ID, "reply_to_message_on_group")
+			}
+			repository.SendReply(bot, m)
+		}
+		if strings.Contains(m.Text, "reply_by_dm_to_user_on_group_") {
+			if m.Sender != nil {
+				repository.SaveUserLastState(bot,m.Text, m.Sender.ID, "reply_by_dm_to_user_on_group")
+			}
+			repository.SanedDM(bot, m)
+		}
 		lastState := repository.GetUserLastState(bot, m)
-		if lastState !=nil{
-			switch lastState.State{
-			case "new_message_to_group":
+		if lastState != nil {
+			switch {
+			case lastState.State == "new_message_to_group":
+				repository.SaveAndSendMessage(bot, m)
+			case lastState.State == "reply_to_message_on_group" && !strings.Contains(m.Text, "reply_to_message_on_group_"):
 				repository.SaveAndSendMessage(bot, m)
 			}
 		}
@@ -71,7 +89,9 @@ func main() {
 
 	//new message inline message handler
 	bot.Handle(&newMessage, func(c *tb.Callback) {
-		repository.SaveUserLastState(bot, c.Sender.ID, "new_message_to_group")
+		if c.Sender != nil {
+			repository.SaveUserLastState(bot, c.Message.Text ,c.Sender.ID, "new_message_to_group")
+		}
 		repository.NewMessageHandler(bot, c)
 	})
 
