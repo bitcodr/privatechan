@@ -85,6 +85,8 @@ func main() {
 				repository.SendAndSaveReplyMessage(bot, m, lastState)
 			case lastState.State == "reply_by_dm_to_user_on_group" && !strings.Contains(m.Text, "reply_by_dm_to_user_on_group_"):
 				repository.SendAndSaveDirectMessage(bot, m, lastState)
+			case lastState.State == "answer_to_dm" && !strings.Contains(m.Text, "answer_to_dm_"):
+				repository.SendAnswerAndSaveDirectMessage(bot, m, lastState)
 			}
 		}
 	})
@@ -95,6 +97,15 @@ func main() {
 			repository.SaveUserLastState(bot, c.Message.Text, c.Sender.ID, "new_message_to_group")
 		}
 		repository.NewMessageHandler(bot, c)
+	})
+
+	bot.Handle(tb.OnCallback, func(c *tb.Callback) {
+		if strings.Contains(c.Data, "answer_to_dm_") {
+			if c.Sender != nil {
+				repository.SaveUserLastState(bot, c.Data, c.Sender.ID, "answer_to_dm")
+			}
+			repository.SanedAnswerDM(bot, c)
+		}
 	})
 
 	bot.Start()
