@@ -3,7 +3,6 @@ package repository
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"strconv"
 	"strings"
@@ -568,8 +567,6 @@ func SaveUserLastState(bot *tb.Bot, data string, userDataID int, state string) {
 			log.Println(err)
 		}
 		defer updatedLastState.Close()
-		fmt.Println(data)
-
 		insertedLastState, err := db.Query("INSERT INTO `users_last_state` (`userID`,`state`,`data`,`createdAt`,`updatedAt`) VALUES('" + userModelID + "','" + state + "','" + data + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
 		if err != nil {
 			log.Println(err)
