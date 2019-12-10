@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/amiraliio/tgbp/repository"
+	"github.com/amiraliio/tgbp/controller"
 	"github.com/spf13/viper"
 	tb "gopkg.in/tucnak/telebot.v2"
 	"log"
@@ -51,42 +51,50 @@ func main() {
 	//register a channel with the company name directly from channel
 	bot.Handle(tb.OnChannelPost, func(m *tb.Message) {
 		if m.Sender != nil {
-			repository.SaveUserLastState(bot, m.Text, m.Sender.ID, "register_channel")
+			controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "register_channel")
 		}
-		repository.RegisterChannel(bot, m)
+		controller.RegisterChannel(bot, m)
+	})
+
+	//register a channel with the company name directly from channel
+	bot.Handle(tb.OnAddedToGroup, func(m *tb.Message) {
+		if m.Sender != nil {
+			controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "register_group")
+		}
+		controller.RegisterChannel(bot, m)
 	})
 
 	//redirect user from channel to bot for sending message or etc
 	bot.Handle(tb.OnText, func(m *tb.Message) {
 		if strings.Contains(m.Text, " join_group") {
 			if m.Sender != nil {
-				repository.SaveUserLastState(bot, m.Text, m.Sender.ID, "join_group")
+				controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "join_group")
 			}
-			repository.JoinFromChannel(bot, m, inlineKeys)
+			controller.JoinFromChannel(bot, m, inlineKeys)
 		}
 		if strings.Contains(m.Text, "reply_to_message_on_group_") {
 			if m.Sender != nil {
-				repository.SaveUserLastState(bot, m.Text, m.Sender.ID, "reply_to_message_on_group")
+				controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "reply_to_message_on_group")
 			}
-			repository.SendReply(bot, m)
+			controller.SendReply(bot, m)
 		}
 		if strings.Contains(m.Text, "reply_by_dm_to_user_on_group_") {
 			if m.Sender != nil {
-				repository.SaveUserLastState(bot, m.Text, m.Sender.ID, "reply_by_dm_to_user_on_group")
+				controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "reply_by_dm_to_user_on_group")
 			}
-			repository.SanedDM(bot, m)
+			controller.SanedDM(bot, m)
 		}
-		lastState := repository.GetUserLastState(bot, m)
+		lastState := controller.GetUserLastState(bot, m)
 		if lastState != nil {
 			switch {
 			case lastState.State == "new_message_to_group":
-				repository.SaveAndSendMessage(bot, m)
+				controller.SaveAndSendMessage(bot, m)
 			case lastState.State == "reply_to_message_on_group" && !strings.Contains(m.Text, "reply_to_message_on_group_"):
-				repository.SendAndSaveReplyMessage(bot, m, lastState)
+				controller.SendAndSaveReplyMessage(bot, m, lastState)
 			case lastState.State == "reply_by_dm_to_user_on_group" && !strings.Contains(m.Text, "reply_by_dm_to_user_on_group_"):
-				repository.SendAndSaveDirectMessage(bot, m, lastState)
+				controller.SendAndSaveDirectMessage(bot, m, lastState)
 			case lastState.State == "answer_to_dm" && !strings.Contains(m.Text, "answer_to_dm_"):
-				repository.SendAnswerAndSaveDirectMessage(bot, m, lastState)
+				controller.SendAnswerAndSaveDirectMessage(bot, m, lastState)
 			}
 		}
 	})
@@ -94,17 +102,17 @@ func main() {
 	//new message inline message handler
 	bot.Handle(&newMessage, func(c *tb.Callback) {
 		if c.Sender != nil {
-			repository.SaveUserLastState(bot, c.Message.Text, c.Sender.ID, "new_message_to_group")
+			controller.SaveUserLastState(bot, c.Message.Text, c.Sender.ID, "new_message_to_group")
 		}
-		repository.NewMessageHandler(bot, c)
+		controller.NewMessageHandler(bot, c)
 	})
 
 	bot.Handle(tb.OnCallback, func(c *tb.Callback) {
 		if strings.Contains(c.Data, "answer_to_dm_") {
 			if c.Sender != nil {
-				repository.SaveUserLastState(bot, c.Data, c.Sender.ID, "answer_to_dm")
+				controller.SaveUserLastState(bot, c.Data, c.Sender.ID, "answer_to_dm")
 			}
-			repository.SanedAnswerDM(bot, c)
+			controller.SanedAnswerDM(bot, c)
 		}
 	})
 
