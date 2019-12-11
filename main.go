@@ -61,7 +61,7 @@ func main() {
 		if m.Sender != nil {
 			controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "register_group")
 		}
-		controller.RegisterChannel(bot, m)
+		controller.RegisterGroup(bot, m)
 	})
 
 	//redirect user from channel to bot for sending message or etc
@@ -84,10 +84,18 @@ func main() {
 			}
 			controller.SanedDM(bot, m)
 		}
+		if strings.Contains(m.Text, "compose_message_in_group_") {
+			if m.Sender != nil {
+				controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "new_message_to_group")
+			}
+			channelID := strings.ReplaceAll(m.Text, "/start compose_message_in_group_", "")
+			controller.JoinFromGroup(bot, m, channelID)
+			controller.NewMessageGroupHandler(bot, m)
+		}
 		lastState := controller.GetUserLastState(bot, m)
 		if lastState != nil {
 			switch {
-			case lastState.State == "new_message_to_group":
+			case lastState.State == "new_message_to_group" && !strings.Contains(m.Text, "compose_message_in_group_"):
 				controller.SaveAndSendMessage(bot, m)
 			case lastState.State == "reply_to_message_on_group" && !strings.Contains(m.Text, "reply_to_message_on_group_"):
 				controller.SendAndSaveReplyMessage(bot, m, lastState)
