@@ -76,12 +76,20 @@ func main() {
 			if m.Sender != nil {
 				controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "reply_to_message_on_group")
 			}
+			ids := strings.TrimPrefix(m.Text, "/start reply_to_message_on_group_")
+			data := strings.Split(ids, "_")
+			channelID := data[0]
+			controller.JoinFromGroup(bot, m, channelID)
 			controller.SendReply(bot, m)
 		}
 		if strings.Contains(m.Text, "reply_by_dm_to_user_on_group_") {
 			if m.Sender != nil {
 				controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "reply_by_dm_to_user_on_group")
 			}
+			ids := strings.TrimPrefix(m.Text, "/start reply_by_dm_to_user_on_group_")
+			data := strings.Split(ids, "_")
+			channelID := data[0]
+			controller.JoinFromGroup(bot, m, channelID)
 			controller.SanedDM(bot, m)
 		}
 		if strings.Contains(m.Text, "compose_message_in_group_") {
