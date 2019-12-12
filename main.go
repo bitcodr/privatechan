@@ -78,7 +78,7 @@ func main() {
 			}
 			ids := strings.TrimPrefix(m.Text, "/start reply_to_message_on_group_")
 			data := strings.Split(ids, "_")
-			channelID := data[0]
+			channelID := strings.TrimSpace(data[0])
 			controller.JoinFromGroup(bot, m, channelID)
 			controller.SendReply(bot, m)
 		}
@@ -88,7 +88,7 @@ func main() {
 			}
 			ids := strings.TrimPrefix(m.Text, "/start reply_by_dm_to_user_on_group_")
 			data := strings.Split(ids, "_")
-			channelID := data[0]
+			channelID := strings.TrimSpace(data[0])
 			controller.JoinFromGroup(bot, m, channelID)
 			controller.SanedDM(bot, m)
 		}
