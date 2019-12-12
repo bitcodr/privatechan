@@ -31,7 +31,12 @@ func RegisterChannel(bot *tb.Bot, m *tb.Message) {
 				log.Println(err)
 			}
 			defer db.Close()
-			results, err := db.Query("SELECT id FROM `channels` where channelID=" + channelID)
+			statement, err := db.Prepare("SELECT id FROM `channels` where channelID=?")
+			if err != nil {
+				log.Println(err)
+			}
+			defer statement.Close()
+			results, err := statement.Query(channelID)
 			if err != nil {
 				log.Println(err)
 			}
@@ -52,7 +57,13 @@ func RegisterChannel(bot *tb.Bot, m *tb.Message) {
 					//company name
 					companyFlag := channelDetails[1]
 					//check if company is not exist
-					companyExists, err := db.Query("SELECT id FROM `companies` where `companyName`='" + companyFlag + "'")
+					companyStatement, err := db.Prepare("SELECT id FROM `companies` where `companyName`=?")
+					if err != nil {
+						transaction.Rollback()
+						log.Println(err)
+					}
+					defer companyStatement.Close()
+					companyExists, err := companyStatement.Query(companyFlag)
 					if err != nil {
 						transaction.Rollback()
 						log.Println(err)
@@ -123,7 +134,12 @@ func JoinFromChannel(bot *tb.Bot, m *tb.Message, inlineKeys [][]tb.InlineButton)
 		defer db.Close()
 		userID := strconv.Itoa(m.Sender.ID)
 		//check if user is not created
-		results, err := db.Query("SELECT id FROM `users` where `status`= 'ACTIVE' and `userID`='" + userID + "'")
+		statement, err := db.Prepare("SELECT id FROM `users` where `status`= 'ACTIVE' and `userID`=?")
+		if err != nil {
+			log.Println(err)
+		}
+		defer statement.Close()
+		results, err := statement.Query(userID)
 		if err != nil {
 			log.Println(err)
 		}
@@ -165,13 +181,25 @@ func JoinFromChannel(bot *tb.Bot, m *tb.Message, inlineKeys [][]tb.InlineButton)
 func checkAndInsertUserChannel(bot *tb.Bot, m *tb.Message, queryUserID int64, channelID string, db *sql.DB, transaction *sql.Tx, inlineKeys [][]tb.InlineButton) {
 	userModelID := strconv.FormatInt(queryUserID, 10)
 	//check if channel for user is exists
-	checkUserChannel, err := db.Query("SELECT ch.id as id FROM `channels` as ch inner join `users_channels` as uc on uc.channelID = ch.id and uc.userID='" + userModelID + "' and ch.channelID='" + channelID + "'")
+	checkUserChannelStatement, err := db.Prepare("SELECT ch.id as id FROM `channels` as ch inner join `users_channels` as uc on uc.channelID = ch.id and uc.userID=? and ch.channelID=?")
+	if err != nil {
+		transaction.Rollback()
+		log.Println(err)
+	}
+	defer checkUserChannelStatement.Close()
+	checkUserChannel, err := checkUserChannelStatement.Query(userModelID, channelID)
 	if err != nil {
 		transaction.Rollback()
 		log.Println(err)
 	}
 	if !checkUserChannel.Next() {
-		getChannelID, err := db.Query("SELECT `id` FROM `channels` where `channelID`='" + channelID + "'")
+		getChannelIDStatement, err := db.Prepare("SELECT `id` FROM `channels` where `channelID`=?")
+		if err != nil {
+			transaction.Rollback()
+			log.Println(err)
+		}
+		defer getChannelIDStatement.Close()
+		getChannelID, err := getChannelIDStatement.Query(channelID)
 		if err != nil {
 			transaction.Rollback()
 			log.Println(err)
@@ -190,7 +218,13 @@ func checkAndInsertUserChannel(bot *tb.Bot, m *tb.Message, queryUserID int64, ch
 			}
 		}
 	}
-	channelDetail, err := db.Query("SELECT ch.`id` as id, ch.channelName as channelName, co.companyName as companyName  FROM `channels` as ch inner join `companies_channels` as cc on ch.id = cc.channelID inner join `companies` as co on cc.companyID = co.id where ch.`channelID`='" + channelID + "'")
+	channelDetailStatement, err := db.Prepare("SELECT ch.`id` as id, ch.channelName as channelName, co.companyName as companyName  FROM `channels` as ch inner join `companies_channels` as cc on ch.id = cc.channelID inner join `companies` as co on cc.companyID = co.id where ch.`channelID`=?")
+	if err != nil {
+		transaction.Rollback()
+		log.Println(err)
+	}
+	defer channelDetailStatement.Close()
+	channelDetail, err := channelDetailStatement.Query(channelID)
 	if err != nil {
 		transaction.Rollback()
 		log.Println(err)
@@ -204,7 +238,13 @@ func checkAndInsertUserChannel(bot *tb.Bot, m *tb.Message, queryUserID int64, ch
 		}
 		channelModelID := strconv.FormatInt(channelModelData.ID, 10)
 		//check the user is active or not
-		checkUserChannelActivity, err := db.Query("SELECT `id`,`status` from `users_channels` where `userID`='" + userModelID + "' and `channelID`='" + channelModelID + "' and `status`='ACTIVE'")
+		checkUserChannelActivityStatement, err := db.Prepare("SELECT `id`,`status` from `users_channels` where `userID`=? and `channelID`=? and `status`='ACTIVE'")
+		if err != nil {
+			transaction.Rollback()
+			log.Println(err)
+		}
+		defer checkUserChannelActivityStatement.Close()
+		checkUserChannelActivity, err := checkUserChannelActivityStatement.Query(userModelID, channelModelID)
 		if err != nil {
 			transaction.Rollback()
 			log.Println(err)
@@ -322,7 +362,12 @@ func SendAndSaveReplyMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserLa
 					log.Println(err)
 				}
 				defer db.Close()
-				message := db.QueryRow("SELECT me.id,me.channelMessageID from `messages` as me inner join `channels` as ch on me.channelID=ch.id and ch.channelID='" + channelID + "' where me.`botMessageID`='" + botMessageID + "' and me.`userID`='" + userID + "'")
+				messageStatement, err := db.Prepare("SELECT me.id,me.channelMessageID from `messages` as me inner join `channels` as ch on me.channelID=ch.id and ch.channelID=? where me.`botMessageID`=? and me.`userID`=?")
+				if err != nil {
+					log.Println(err)
+				}
+				defer messageStatement.Close()
+				message := messageStatement.QueryRow(channelID, botMessageID, userID)
 				messageModel := new(model.Message)
 				if err := message.Scan(&messageModel.ID, &messageModel.ChannelMessageID); err == nil {
 					channelIntValue, err := strconv.Atoi(channelID)
@@ -355,7 +400,12 @@ func SendAndSaveReplyMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserLa
 							if err == nil {
 								newChannelMessageID := strconv.Itoa(sendMessage.ID)
 								parentID := strconv.FormatInt(messageModel.ID, 10)
-								currentChannel := db.QueryRow("SELECT id from `channels` where channelID='" + channelID + "'")
+								currentChannelStatement, err := db.Prepare("SELECT id from `channels` where channelID=?")
+								if err != nil {
+									log.Println(err)
+								}
+								defer currentChannelStatement.Close()
+								currentChannel := currentChannelStatement.QueryRow(channelID)
 								newChannelModel := new(model.Channel)
 								if err := currentChannel.Scan(&newChannelModel.ID); err == nil {
 									newChannelModelID := strconv.FormatInt(newChannelModel.ID, 10)
@@ -394,7 +444,12 @@ func SendAndSaveDirectMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserL
 						log.Println(err)
 					}
 					defer db.Close()
-					message := db.QueryRow("SELECT me.id,me.channelMessageID from `messages` as me inner join `channels` as ch on me.channelID=ch.id and ch.channelID='" + channelID + "' where me.`botMessageID`='" + botMessageID + "' and me.`userID`='" + userID + "'")
+					messageStatement, err := db.Prepare("SELECT me.id,me.channelMessageID from `messages` as me inner join `channels` as ch on me.channelID=ch.id and ch.channelID=? where me.`botMessageID`=? and me.`userID`=?")
+					if err != nil {
+						log.Println(err)
+					}
+					defer messageStatement.Close()
+					message := messageStatement.QueryRow(channelID, botMessageID, userID)
 					messageModel := new(model.Message)
 					if err := message.Scan(&messageModel.ID, &messageModel.ChannelMessageID); err == nil {
 						newReply := tb.InlineButton{
@@ -421,7 +476,12 @@ func SendAndSaveDirectMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserL
 							if err == nil {
 								newChannelMessageID := strconv.Itoa(sendMessage.ID)
 								parentID := strconv.FormatInt(messageModel.ID, 10)
-								currentChannel := db.QueryRow("SELECT id from `channels` where channelID='" + channelID + "'")
+								currentChannelStatement, err := db.Prepare("SELECT id from `channels` where channelID='" + channelID + "'")
+								if err != nil {
+									log.Println(err)
+								}
+								defer currentChannelStatement.Close()
+								currentChannel := currentChannelStatement.QueryRow(channelID)
 								newChannelModel := new(model.Channel)
 								if err := currentChannel.Scan(&newChannelModel.ID); err == nil {
 									newChannelModelID := strconv.FormatInt(newChannelModel.ID, 10)
@@ -486,7 +546,15 @@ func SendAnswerAndSaveDirectMessage(bot *tb.Bot, m *tb.Message, lastState *model
 						defer db.Close()
 						newChannelMessageID := strconv.Itoa(sendMessage.ID)
 						// parentID := strconv.FormatInt(messageModel.ID, 10)
-						currentChannel, _ := db.Query("SELECT id from `channels` where `channelID`='"+channelID+"'")
+						currentChannelStatement, err := db.Prepare("SELECT id from `channels` where `channelID`='" + channelID + "'")
+						if err != nil {
+							log.Println(err)
+						}
+						defer currentChannelStatement.Close()
+						currentChannel, err := currentChannelStatement.Query(channelID)
+						if err != nil {
+							log.Println(err)
+						}
 						if currentChannel.Next() {
 							newChannelModel := new(model.Channel)
 							if err := currentChannel.Scan(&newChannelModel.ID); err == nil {
