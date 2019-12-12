@@ -3,6 +3,7 @@ package controller
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"strconv"
 	"strings"
@@ -114,7 +115,7 @@ func RegisterChannel(bot *tb.Bot, m *tb.Message) {
 func JoinFromChannel(bot *tb.Bot, m *tb.Message, inlineKeys [][]tb.InlineButton) {
 	data := strings.Split(m.Text, "join_group")
 	if len(data) == 2 {
-		channelID := data[1]
+		channelID := strings.TrimSpace(data[1])
 		db, err := config.DB()
 		if err != nil {
 			log.Println(err)
@@ -311,9 +312,9 @@ func SendAndSaveReplyMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserLa
 		if ids != "" {
 			data := strings.Split(ids, "_")
 			if len(data) == 3 {
-				channelID := data[0]
-				userID := data[1]
-				botMessageID := data[2]
+				channelID := strings.TrimSpace(data[0])
+				userID := strings.TrimSpace(data[1])
+				botMessageID := strings.TrimSpace(data[2])
 				senderID := strconv.Itoa(m.Sender.ID)
 				newBotMessageID := strconv.Itoa(m.ID)
 				db, err := config.DB()
@@ -381,9 +382,9 @@ func SendAndSaveDirectMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserL
 		if ids != "" {
 			data := strings.Split(ids, "_")
 			if len(data) == 3 {
-				channelID := data[0]
-				userID := data[1]
-				botMessageID := data[2]
+				channelID := strings.TrimSpace(data[0])
+				userID := strings.TrimSpace(data[1])
+				botMessageID := strings.TrimSpace(data[2])
 				senderID := strconv.Itoa(m.Sender.ID)
 				newBotMessageID := strconv.Itoa(m.ID)
 				userIDInInt, err := strconv.Atoi(userID)
@@ -416,6 +417,7 @@ func SendAndSaveDirectMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserL
 							user := new(tb.User)
 							user.ID = userIDInInt
 							sendMessage, err := bot.Send(user, m.Text, newSendOption)
+							fmt.Println(err)
 							if err == nil {
 								newChannelMessageID := strconv.Itoa(sendMessage.ID)
 								parentID := strconv.FormatInt(messageModel.ID, 10)
@@ -445,18 +447,13 @@ func SendAnswerAndSaveDirectMessage(bot *tb.Bot, m *tb.Message, lastState *model
 		if ids != "" {
 			data := strings.Split(ids, "_")
 			if len(data) == 3 {
-				channelID := data[0]
-				userID := data[1]
+				channelID := strings.TrimSpace(data[0])
+				userID := strings.TrimSpace(data[1])
 				// botMessageID := data[2]
 				senderID := strconv.Itoa(m.Sender.ID)
 				newBotMessageID := strconv.Itoa(m.ID)
 				userIDInInt, err := strconv.Atoi(userID)
 				if err == nil {
-					db, err := config.DB()
-					if err != nil {
-						log.Println(err)
-					}
-					defer db.Close()
 					// message := db.QueryRow("SELECT me.id,me.channelMessageID from `messages` as me inner join `channels` as ch on me.channelID=ch.id and ch.channelID='" + channelID + "' where me.`botMessageID`='" + botMessageID + "' and me.`userID`='" + userID + "'")
 					// messageModel := new(model.Message)
 					// if err := message.Scan(&messageModel.ID, &messageModel.ChannelMessageID); err == nil {
@@ -469,6 +466,7 @@ func SendAnswerAndSaveDirectMessage(bot *tb.Bot, m *tb.Message, lastState *model
 					}
 					// ChannelMessageDataID, err := strconv.Atoi(messageModel.ChannelMessageID)
 					// if err == nil {
+
 					bot.Send(m.Sender, "Your Direct Message Has Been Sent To The User")
 					// sendMessageModel := new(tb.Message)
 					// sendMessageModel.ID = ChannelMessageDataID
@@ -481,18 +479,25 @@ func SendAnswerAndSaveDirectMessage(bot *tb.Bot, m *tb.Message, lastState *model
 					user.ID = userIDInInt
 					sendMessage, err := bot.Send(user, m.Text, newSendOption)
 					if err == nil {
+						db, err := config.DB()
+						if err != nil {
+							log.Println(err)
+						}
+						defer db.Close()
 						newChannelMessageID := strconv.Itoa(sendMessage.ID)
 						// parentID := strconv.FormatInt(messageModel.ID, 10)
-						currentChannel := db.QueryRow("SELECT id from `channels` where channelID='" + channelID + "'")
-						newChannelModel := new(model.Channel)
-						if err := currentChannel.Scan(&newChannelModel.ID); err == nil {
-							newChannelModelID := strconv.FormatInt(newChannelModel.ID, 10)
-							insertedMessage, err := db.Query("INSERT INTO `messages` (`userID`,`channelID`,`channelMessageID`,`botMessageID`,`createdAt`) VALUES('" + senderID + "','" + newChannelModelID + "','" + newChannelMessageID + "','" + newBotMessageID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
-							if err != nil {
-								log.Println(err)
+						currentChannel, _ := db.Query("SELECT id from `channels` where `channelID`='"+channelID+"'")
+						if currentChannel.Next() {
+							newChannelModel := new(model.Channel)
+							if err := currentChannel.Scan(&newChannelModel.ID); err == nil {
+								newChannelModelID := strconv.FormatInt(newChannelModel.ID, 10)
+								insertedMessage, err := db.Query("INSERT INTO `messages` (`userID`,`channelID`,`channelMessageID`,`botMessageID`,`createdAt`) VALUES('" + senderID + "','" + newChannelModelID + "','" + newChannelMessageID + "','" + newBotMessageID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+								if err != nil {
+									log.Println(err)
+								}
+								defer insertedMessage.Close()
+								SaveUserLastState(bot, "", m.Sender.ID, "direct_message_sent")
 							}
-							defer insertedMessage.Close()
-							SaveUserLastState(bot, "", m.Sender.ID, "direct_message_sent")
 						}
 					}
 					// }
