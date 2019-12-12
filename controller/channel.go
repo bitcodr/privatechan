@@ -3,7 +3,6 @@ package controller
 
 import (
 	"database/sql"
-	"fmt"
 	"log"
 	"strconv"
 	"strings"
@@ -472,7 +471,6 @@ func SendAndSaveDirectMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserL
 							user := new(tb.User)
 							user.ID = userIDInInt
 							sendMessage, err := bot.Send(user, m.Text, newSendOption)
-							fmt.Println(err)
 							if err == nil {
 								newChannelMessageID := strconv.Itoa(sendMessage.ID)
 								parentID := strconv.FormatInt(messageModel.ID, 10)
@@ -639,9 +637,6 @@ func SaveUserLastState(bot *tb.Bot, data string, userDataID int, state string) {
 	if err != nil {
 		log.Println(err)
 	}
-	if err != nil {
-		log.Println(err)
-	}
 	defer resultsStatement.Close()
 	results, err := resultsStatement.Query(userID)
 	if err != nil {
@@ -652,16 +647,22 @@ func SaveUserLastState(bot *tb.Bot, data string, userDataID int, state string) {
 		if err := results.Scan(&userModel.ID); err != nil {
 			log.Println(err)
 		}
+		transaction, err := db.Begin()
+		if err != nil {
+			log.Println(err)
+		}
+		//TODO remove update
 		userModelID := strconv.FormatInt(userModel.ID, 10)
-		updatedLastState, err := db.Query("update `users_last_state` set `status`='INACTIVE' where `userID`='" + userModelID + "'")
+		_, err = transaction.Exec("update `users_last_state` set `status`='INACTIVE' where `userID`='" + userModelID + "'")
 		if err != nil {
+			transaction.Rollback()
 			log.Println(err)
 		}
-		defer updatedLastState.Close()
-		insertedLastState, err := db.Query("INSERT INTO `users_last_state` (`userID`,`state`,`data`,`createdAt`,`updatedAt`) VALUES('" + userModelID + "','" + state + "','" + data + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+		_, err = transaction.Exec("INSERT INTO `users_last_state` (`userID`,`state`,`data`,`createdAt`,`updatedAt`) VALUES('" + userModelID + "','" + state + "','" + data + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
 		if err != nil {
+			transaction.Rollback()
 			log.Println(err)
 		}
-		defer insertedLastState.Close()
+		transaction.Commit()
 	}
 }

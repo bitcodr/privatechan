@@ -20,7 +20,12 @@ func RegisterGroup(bot *tb.Bot, m *tb.Message) {
 		log.Println(err)
 	}
 	defer db.Close()
-	results, err := db.Query("SELECT id FROM `channels` where channelID=" + channelID)
+	resultsStatement, err := db.Prepare("SELECT id FROM `channels` where channelID=?")
+	if err != nil {
+		log.Println(err)
+	}
+	defer resultsStatement.Close()
+	results, err := resultsStatement.Query(channelID)
 	if err != nil {
 		log.Println(err)
 	}
@@ -41,7 +46,13 @@ func RegisterGroup(bot *tb.Bot, m *tb.Message) {
 			//company name
 			companyFlag := strconv.FormatInt(m.Chat.ID, 10)
 			//check if company is not exist
-			companyExists, err := db.Query("SELECT id FROM `companies` where `companyName`='" + companyFlag + "'")
+			companyExistsStatement, err := db.Prepare("SELECT id FROM `companies` where `companyName`=?")
+			if err != nil {
+				transaction.Rollback()
+				log.Println(err)
+			}
+			defer companyExistsStatement.Close()
+			companyExists, err := companyExistsStatement.Query(companyFlag)
 			if err != nil {
 				transaction.Rollback()
 				log.Println(err)
@@ -134,7 +145,12 @@ func JoinFromGroup(bot *tb.Bot, m *tb.Message, channelID string) {
 	defer db.Close()
 	userID := strconv.Itoa(m.Sender.ID)
 	//check if user is not created
-	results, err := db.Query("SELECT id FROM `users` where `status`= 'ACTIVE' and `userID`='" + userID + "'")
+	resultsStatement, err := db.Prepare("SELECT id FROM `users` where `status`= 'ACTIVE' and `userID`=?")
+	if err != nil {
+		log.Println(err)
+	}
+	defer resultsStatement.Close()
+	results, err := resultsStatement.Query(userID)
 	if err != nil {
 		log.Println(err)
 	}
@@ -175,13 +191,25 @@ func JoinFromGroup(bot *tb.Bot, m *tb.Message, channelID string) {
 func checkAndInsertUserGroup(bot *tb.Bot, m *tb.Message, queryUserID int64, channelID string, db *sql.DB, transaction *sql.Tx) {
 	userModelID := strconv.FormatInt(queryUserID, 10)
 	//check if channel for user is exists
-	checkUserChannel, err := db.Query("SELECT ch.id as id FROM `channels` as ch inner join `users_channels` as uc on uc.channelID = ch.id and uc.userID='" + userModelID + "' and ch.channelID='" + channelID + "'")
+	checkUserChannelStatement, err := db.Prepare("SELECT ch.id as id FROM `channels` as ch inner join `users_channels` as uc on uc.channelID = ch.id and uc.userID=? and ch.channelID=?")
+	if err != nil {
+		transaction.Rollback()
+		log.Println(err)
+	}
+	defer checkUserChannelStatement.Close()
+	checkUserChannel, err := checkUserChannelStatement.Query(userModelID, channelID)
 	if err != nil {
 		transaction.Rollback()
 		log.Println(err)
 	}
 	if !checkUserChannel.Next() {
-		getChannelID, err := db.Query("SELECT `id` FROM `channels` where `channelID`='" + channelID + "'")
+		getChannelIDStatement, err := db.Prepare("SELECT `id` FROM `channels` where `channelID`=?")
+		if err != nil {
+			transaction.Rollback()
+			log.Println(err)
+		}
+		defer getChannelIDStatement.Close()
+		getChannelID, err := getChannelIDStatement.Query(channelID)
 		if err != nil {
 			transaction.Rollback()
 			log.Println(err)
@@ -200,11 +228,17 @@ func checkAndInsertUserGroup(bot *tb.Bot, m *tb.Message, queryUserID int64, chan
 			}
 		}
 	}
-	channelDetail, err := db.Query("SELECT ch.`id` as id, ch.channelName as channelName, co.companyName as companyName  FROM `channels` as ch inner join `companies_channels` as cc on ch.id = cc.channelID inner join `companies` as co on cc.companyID = co.id where ch.`channelID`='" + channelID + "'")
-	if err != nil {
-		transaction.Rollback()
-		log.Println(err)
-	}
+	channelDetailStatement, err := db.Prepare("SELECT ch.`id` as id, ch.channelName as channelName, co.companyName as companyName  FROM `channels` as ch inner join `companies_channels` as cc on ch.id = cc.channelID inner join `companies` as co on cc.companyID = co.id where ch.`channelID`=?")
+		if err != nil {
+			transaction.Rollback()
+			log.Println(err)
+		}
+		defer channelDetailStatement.Close()
+		channelDetail, err := channelDetailStatement.Query(channelID)
+		if err != nil {
+			transaction.Rollback()
+			log.Println(err)
+		}
 	if channelDetail.Next() {
 		channelModelData := new(model.Channel)
 		companyModel := new(model.Company)
@@ -213,12 +247,12 @@ func checkAndInsertUserGroup(bot *tb.Bot, m *tb.Message, queryUserID int64, chan
 			log.Println(err)
 		}
 		channelModelID := strconv.FormatInt(channelModelData.ID, 10)
-		//check the user is active or not
-		_, err := db.Query("SELECT `id`,`status` from `users_channels` where `userID`='" + userModelID + "' and `channelID`='" + channelModelID + "' and `status`='ACTIVE'")
-		if err != nil {
-			transaction.Rollback()
-			log.Println(err)
-		}
+		// //check the user is active or not
+		// _, err := db.Query("SELECT `id`,`status` from `users_channels` where `userID`='" + userModelID + "' and `channelID`='" + channelModelID + "' and `status`='ACTIVE'")
+		// if err != nil {
+		// 	transaction.Rollback()
+		// 	log.Println(err)
+		// }
 		//inactive user last active channels
 		_, err = transaction.Exec("update `users_current_active_channel` set `status`='INACTIVE' where `userID`='" + userModelID + "'")
 		if err != nil {
