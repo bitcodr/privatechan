@@ -476,7 +476,7 @@ func SendAndSaveDirectMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserL
 							if err == nil {
 								newChannelMessageID := strconv.Itoa(sendMessage.ID)
 								parentID := strconv.FormatInt(messageModel.ID, 10)
-								currentChannelStatement, err := db.Prepare("SELECT id from `channels` where channelID='" + channelID + "'")
+								currentChannelStatement, err := db.Prepare("SELECT id from `channels` where channelID=?")
 								if err != nil {
 									log.Println(err)
 								}
@@ -546,7 +546,7 @@ func SendAnswerAndSaveDirectMessage(bot *tb.Bot, m *tb.Message, lastState *model
 						defer db.Close()
 						newChannelMessageID := strconv.Itoa(sendMessage.ID)
 						// parentID := strconv.FormatInt(messageModel.ID, 10)
-						currentChannelStatement, err := db.Prepare("SELECT id from `channels` where `channelID`='" + channelID + "'")
+						currentChannelStatement, err := db.Prepare("SELECT id from `channels` where `channelID`=?")
 						if err != nil {
 							log.Println(err)
 						}
@@ -583,7 +583,12 @@ func GetUserCurrentActiveChannel(bot *tb.Bot, m *tb.Message) *model.Channel {
 	}
 	defer db.Close()
 	userID := strconv.Itoa(m.Sender.ID)
-	userActiveChannel, err := db.Query("SELECT ch.id,ch.channelID,ch.channelName from `channels` as ch inner join `users_current_active_channel` as uc on ch.id=uc.channelID and uc.status='ACTIVE' inner join `users` as us on uc.userID=us.id and us.userID='" + userID + "' and us.`status`='ACTIVE'")
+	userActiveStatement, err := db.Prepare("SELECT ch.id,ch.channelID,ch.channelName from `channels` as ch inner join `users_current_active_channel` as uc on ch.id=uc.channelID and uc.status='ACTIVE' inner join `users` as us on uc.userID=us.id and us.userID=? and us.`status`='ACTIVE'")
+	if err != nil {
+		log.Println(err)
+	}
+	defer userActiveStatement.Close()
+	userActiveChannel, err := userActiveStatement.Query(userID)
 	if err != nil {
 		log.Println(err)
 	}
@@ -604,7 +609,12 @@ func GetUserLastState(bot *tb.Bot, m *tb.Message) *model.UserLastState {
 	}
 	defer db.Close()
 	userID := strconv.Itoa(m.Sender.ID)
-	userLastStateQuery, err := db.Query("SELECT ch.data,ch.state from `users_last_state` as ch inner join `users` as us on ch.userID=us.id and us.userID='" + userID + "' and us.`status`='ACTIVE' where ch.status='ACTIVE'")
+	userLastStateQueryStatement, err := db.Prepare("SELECT ch.data,ch.state from `users_last_state` as ch inner join `users` as us on ch.userID=us.id and us.userID=? and us.`status`='ACTIVE' where ch.status='ACTIVE'")
+	if err != nil {
+		log.Println(err)
+	}
+	defer userLastStateQueryStatement.Close()
+	userLastStateQuery, err := userLastStateQueryStatement.Query(userID)
 	if err != nil {
 		log.Println(err)
 	}
@@ -625,7 +635,15 @@ func SaveUserLastState(bot *tb.Bot, data string, userDataID int, state string) {
 	}
 	defer db.Close()
 	userID := strconv.Itoa(userDataID)
-	results, err := db.Query("SELECT id FROM `users` where `status`= 'ACTIVE' and `userID`='" + userID + "'")
+	resultsStatement, err := db.Prepare("SELECT id FROM `users` where `status`= 'ACTIVE' and `userID`=?")
+	if err != nil {
+		log.Println(err)
+	}
+	if err != nil {
+		log.Println(err)
+	}
+	defer resultsStatement.Close()
+	results, err := resultsStatement.Query(userID)
 	if err != nil {
 		log.Println(err)
 	}
