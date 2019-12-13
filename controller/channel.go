@@ -315,13 +315,13 @@ func SaveAndSendMessage(bot *tb.Bot, m *tb.Message) {
 			Text:   "📝New",
 			URL:    "https://t.me/" + viper.GetString("APP.BOTUSERNAME") + "?start=compose_message_in_group_" + activeChannel.ChannelID,
 		}
-		moreBTN := tb.InlineButton{
-			Unique: "more_from_group_" + activeChannel.ChannelID,
-			Text:   "➕More",
-			URL:    "https://t.me/" + viper.GetString("APP.BOTUSERNAME") + "?start=more_from_group_" + activeChannel.ChannelID + "_" + senderID + "_" + botMessageID,
+		newDM := tb.InlineButton{
+			Unique: "reply_by_dm_to_user_on_group_" + activeChannel.ChannelID + "_" + senderID + "_" + botMessageID,
+			Text:   "📲Direct",
+			URL:    "https://t.me/" + viper.GetString("APP.BOTUSERNAME") + "?start=reply_by_dm_to_user_on_group_" + activeChannel.ChannelID + "_" + senderID + "_" + botMessageID,
 		}
 		inlineKeys := [][]tb.InlineButton{
-			[]tb.InlineButton{newReply, newM, moreBTN},
+			[]tb.InlineButton{newReply, newM, newDM},
 		}
 		activeChannelID, err := strconv.Atoi(activeChannel.ChannelID)
 		if err == nil {
@@ -386,13 +386,13 @@ func SendAndSaveReplyMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserLa
 							Text:   "📝New",
 							URL:    "https://t.me/" + viper.GetString("APP.BOTUSERNAME") + "?start=compose_message_in_group_" + channelID,
 						}
-						moreBTN := tb.InlineButton{
-							Unique: "more_from_group_" + channelID,
-							Text:   "➕More",
-							URL:    "https://t.me/" + viper.GetString("APP.BOTUSERNAME") + "?start=more_from_group_" + channelID + "_" + senderID + "_" + botMessageID,
+						newDM := tb.InlineButton{
+							Unique: "reply_by_dm_to_user_on_group_" + channelID + "_" + senderID + "_" + botMessageID,
+							Text:   "📲Direct",
+							URL:    "https://t.me/" + viper.GetString("APP.BOTUSERNAME") + "?start=reply_by_dm_to_user_on_group_" + channelID + "_" + senderID + "_" + botMessageID,
 						}
 						inlineKeys := [][]tb.InlineButton{
-							[]tb.InlineButton{newReply, newM, moreBTN},
+							[]tb.InlineButton{newReply, newM, newDM},
 						}
 						ChannelMessageDataID, err := strconv.Atoi(messageModel.ChannelMessageID)
 						if err == nil {
@@ -674,35 +674,5 @@ func SaveUserLastState(bot *tb.Bot, data string, userDataID int, state string) {
 			log.Println(err)
 		}
 		transaction.Commit()
-	}
-}
-
-func ShowGroupAnotherbuttons(bot *tb.Bot, m *tb.Message, data []string) {
-	if len(data) == 3 {
-		userID := strings.TrimSpace(data[1])
-		botMessageID := strings.TrimSpace(data[2])
-		activeChannel := GetUserCurrentActiveChannel(bot, m)
-		if activeChannel != nil {
-			newReply := tb.InlineButton{
-				Unique: "reply_to_message_on_group_" + activeChannel.ChannelID + "_" + userID + "_" + botMessageID,
-				Text:   "↩️ Reply Anonymously 👻",
-			}
-			newM := tb.InlineButton{
-				Unique: "compose_message_in_group_" + activeChannel.ChannelID,
-				Text:   "📝 New Anonymous Message 👻",
-			}
-			newDM := tb.InlineButton{
-				Unique: "reply_by_dm_to_user_on_group_" + activeChannel.ChannelID + "_" + userID + "_" + botMessageID,
-				Text:   "📲 Direct Message Anonymously 👻",
-			}
-			inlineKeys := [][]tb.InlineButton{
-				[]tb.InlineButton{newReply},
-				[]tb.InlineButton{newM},
-				[]tb.InlineButton{newDM},
-			}
-			bot.Send(m.Sender, "Please select your action:", &tb.ReplyMarkup{
-				InlineKeyboard: inlineKeys,
-			})
-		}
 	}
 }

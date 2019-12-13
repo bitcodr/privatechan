@@ -106,21 +106,6 @@ func main() {
 			controller.NewMessageGroupHandler(bot, m.Sender)
 		}
 
-		if strings.Contains(m.Text, "more_from_group_") {
-			if m.Sender != nil {
-				controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "more_from_group")
-			}
-			ids := strings.TrimPrefix(m.Text, "/start more_from_group_")
-			if ids != "" {
-				data := strings.Split(ids, "_")
-				if len(data) == 3 {
-					channelID := strings.TrimSpace(data[0])
-					controller.JoinFromGroup(bot, m, channelID)
-					controller.ShowGroupAnotherbuttons(bot, m, data)
-				}
-			}
-		}
-
 		lastState := controller.GetUserLastState(bot, m)
 		if lastState != nil {
 			switch {
@@ -150,37 +135,6 @@ func main() {
 				controller.SaveUserLastState(bot, c.Data, c.Sender.ID, "answer_to_dm")
 			}
 			controller.SanedAnswerDM(bot, c.Sender)
-		}
-		if strings.Contains(c.Data, "reply_to_message_on_group_") {
-			if c.Sender != nil {
-
-				controller.SaveUserLastState(bot, c.Data, c.Sender.ID, "reply_to_message_on_group")
-			}
-			ids := strings.TrimPrefix(strings.TrimSpace(c.Data), "reply_to_message_on_group_")
-			data := strings.Split(ids, "_")
-			channelID := strings.TrimSpace(data[0])
-			controller.JoinFromGroup(bot, c.Message, channelID)
-			controller.SendReply(bot, c.Sender)
-		}
-
-		if strings.Contains(c.Data, "reply_by_dm_to_user_on_group_") {
-			if c.Sender != nil {
-				controller.SaveUserLastState(bot, c.Data, c.Sender.ID, "reply_by_dm_to_user_on_group")
-			}
-			ids := strings.TrimPrefix(strings.TrimSpace(c.Data), "reply_by_dm_to_user_on_group_")
-			data := strings.Split(ids, "_")
-			channelID := strings.TrimSpace(data[0])
-			controller.JoinFromGroup(bot, c.Message, channelID)
-			controller.SanedDM(bot, c.Sender)
-		}
-
-		if strings.Contains(c.Data, "compose_message_in_group_") {
-			if c.Sender != nil {
-				controller.SaveUserLastState(bot, c.Data, c.Sender.ID, "new_message_to_group")
-			}
-			channelID := strings.ReplaceAll(strings.TrimSpace(c.Data), "compose_message_in_group_", "")
-			controller.JoinFromGroup(bot, c.Message, channelID)
-			controller.NewMessageGroupHandler(bot, c.Sender)
 		}
 	})
 
