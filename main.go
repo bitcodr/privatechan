@@ -152,8 +152,9 @@ func main() {
 			controller.SanedAnswerDM(bot, c.Sender)
 		}
 		if strings.Contains(c.Data, "reply_to_message_on_group_") {
-			if c.Message.Sender != nil {
-				controller.SaveUserLastState(bot, c.Data, c.Message.Sender.ID, "reply_to_message_on_group")
+			if c.Sender != nil {
+
+				controller.SaveUserLastState(bot, c.Data, c.Sender.ID, "reply_to_message_on_group")
 			}
 			ids := strings.TrimPrefix(strings.TrimSpace(c.Data), "reply_to_message_on_group_")
 			data := strings.Split(ids, "_")
@@ -163,8 +164,8 @@ func main() {
 		}
 
 		if strings.Contains(c.Data, "reply_by_dm_to_user_on_group_") {
-			if c.Message.Sender != nil {
-				controller.SaveUserLastState(bot, c.Data, c.Message.Sender.ID, "reply_by_dm_to_user_on_group")
+			if c.Sender != nil {
+				controller.SaveUserLastState(bot, c.Data, c.Sender.ID, "reply_by_dm_to_user_on_group")
 			}
 			ids := strings.TrimPrefix(strings.TrimSpace(c.Data), "reply_by_dm_to_user_on_group_")
 			data := strings.Split(ids, "_")
@@ -174,8 +175,8 @@ func main() {
 		}
 
 		if strings.Contains(c.Data, "compose_message_in_group_") {
-			if c.Message.Sender != nil {
-				controller.SaveUserLastState(bot, c.Data, c.Message.Sender.ID, "new_message_to_group")
+			if c.Sender != nil {
+				controller.SaveUserLastState(bot, c.Data, c.Sender.ID, "new_message_to_group")
 			}
 			channelID := strings.ReplaceAll(strings.TrimSpace(c.Data), "compose_message_in_group_", "")
 			controller.JoinFromGroup(bot, c.Message, channelID)

@@ -668,7 +668,7 @@ func SaveUserLastState(bot *tb.Bot, data string, userDataID int, state string) {
 			transaction.Rollback()
 			log.Println(err)
 		}
-		_, err = transaction.Exec("INSERT INTO `users_last_state` (`userID`,`state`,`data`,`createdAt`,`updatedAt`) VALUES('" + userModelID + "','" + state + "','" + data + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+		_, err = transaction.Exec("INSERT INTO `users_last_state` (`userID`,`state`,`data`,`createdAt`,`updatedAt`) VALUES('" + userModelID + "','" + state + "','" + strings.TrimSpace(data) + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
 		if err != nil {
 			transaction.Rollback()
 			log.Println(err)
