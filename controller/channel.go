@@ -693,7 +693,7 @@ func ShowGroupAnotherbuttons(bot *tb.Bot, m *tb.Message, data []string) {
 			}
 			newDM := tb.InlineButton{
 				Unique: "reply_by_dm_to_user_on_group_" + activeChannel.ChannelID + "_" + userID + "_" + botMessageID,
-				Text:   "📲 Direct Message Anonymously👻",
+				Text:   "📲 Direct Message Anonymously 👻",
 			}
 			inlineKeys := [][]tb.InlineButton{
 				[]tb.InlineButton{newReply},

@@ -2,6 +2,7 @@ package controller
 
 import (
 	"database/sql"
+	"github.com/amiraliio/tgbp/lang"
 	"log"
 	"strconv"
 	"time"
@@ -98,7 +99,7 @@ func RegisterGroup(bot *tb.Bot, m *tb.Message) {
 			}
 			compose := tb.InlineButton{
 				Unique: "compose_message_in_group_" + channelID,
-				Text:   "📝New👻",
+				Text:   "📝 New Anonymous Message 👻",
 				URL:    "https://t.me/" + viper.GetString("APP.BOTUSERNAME") + "?start=compose_message_in_group_" + channelID,
 			}
 			groupKeys := [][]tb.InlineButton{
@@ -108,7 +109,7 @@ func RegisterGroup(bot *tb.Bot, m *tb.Message) {
 			newReplyModel.InlineKeyboard = groupKeys
 			newSendOption := new(tb.SendOptions)
 			newSendOption.ReplyMarkup = newReplyModel
-			_, err = bot.Send(m.Chat, "Please use inline keyboard to start anonymous comminication", newSendOption)
+			_, err = bot.Send(m.Chat, lang.StartGroup, newSendOption)
 			if err != nil {
 				log.Println(err)
 			}
@@ -116,7 +117,7 @@ func RegisterGroup(bot *tb.Bot, m *tb.Message) {
 	} else {
 		compose := tb.InlineButton{
 			Unique: "compose_message_in_group_" + channelID,
-			Text:   "📝New👻",
+			Text:   "📝 New Anonymous Message 👻",
 			URL:    "https://t.me/" + viper.GetString("APP.BOTUSERNAME") + "?start=compose_message_in_group_" + channelID,
 		}
 		groupKeys := [][]tb.InlineButton{
@@ -126,7 +127,7 @@ func RegisterGroup(bot *tb.Bot, m *tb.Message) {
 		newReplyModel.InlineKeyboard = groupKeys
 		newSendOption := new(tb.SendOptions)
 		newSendOption.ReplyMarkup = newReplyModel
-		_, err = bot.Send(m.Chat, "Please use inline keyboard to start anonymous comminication", newSendOption)
+		_, err = bot.Send(m.Chat, lang.StartGroup, newSendOption)
 		if err != nil {
 			log.Println(err)
 		}
@@ -229,16 +230,16 @@ func checkAndInsertUserGroup(bot *tb.Bot, m *tb.Message, queryUserID int64, chan
 		}
 	}
 	channelDetailStatement, err := db.Prepare("SELECT ch.`id` as id, ch.channelName as channelName, co.companyName as companyName  FROM `channels` as ch inner join `companies_channels` as cc on ch.id = cc.channelID inner join `companies` as co on cc.companyID = co.id where ch.`channelID`=?")
-		if err != nil {
-			transaction.Rollback()
-			log.Println(err)
-		}
-		defer channelDetailStatement.Close()
-		channelDetail, err := channelDetailStatement.Query(channelID)
-		if err != nil {
-			transaction.Rollback()
-			log.Println(err)
-		}
+	if err != nil {
+		transaction.Rollback()
+		log.Println(err)
+	}
+	defer channelDetailStatement.Close()
+	channelDetail, err := channelDetailStatement.Query(channelID)
+	if err != nil {
+		transaction.Rollback()
+		log.Println(err)
+	}
 	if channelDetail.Next() {
 		channelModelData := new(model.Channel)
 		companyModel := new(model.Company)

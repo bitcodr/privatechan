@@ -104,7 +104,6 @@ func main() {
 			controller.NewMessageGroupHandler(bot, m)
 		}
 
-
 		if strings.Contains(m.Text, "more_from_group_") {
 			if m.Sender != nil {
 				controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "more_from_group")
@@ -149,6 +148,37 @@ func main() {
 				controller.SaveUserLastState(bot, c.Data, c.Sender.ID, "answer_to_dm")
 			}
 			controller.SanedAnswerDM(bot, c)
+		}
+
+		if strings.Contains(c.Data, "reply_to_message_on_group_") {
+			if c.Message.Sender != nil {
+				controller.SaveUserLastState(bot, c.Data, c.Message.Sender.ID, "reply_to_message_on_group")
+			}
+			ids := strings.TrimPrefix(c.Data, "/start reply_to_message_on_group_")
+			data := strings.Split(ids, "_")
+			channelID := strings.TrimSpace(data[0])
+			controller.JoinFromGroup(bot, c.Message, channelID)
+			controller.SendReply(bot, c.Message)
+		}
+
+		if strings.Contains(c.Data, "reply_by_dm_to_user_on_group_") {
+			if c.Message.Sender != nil {
+				controller.SaveUserLastState(bot, c.Data, c.Message.Sender.ID, "reply_by_dm_to_user_on_group")
+			}
+			ids := strings.TrimPrefix(c.Data, "/start reply_by_dm_to_user_on_group_")
+			data := strings.Split(ids, "_")
+			channelID := strings.TrimSpace(data[0])
+			controller.JoinFromGroup(bot, c.Message, channelID)
+			controller.SanedDM(bot, c.Message)
+		}
+
+		if strings.Contains(c.Data, "compose_message_in_group_") {
+			if c.Message.Sender != nil {
+				controller.SaveUserLastState(bot, c.Data, c.Message.Sender.ID, "new_message_to_group")
+			}
+			channelID := strings.ReplaceAll(c.Data, "/start compose_message_in_group_", "")
+			controller.JoinFromGroup(bot, c.Message, channelID)
+			controller.NewMessageGroupHandler(bot, c.Message)
 		}
 	})
 
