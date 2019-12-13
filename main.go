@@ -72,6 +72,7 @@ func main() {
 			}
 			controller.JoinFromChannel(bot, m, inlineKeys)
 		}
+
 		if strings.Contains(m.Text, "reply_to_message_on_group_") {
 			if m.Sender != nil {
 				controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "reply_to_message_on_group")
@@ -82,6 +83,7 @@ func main() {
 			controller.JoinFromGroup(bot, m, channelID)
 			controller.SendReply(bot, m)
 		}
+
 		if strings.Contains(m.Text, "reply_by_dm_to_user_on_group_") {
 			if m.Sender != nil {
 				controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "reply_by_dm_to_user_on_group")
@@ -92,6 +94,7 @@ func main() {
 			controller.JoinFromGroup(bot, m, channelID)
 			controller.SanedDM(bot, m)
 		}
+
 		if strings.Contains(m.Text, "compose_message_in_group_") {
 			if m.Sender != nil {
 				controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "new_message_to_group")
@@ -100,6 +103,23 @@ func main() {
 			controller.JoinFromGroup(bot, m, channelID)
 			controller.NewMessageGroupHandler(bot, m)
 		}
+
+
+		if strings.Contains(m.Text, "more_from_group_") {
+			if m.Sender != nil {
+				controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "more_from_group")
+			}
+			ids := strings.TrimPrefix(m.Text, "/start more_from_group_")
+			if ids != "" {
+				data := strings.Split(ids, "_")
+				if len(data) == 3 {
+					channelID := strings.TrimSpace(data[0])
+					controller.JoinFromGroup(bot, m, channelID)
+					controller.ShowGroupAnotherbuttons(bot, m, data)
+				}
+			}
+		}
+
 		lastState := controller.GetUserLastState(bot, m)
 		if lastState != nil {
 			switch {

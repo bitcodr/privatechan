@@ -98,7 +98,7 @@ func RegisterGroup(bot *tb.Bot, m *tb.Message) {
 			}
 			compose := tb.InlineButton{
 				Unique: "compose_message_in_group_" + channelID,
-				Text:   "Compose",
+				Text:   "📝New👻",
 				URL:    "https://t.me/" + viper.GetString("APP.BOTUSERNAME") + "?start=compose_message_in_group_" + channelID,
 			}
 			groupKeys := [][]tb.InlineButton{
@@ -116,7 +116,7 @@ func RegisterGroup(bot *tb.Bot, m *tb.Message) {
 	} else {
 		compose := tb.InlineButton{
 			Unique: "compose_message_in_group_" + channelID,
-			Text:   "Compose",
+			Text:   "📝New👻",
 			URL:    "https://t.me/" + viper.GetString("APP.BOTUSERNAME") + "?start=compose_message_in_group_" + channelID,
 		}
 		groupKeys := [][]tb.InlineButton{
