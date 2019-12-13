@@ -298,6 +298,8 @@ func SanedAnswerDM(bot *tb.Bot, m *tb.User) {
 	bot.Send(m, "Please send your direct message to the user:")
 }
 
+
+
 func SaveAndSendMessage(bot *tb.Bot, m *tb.Message) {
 	//TODO inactive user last state
 	//TODO restart the bot and show keyboards again

@@ -41,13 +41,26 @@ func main() {
 		Unique: "new_message_to_group",
 		Text:   "New Message To The Channel",
 	}
-
 	inlineKeys := [][]tb.InlineButton{
 		[]tb.InlineButton{joinGroup},
 		[]tb.InlineButton{newMessage},
 		[]tb.InlineButton{newSurvey},
 	}
 
+	addAnonMessage := tb.ReplyButton{
+		Text: "Add Anonymous Message to a Channel/Group",
+	}
+	setupVerifiedCompany := tb.ReplyButton{
+		Text: "Setup Verified Company Account",
+	}
+	joinCompanyChannels := tb.ReplyButton{
+		Text: "Join To Company Anonymous Channel/Group",
+	}
+	startBotKeys := [][]tb.ReplyButton{
+		[]tb.ReplyButton{addAnonMessage},
+		[]tb.ReplyButton{setupVerifiedCompany},
+		[]tb.ReplyButton{joinCompanyChannels},
+	}
 
 	//register a channel with the company name directly from channel
 	bot.Handle(tb.OnChannelPost, func(m *tb.Message) {
@@ -65,9 +78,32 @@ func main() {
 		controller.RegisterGroup(bot, m)
 	})
 
+	bot.Handle(&addAnonMessage, func(c *tb.Callback) {
+		if c.Sender != nil {
+			controller.SaveUserLastState(bot, c.Message.Text, c.Sender.ID, "add_anon_message")
+		}
+		_ = bot.Delete(c.Message)
+		controller.AddAnonMessageToChannel(bot, c.Sender)
+	})
+
+	//new message inline message handler
+	bot.Handle(&newMessage, func(c *tb.Callback) {
+		if c.Sender != nil {
+			controller.SaveUserLastState(bot, c.Message.Text, c.Sender.ID, "new_message_to_group")
+		}
+		controller.NewMessageHandler(bot, c.Sender)
+	})
+
 	//redirect user from channel to bot for sending message or etc
 	bot.Handle(tb.OnText, func(m *tb.Message) {
-		// fmt.Println(m.Text)
+
+		if strings.Contains(strings.TrimSpace(m.Text), "/start") {
+			if m.Sender != nil {
+				controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "start")
+			}
+			controller.StartBot(bot, m, startBotKeys)
+		}
+
 		if strings.Contains(m.Text, " join_group") {
 			if m.Sender != nil {
 				controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "join_group")
@@ -119,14 +155,6 @@ func main() {
 				controller.SendAnswerAndSaveDirectMessage(bot, m, lastState)
 			}
 		}
-	})
-
-	//new message inline message handler
-	bot.Handle(&newMessage, func(c *tb.Callback) {
-		if c.Sender != nil {
-			controller.SaveUserLastState(bot, c.Message.Text, c.Sender.ID, "new_message_to_group")
-		}
-		controller.NewMessageHandler(bot, c.Sender)
 	})
 
 	bot.Handle(tb.OnCallback, func(c *tb.Callback) {
