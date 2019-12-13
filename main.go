@@ -48,6 +48,7 @@ func main() {
 		[]tb.InlineButton{newSurvey},
 	}
 
+
 	//register a channel with the company name directly from channel
 	bot.Handle(tb.OnChannelPost, func(m *tb.Message) {
 		if m.Sender != nil {
@@ -66,6 +67,7 @@ func main() {
 
 	//redirect user from channel to bot for sending message or etc
 	bot.Handle(tb.OnText, func(m *tb.Message) {
+		fmt.Println(m.Text)
 		if strings.Contains(m.Text, " join_group") {
 			if m.Sender != nil {
 				controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "join_group")

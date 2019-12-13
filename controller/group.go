@@ -109,6 +109,7 @@ func RegisterGroup(bot *tb.Bot, m *tb.Message) {
 			newReplyModel.InlineKeyboard = groupKeys
 			newSendOption := new(tb.SendOptions)
 			newSendOption.ReplyMarkup = newReplyModel
+			newSendOption.ParseMode = tb.ModeMarkdown
 			_, err = bot.Send(m.Chat, lang.StartGroup, newSendOption)
 			if err != nil {
 				log.Println(err)
@@ -127,6 +128,7 @@ func RegisterGroup(bot *tb.Bot, m *tb.Message) {
 		newReplyModel.InlineKeyboard = groupKeys
 		newSendOption := new(tb.SendOptions)
 		newSendOption.ReplyMarkup = newReplyModel
+		newSendOption.ParseMode = tb.ModeMarkdown
 		_, err = bot.Send(m.Chat, lang.StartGroup, newSendOption)
 		if err != nil {
 			log.Println(err)
