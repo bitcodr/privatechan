@@ -136,8 +136,8 @@ func RegisterGroup(bot *tb.Bot, m *tb.Message) {
 	}
 }
 
-func NewMessageGroupHandler(bot *tb.Bot, m *tb.Message) {
-	bot.Send(m.Sender, "Please send your message:")
+func NewMessageGroupHandler(bot *tb.Bot, m *tb.User) {
+	bot.Send(m, "Please send your message:")
 }
 
 func JoinFromGroup(bot *tb.Bot, m *tb.Message, channelID string) {

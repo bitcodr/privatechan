@@ -282,20 +282,20 @@ func checkAndInsertUserChannel(bot *tb.Bot, m *tb.Message, queryUserID int64, ch
 	}
 }
 
-func NewMessageHandler(bot *tb.Bot, c *tb.Callback) {
-	bot.Send(c.Sender, "Please send your message:")
+func NewMessageHandler(bot *tb.Bot, c *tb.User) {
+	bot.Send(c, "Please send your message:")
 }
 
-func SendReply(bot *tb.Bot, m *tb.Message) {
-	bot.Send(m.Sender, "Please send your reply to the message:")
+func SendReply(bot *tb.Bot, m *tb.User) {
+	bot.Send(m, "Please send your reply to the message:")
 }
 
-func SanedDM(bot *tb.Bot, m *tb.Message) {
-	bot.Send(m.Sender, "Please send your direct message to the user:")
+func SanedDM(bot *tb.Bot, m *tb.User) {
+	bot.Send(m, "Please send your direct message to the user:")
 }
 
-func SanedAnswerDM(bot *tb.Bot, m *tb.Callback) {
-	bot.Send(m.Sender, "Please send your direct message to the user:")
+func SanedAnswerDM(bot *tb.Bot, m *tb.User) {
+	bot.Send(m, "Please send your direct message to the user:")
 }
 
 func SaveAndSendMessage(bot *tb.Bot, m *tb.Message) {
