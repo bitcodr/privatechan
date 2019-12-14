@@ -304,6 +304,14 @@ func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelT
 		return
 	}
 
+	//insert company channel
+	_, err = transaction.Exec("INSERT INTO `companies_channels` (`companyID`,`channelID`,`createdAt`) VALUES('" + strconv.FormatInt(companyID, 10) + "','" + strconv.FormatInt(channelInsertedID, 10) + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+	if err != nil {
+		transaction.Rollback()
+		log.Println(err)
+		return
+	}
+
 	//insert channel settings
 	var joinVerify, newMessageVerify, replyVerify, directVerify string
 	for _, v := range channels_settings {
