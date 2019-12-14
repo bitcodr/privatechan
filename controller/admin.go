@@ -68,13 +68,13 @@ func checkIsBotIsChannelAdminOrNot(bot *tb.Bot, m *tb.Message, userID int) bool 
 			log.Println(err)
 			userModel := new(tb.User)
 			userModel.ID = userID
-			_, _ = bot.Send(userModel, "Please add this bot as admin in the channel and then forward a message from the channel")
+			_, _ = bot.Send(userModel, "Bot Is Not Admin, Please add this bot as admin in the channel and then forward a message from the channel")
 			return false
 		}
 		if members == nil {
 			userModel := new(tb.User)
 			userModel.ID = userID
-			_, _ = bot.Send(userModel, "Please add this bot as admin in the channel and then forward a message from the channel")
+			_, _ = bot.Send(userModel, "Bot Is Not Admin, Please add this bot as admin in the channel and then forward a message from the channel")
 			return false
 		}
 		var isAdmin bool
@@ -88,7 +88,7 @@ func checkIsBotIsChannelAdminOrNot(bot *tb.Bot, m *tb.Message, userID int) bool 
 		if !isAdmin {
 			userModel := new(tb.User)
 			userModel.ID = userID
-			_, _ = bot.Send(userModel, "Please add this bot as admin in the channel and then forward a message from the channel")
+			_, _ = bot.Send(userModel, "Bot Is Not Admin, Please add this bot as admin in the channel and then forward a message from the channel")
 			return false
 		}
 		return true
@@ -103,7 +103,7 @@ func checkIsBotIsGroupAdminOrNot(bot *tb.Bot, m *tb.Message, userID int) bool {
 			log.Println(err)
 			userModel := new(tb.User)
 			userModel.ID = userID
-			_, _ = bot.Send(userModel, "Please add this bot as admin in the group and then forward a message from the group")
+			_, _ = bot.Send(userModel, "Bot Is Not Admin OR Member ,Please add this bot as admin in the group and then forward a message from the group")
 			return false
 		}
 		userModel := new(tb.User)
@@ -113,13 +113,13 @@ func checkIsBotIsGroupAdminOrNot(bot *tb.Bot, m *tb.Message, userID int) bool {
 			log.Println(err)
 			userModel := new(tb.User)
 			userModel.ID = userID
-			_, _ = bot.Send(userModel, "Please add this bot as admin in the group and then forward a message from the group")
+			_, _ = bot.Send(userModel, "Bot Is Not Admin OR Member ,Please add this bot as admin in the group and then forward a message from the group")
 			return false
 		}
 		if admins == nil && members == nil {
 			userModel := new(tb.User)
 			userModel.ID = userID
-			_, _ = bot.Send(userModel, "Please add this bot as admin in the group and then forward a message from the group")
+			_, _ = bot.Send(userModel, "Bot Is Not Admin OR Member ,Please add this bot as admin in the group and then forward a message from the group")
 			return false
 		}
 		var isAdmin bool
@@ -133,7 +133,7 @@ func checkIsBotIsGroupAdminOrNot(bot *tb.Bot, m *tb.Message, userID int) bool {
 		if !isAdmin && members == nil {
 			userModel := new(tb.User)
 			userModel.ID = userID
-			_, _ = bot.Send(userModel, "Please add this bot as admin in the group and then forward a message from the group")
+			_, _ = bot.Send(userModel, "Bot Is Not Admin OR Member ,Please add this bot as admin in the group and then forward a message from the group")
 			return false
 		}
 		return true
@@ -198,7 +198,7 @@ func finalStage(bot *tb.Bot, relationDate string, db *sql.DB, text string, userI
 		var channels_settings []*model.TempSetupFlow
 		for results.Next() {
 			tempSetupFlow := new(model.TempSetupFlow)
-			err := results.Scan(&tempSetupFlow.ID, &tempSetupFlow.TableName, &tempSetupFlow.ColumnName, &tempSetupFlow.Data, &tempSetupFlow.Relation, &tempSetupFlow.Status, &tempSetupFlow.UserID, &tempSetupFlow.CreatedAt)
+			err := results.Scan(&tempSetupFlow.ID, &tempSetupFlow.TableName, &tempSetupFlow.ColumnName, &tempSetupFlow.Data, &tempSetupFlow.Relation, &tempSetupFlow.Status, &tempSetupFlow.UserID, &tempSetupFlow.CreatedAt, &tempSetupFlow.UpdatedAt)
 			if err != nil {
 				log.Println(err)
 				return
