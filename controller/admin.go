@@ -35,8 +35,12 @@ func SetUpCompanyByAdmin(bot *tb.Bot, m *tb.Message, lastState *model.UserLastSt
 					textValue = strings.TrimSpace(text)
 				} else {
 					textValue = strconv.FormatInt(m.OriginalChat.ID, 10)
-					checkIsBotIsChannelAdminOrNot(bot, m, userID)
-					checkIsBotIsGroupAdminOrNot(bot, m, userID)
+					if !checkIsBotIsChannelAdminOrNot(bot, m, userID) {
+						return
+					}
+					if !checkIsBotIsGroupAdminOrNot(bot, m, userID) {
+						return
+					}
 				}
 				_, err = db.Query("INSERT INTO `temp_setup_flow` (`tableName`,`columnName`,`data`,`userID`,`relation`,`createdAt`) VALUES ('" + tableName + "','" + columnName + "','" + textValue + "','" + strconv.Itoa(userID) + "','setup_verified_company_account_" + strconv.Itoa(userID) + "_" + relationDate + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
 				if err != nil {
@@ -57,7 +61,7 @@ func SetUpCompanyByAdmin(bot *tb.Bot, m *tb.Message, lastState *model.UserLastSt
 	SaveUserLastState(bot, "1_"+strconv.FormatInt(time.Now().Unix(), 10), userID, "setup_verified_company_account")
 }
 
-func checkIsBotIsChannelAdminOrNot(bot *tb.Bot, m *tb.Message, userID int) {
+func checkIsBotIsChannelAdminOrNot(bot *tb.Bot, m *tb.Message, userID int) bool {
 	if m.OriginalChat.Type == tb.ChatChannelPrivate || m.OriginalChat.Type == tb.ChatChannel {
 		members, err := bot.AdminsOf(m.OriginalChat)
 		if err != nil {
@@ -65,12 +69,13 @@ func checkIsBotIsChannelAdminOrNot(bot *tb.Bot, m *tb.Message, userID int) {
 			userModel := new(tb.User)
 			userModel.ID = userID
 			_, _ = bot.Send(userModel, "Please add this bot as admin in the channel and then forward a message from the channel")
-			return
+			return false
 		}
 		if members == nil {
 			userModel := new(tb.User)
 			userModel.ID = userID
 			_, _ = bot.Send(userModel, "Please add this bot as admin in the channel and then forward a message from the channel")
+			return false
 		}
 		var isAdmin bool
 		for _, v := range members {
@@ -84,11 +89,14 @@ func checkIsBotIsChannelAdminOrNot(bot *tb.Bot, m *tb.Message, userID int) {
 			userModel := new(tb.User)
 			userModel.ID = userID
 			_, _ = bot.Send(userModel, "Please add this bot as admin in the channel and then forward a message from the channel")
+			return false
 		}
+		return true
 	}
+	return true
 }
 
-func checkIsBotIsGroupAdminOrNot(bot *tb.Bot, m *tb.Message, userID int) {
+func checkIsBotIsGroupAdminOrNot(bot *tb.Bot, m *tb.Message, userID int) bool {
 	if m.OriginalChat.Type == tb.ChatGroup || m.OriginalChat.Type == tb.ChatSuperGroup {
 		admins, err := bot.AdminsOf(m.OriginalChat)
 		if err != nil {
@@ -96,7 +104,7 @@ func checkIsBotIsGroupAdminOrNot(bot *tb.Bot, m *tb.Message, userID int) {
 			userModel := new(tb.User)
 			userModel.ID = userID
 			_, _ = bot.Send(userModel, "Please add this bot as admin in the group and then forward a message from the group")
-			return
+			return false
 		}
 		userModel := new(tb.User)
 		userModel.ID = viper.GetInt("APP.TELEGRAM_BOT_ID")
@@ -106,12 +114,13 @@ func checkIsBotIsGroupAdminOrNot(bot *tb.Bot, m *tb.Message, userID int) {
 			userModel := new(tb.User)
 			userModel.ID = userID
 			_, _ = bot.Send(userModel, "Please add this bot as admin in the group and then forward a message from the group")
-			return
+			return false
 		}
 		if admins == nil && members == nil {
 			userModel := new(tb.User)
 			userModel.ID = userID
 			_, _ = bot.Send(userModel, "Please add this bot as admin in the group and then forward a message from the group")
+			return false
 		}
 		var isAdmin bool
 		for _, v := range admins {
@@ -125,8 +134,11 @@ func checkIsBotIsGroupAdminOrNot(bot *tb.Bot, m *tb.Message, userID int) {
 			userModel := new(tb.User)
 			userModel.ID = userID
 			_, _ = bot.Send(userModel, "Please add this bot as admin in the group and then forward a message from the group")
+			return false
 		}
+		return true
 	}
+	return true
 }
 
 //next question
