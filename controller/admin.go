@@ -62,7 +62,7 @@ func SetUpCompanyByAdmin(bot *tb.Bot, m *tb.Message, lastState *model.UserLastSt
 }
 
 func checkIsBotIsChannelAdminOrNot(bot *tb.Bot, m *tb.Message, userID int) bool {
-	if m.FromChannel() {
+	if m.OriginalChat.Type == tb.ChatChannelPrivate || m.OriginalChat.Type == tb.ChatChannel {
 		members, err := bot.AdminsOf(m.OriginalChat)
 		if err != nil {
 			log.Println(err)
@@ -97,7 +97,7 @@ func checkIsBotIsChannelAdminOrNot(bot *tb.Bot, m *tb.Message, userID int) bool 
 }
 
 func checkIsBotIsGroupAdminOrNot(bot *tb.Bot, m *tb.Message, userID int) bool {
-	if m.FromGroup() {
+	if m.OriginalChat.Type == tb.ChatGroup || m.OriginalChat.Type == tb.ChatSuperGroup {
 		admins, err := bot.AdminsOf(m.OriginalChat)
 		if err != nil {
 			log.Println(err)
