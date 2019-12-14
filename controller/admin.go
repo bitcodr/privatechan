@@ -184,13 +184,13 @@ func sendMessageUserWithActionOnKeyboards(bot *tb.Bot, userID int, message strin
 }
 
 func finalStage(bot *tb.Bot, relationDate string, db *sql.DB, text string, userID int) {
-	tempData, err := db.Prepare("SELECT * from `temp_setup_flow` where status='ACTIVE' and relation=? and userID=?")
+	tempData, err := db.Prepare("SELECT id,tableName,columnName,data,relation,status,userID,createdAt from `temp_setup_flow` where status='ACTIVE' and relation=? and userID=?")
 	if err != nil {
 		log.Println(err)
 		return
 	}
 	defer tempData.Close()
-	results, err := tempData.Query("setup_verified_company_account_"+strconv.Itoa(userID)+"_"+relationDate, strconv.Itoa(userID))
+	results, err := tempData.Query("setup_verified_company_account_"+strconv.Itoa(userID)+"_"+relationDate, userID)
 	if err == nil {
 		var channelTableData []*model.TempSetupFlow
 		var companyTableData []*model.TempSetupFlow
@@ -198,7 +198,7 @@ func finalStage(bot *tb.Bot, relationDate string, db *sql.DB, text string, userI
 		var channels_settings []*model.TempSetupFlow
 		for results.Next() {
 			tempSetupFlow := new(model.TempSetupFlow)
-			err := results.Scan(&tempSetupFlow.ID, &tempSetupFlow.TableName, &tempSetupFlow.ColumnName, &tempSetupFlow.Data, &tempSetupFlow.Relation, &tempSetupFlow.Status, &tempSetupFlow.UserID, &tempSetupFlow.CreatedAt, &tempSetupFlow.UpdatedAt)
+			err := results.Scan(&tempSetupFlow.ID, &tempSetupFlow.TableName, &tempSetupFlow.ColumnName, &tempSetupFlow.Data, &tempSetupFlow.Relation, &tempSetupFlow.Status, &tempSetupFlow.UserID, &tempSetupFlow.CreatedAt)
 			if err != nil {
 				log.Println(err)
 				return
@@ -248,7 +248,7 @@ func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelT
 			companyType = v.Data
 		}
 	}
-	insertCompany, err := transaction.Exec("INSERT INTO `company` (`companyName`,`companyType`,`createdAt`) VALUES('" + companyName + "','" + companyType + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+	insertCompany, err := transaction.Exec("INSERT INTO `companies` (`companyName`,`companyType`,`createdAt`) VALUES('" + companyName + "','" + companyType + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
 	if err != nil {
 		transaction.Rollback()
 		log.Println(err)
@@ -277,7 +277,7 @@ func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelT
 
 	//insert channel
 	var channelType, channelName, channelURL, channelID string
-	for _, v := range companyTableData {
+	for _, v := range channelTableData {
 		if v.ColumnName == "channelType" {
 			channelType = v.Data
 		}
@@ -308,16 +308,36 @@ func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelT
 	var joinVerify, newMessageVerify, replyVerify, directVerify string
 	for _, v := range channels_settings {
 		if v.ColumnName == "joinVerify" {
-			joinVerify = v.Data
+			switch v.Data {
+			case "Yes":
+				joinVerify = "1"
+			case "No":
+				joinVerify = "0"
+			}
 		}
 		if v.ColumnName == "newMessageVerify" {
-			newMessageVerify = v.Data
+			switch v.Data {
+			case "Yes":
+				newMessageVerify = "1"
+			case "No":
+				newMessageVerify = "0"
+			}
 		}
 		if v.ColumnName == "replyVerify" {
-			replyVerify = v.Data
+			switch v.Data {
+			case "Yes":
+				replyVerify = "1"
+			case "No":
+				replyVerify = "0"
+			}
 		}
 		if v.ColumnName == "directVerify" {
-			directVerify = v.Data
+			switch v.Data {
+			case "Yes":
+				directVerify = "1"
+			case "No":
+				directVerify = "0"
+			}
 		}
 	}
 	_, err = transaction.Exec("INSERT INTO `channels_settings` (`joinVerify`,`newMessageVerify`,`replyVerify`,`directVerify`,`channelID`,`createdAt`) VALUES('" + joinVerify + "','" + newMessageVerify + "','" + replyVerify + "','" + directVerify + "','" + strconv.FormatInt(channelInsertedID, 10) + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
@@ -341,12 +361,12 @@ func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelT
 	newSendOption := new(tb.SendOptions)
 	newSendOption.ReplyMarkup = newReplyModel
 	newSendOption.ParseMode = tb.ModeMarkdown
-	user := new(tb.User)
 	idOfChannel, err := strconv.Atoi(channelID)
 	if err != nil {
 		transaction.Rollback()
 		log.Println(err)
 	}
+	user := new(tb.User)
 	user.ID = idOfChannel
 	_, err = bot.Send(user, lang.StartGroup, newSendOption)
 	if err != nil {
