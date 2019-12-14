@@ -283,22 +283,36 @@ func checkAndInsertUserChannel(bot *tb.Bot, m *tb.Message, queryUserID int64, ch
 }
 
 func NewMessageHandler(bot *tb.Bot, c *tb.User) {
-	bot.Send(c, "Please send your message:")
+	options := new(tb.SendOptions)
+	markup := new(tb.ReplyMarkup)
+	markup.ReplyKeyboardRemove = true
+	options.ReplyMarkup = markup
+	bot.Send(c, "Please send your message:", options)
 }
 
 func SendReply(bot *tb.Bot, m *tb.User) {
-	bot.Send(m, "Please send your reply to the message:")
+	options := new(tb.SendOptions)
+	markup := new(tb.ReplyMarkup)
+	markup.ReplyKeyboardRemove = true
+	options.ReplyMarkup = markup
+	bot.Send(m, "Please send your reply to the message:", options)
 }
 
 func SanedDM(bot *tb.Bot, m *tb.User) {
-	bot.Send(m, "Please send your direct message to the user:")
+	options := new(tb.SendOptions)
+	markup := new(tb.ReplyMarkup)
+	markup.ReplyKeyboardRemove = true
+	options.ReplyMarkup = markup
+	bot.Send(m, "Please send your direct message to the user:", options)
 }
 
 func SanedAnswerDM(bot *tb.Bot, m *tb.User) {
-	bot.Send(m, "Please send your direct message to the user:")
+	options := new(tb.SendOptions)
+	markup := new(tb.ReplyMarkup)
+	markup.ReplyKeyboardRemove = true
+	options.ReplyMarkup = markup
+	bot.Send(m, "Please send your direct message to the user:", options)
 }
-
-
 
 func SaveAndSendMessage(bot *tb.Bot, m *tb.Message) {
 	//TODO inactive user last state

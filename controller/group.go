@@ -137,7 +137,11 @@ func RegisterGroup(bot *tb.Bot, m *tb.Message) {
 }
 
 func NewMessageGroupHandler(bot *tb.Bot, m *tb.User) {
-	bot.Send(m, "Please send your message:")
+	options := new(tb.SendOptions)
+	markup := new(tb.ReplyMarkup)
+	markup.ReplyKeyboardRemove = true
+	options.ReplyMarkup = markup
+	bot.Send(m, "Please send your message:",options)
 }
 
 func JoinFromGroup(bot *tb.Bot, m *tb.Message, channelID string) {

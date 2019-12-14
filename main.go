@@ -98,7 +98,7 @@ func main() {
 	//on text handlers
 	bot.Handle(tb.OnText, func(m *tb.Message) {
 
-		if strings.Contains(strings.TrimSpace(m.Text), "/start") {
+		if m.Text == "/start" {
 			if m.Sender != nil {
 				controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "start")
 			}
