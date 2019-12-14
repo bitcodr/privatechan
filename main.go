@@ -47,6 +47,7 @@ func main() {
 		[]tb.InlineButton{newSurvey},
 	}
 
+	//bot startup buttons
 	addAnonMessage := tb.ReplyButton{
 		Text: "Add Anonymous Message to a Channel/Group",
 	}
@@ -78,12 +79,12 @@ func main() {
 		controller.RegisterGroup(bot, m)
 	})
 
-	bot.Handle(&addAnonMessage, func(c *tb.Callback) {
-		if c.Sender != nil {
-			controller.SaveUserLastState(bot, c.Message.Text, c.Sender.ID, "add_anon_message")
+	//add anonymous message
+	bot.Handle(&addAnonMessage, func(m *tb.Message) {
+		if m.Sender != nil {
+			controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "add_anon_message")
 		}
-		_ = bot.Delete(c.Message)
-		controller.AddAnonMessageToChannel(bot, c.Sender)
+		controller.AddAnonMessageToChannel(bot, m.Sender)
 	})
 
 	//new message inline message handler
@@ -94,7 +95,7 @@ func main() {
 		controller.NewMessageHandler(bot, c.Sender)
 	})
 
-	//redirect user from channel to bot for sending message or etc
+	//on text handlers
 	bot.Handle(tb.OnText, func(m *tb.Message) {
 
 		if strings.Contains(strings.TrimSpace(m.Text), "/start") {
@@ -141,8 +142,7 @@ func main() {
 			controller.JoinFromGroup(bot, m, channelID)
 			controller.NewMessageGroupHandler(bot, m.Sender)
 		}
-
-		lastState := controller.GetUserLastState(bot, m)
+		lastState := controller.GetUserLastState(bot, m, m.Sender.ID)
 		if lastState != nil {
 			switch {
 			case lastState.State == "new_message_to_group" && !strings.Contains(m.Text, "compose_message_in_group_"):
@@ -153,16 +153,26 @@ func main() {
 				controller.SendAndSaveDirectMessage(bot, m, lastState)
 			case lastState.State == "answer_to_dm" && !strings.Contains(m.Text, "answer_to_dm_"):
 				controller.SendAnswerAndSaveDirectMessage(bot, m, lastState)
+			case lastState.State == "setup_verified_company_account" || strings.Contains(m.Text, setupVerifiedCompany.Text):
+				controller.SetUpCompanyByAdmin(bot, m, lastState, m.Text, m.Sender.ID)
 			}
 		}
 	})
 
+	//callback handlers
 	bot.Handle(tb.OnCallback, func(c *tb.Callback) {
 		if strings.Contains(c.Data, "answer_to_dm_") {
 			if c.Sender != nil {
 				controller.SaveUserLastState(bot, c.Data, c.Sender.ID, "answer_to_dm")
 			}
 			controller.SanedAnswerDM(bot, c.Sender)
+		}
+		lastState := controller.GetUserLastState(bot, c.Message, c.Sender.ID)
+		if lastState != nil {
+			switch {
+			case lastState.State == "setup_verified_company_account":
+				controller.SetUpCompanyByAdmin(bot, c.Message, lastState, c.Data, c.Sender.ID)
+			}
 		}
 	})
 

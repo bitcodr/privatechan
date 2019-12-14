@@ -612,13 +612,13 @@ func GetUserCurrentActiveChannel(bot *tb.Bot, m *tb.Message) *model.Channel {
 	return nil
 }
 
-func GetUserLastState(bot *tb.Bot, m *tb.Message) *model.UserLastState {
+func GetUserLastState(bot *tb.Bot, m *tb.Message, user int) *model.UserLastState {
 	db, err := config.DB()
 	if err != nil {
 		log.Println(err)
 	}
 	defer db.Close()
-	userID := strconv.Itoa(m.Sender.ID)
+	userID := strconv.Itoa(user)
 	userLastStateQueryStatement, err := db.Prepare("SELECT ch.data,ch.state from `users_last_state` as ch inner join `users` as us on ch.userID=us.id and us.userID=? and us.`status`='ACTIVE' where ch.status='ACTIVE'")
 	if err != nil {
 		log.Println(err)

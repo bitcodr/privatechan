@@ -9,6 +9,15 @@ type Company struct {
 	Channels    []Channel `json:"channels"`
 }
 
+type CompanyEmailSuffixes struct {
+	ID        int64   `json:"id"`
+	CreatedAt string  `json:"createdAt"`
+	UpdatedAt string  `json:"updatedAt"`
+	CompanyID string  `json:"companyID"`
+	Suffix    string  `json:"suffix"`
+	Company   Company `json:"company"`
+}
+
 type Channel struct {
 	ID          int64   `json:"id"`
 	ChannelURL  string  `json:"channelURL"`
@@ -26,6 +35,18 @@ type CompanyChannel struct {
 	CompanyID string  `json:"companyID"`
 	Company   Company `json:"company"`
 	Channel   Channel `json:"channel"`
+}
+
+type ChannelSetting struct {
+	ID               int64   `json:"id"`
+	CreatedAt        string  `json:"createdAt"`
+	UpdatedAt        string  `json:"updatedAt"`
+	JoinVerify       bool    `json:"joinVerify"`
+	NewMessageVerify bool    `json:"newMessageVerify"`
+	ReplyVerify      bool    `json:"replyVerify"`
+	DirectVerify     bool    `json:"directVerify"`
+	ChannelID        string  `json:"channelID"`
+	Channel          Channel `json:"channel"`
 }
 
 type User struct {
