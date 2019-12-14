@@ -626,6 +626,9 @@ func GetUserCurrentActiveChannel(bot *tb.Bot, m *tb.Message) *model.Channel {
 	return nil
 }
 
+
+
+
 func GetUserLastState(bot *tb.Bot, m *tb.Message, user int) *model.UserLastState {
 	db, err := config.DB()
 	if err != nil {
