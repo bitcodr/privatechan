@@ -3,7 +3,6 @@ package controller
 import (
 	"database/sql"
 	"github.com/amiraliio/tgbp/config"
-	"github.com/amiraliio/tgbp/lang"
 	"github.com/amiraliio/tgbp/model"
 	"github.com/spf13/viper"
 	tb "gopkg.in/tucnak/telebot.v2"
@@ -199,7 +198,7 @@ func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelT
 			channelURL = v.Data
 		}
 	}
-	resultsStatement, err := db.Prepare("SELECT channelID,id FROM `channels` where `status`= 'ACTIVE' and `uniqueID`=?")
+	resultsStatement, err := db.Prepare("SELECT channelID,id FROM `channels` where `uniqueID`=?")
 	if err != nil {
 		transaction.Rollback()
 		log.Println(err)
@@ -264,32 +263,5 @@ func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelT
 		transaction.Rollback()
 		log.Println(err)
 		return
-	}
-
-	//send  message to channel to start conversation
-	compose := tb.InlineButton{
-		Unique: "compose_message_in_group_" + channelModel.ChannelID,
-		Text:   "📝 New Anonymous Message 👻",
-		URL:    "https://t.me/" + viper.GetString("APP.BOTUSERNAME") + "?start=compose_message_in_group_" + channelModel.ChannelID,
-	}
-	groupKeys := [][]tb.InlineButton{
-		[]tb.InlineButton{compose},
-	}
-	newReplyModel := new(tb.ReplyMarkup)
-	newReplyModel.InlineKeyboard = groupKeys
-	newSendOption := new(tb.SendOptions)
-	newSendOption.ReplyMarkup = newReplyModel
-	newSendOption.ParseMode = tb.ModeMarkdown
-	idOfChannel, err := strconv.Atoi(channelModel.ChannelID)
-	if err != nil {
-		transaction.Rollback()
-		log.Println(err)
-	}
-	user := new(tb.User)
-	user.ID = idOfChannel
-	_, err = bot.Send(user, lang.StartGroup, newSendOption)
-	if err != nil {
-		transaction.Rollback()
-		log.Println(err)
 	}
 }
