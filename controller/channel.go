@@ -3,6 +3,7 @@ package controller
 
 import (
 	"github.com/amiraliio/tgbp/lang"
+	"github.com/google/uuid"
 	"log"
 	"strconv"
 	"strings"
@@ -46,8 +47,9 @@ func RegisterChannel(bot *tb.Bot, m *tb.Message) {
 		if err != nil {
 			log.Println(err)
 		}
+		uniqueID := uuid.New().String()
 		//insert channel
-		channelInserted, err := transaction.Exec("INSERT INTO `channels` (`channelType`,`channelURL`,`channelID`,`channelName`,`createdAt`,`updatedAt`) VALUES('channel','" + channelURL + "','" + channelID + "','" + m.Chat.Title + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+		channelInserted, err := transaction.Exec("INSERT INTO `channels` (`channelType`,`channelURL`,`channelID`,`channelName`,`uniqueID`,`createdAt`,`updatedAt`) VALUES('channel','" + channelURL + "','" + channelID + "','" + m.Chat.Title + "','" + uniqueID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
 		if err != nil {
 			transaction.Rollback()
 			log.Println(err)
@@ -107,6 +109,8 @@ func RegisterChannel(bot *tb.Bot, m *tb.Message) {
 			if err := bot.Delete(successMessage); err != nil {
 				log.Println(err)
 			}
+			_, _ = bot.Send(m.Chat, "This is your channel unique ID: "+uniqueID+" you can save this ID and remove this message")
+			time.Sleep(2 * time.Second)
 			compose := tb.InlineButton{
 				Unique: "compose_message_in_group_" + channelID,
 				Text:   "📝 New Anonymous Message 👻",
@@ -133,166 +137,6 @@ func RegisterChannel(bot *tb.Bot, m *tb.Message) {
 		}
 	}
 }
-
-// func JoinFromChannel(bot *tb.Bot, m *tb.Message, inlineKeys [][]tb.InlineButton) {
-// 	data := strings.Split(m.Text, "join_group")
-// 	if len(data) == 2 {
-// 		channelID := strings.TrimSpace(data[1])
-// 		db, err := config.DB()
-// 		if err != nil {
-// 			log.Println(err)
-// 		}
-// 		defer db.Close()
-// 		userID := strconv.Itoa(m.Sender.ID)
-// 		//check if user is not created
-// 		statement, err := db.Prepare("SELECT id FROM `users` where `status`= 'ACTIVE' and `userID`=?")
-// 		if err != nil {
-// 			log.Println(err)
-// 		}
-// 		defer statement.Close()
-// 		results, err := statement.Query(userID)
-// 		if err != nil {
-// 			log.Println(err)
-// 		}
-// 		//start transaction
-// 		transaction, err := db.Begin()
-// 		if err != nil {
-// 			log.Println(err)
-// 		}
-// 		if !results.Next() {
-// 			//insert user
-// 			var isBotValue string
-// 			if m.Sender.IsBot {
-// 				isBotValue = "1"
-// 			} else {
-// 				isBotValue = "0"
-// 			}
-// 			userInsert, err := transaction.Exec("INSERT INTO `users` (`userID`,`username`,`firstName`,`lastName`,`lang`,`isBot`,`createdAt`,`updatedAt`) VALUES('" + userID + "','" + m.Sender.Username + "','" + m.Sender.FirstName + "','" + m.Sender.LastName + "','" + m.Sender.LanguageCode + "','" + isBotValue + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
-// 			if err != nil {
-// 				transaction.Rollback()
-// 				log.Println(err)
-// 			}
-// 			insertedUserID, err := userInsert.LastInsertId()
-// 			if err != nil {
-// 				transaction.Rollback()
-// 				log.Println(err)
-// 			}
-// 			checkAndInsertUserChannel(bot, m, insertedUserID, channelID, db, transaction, inlineKeys)
-// 		} else {
-// 			userModel := new(model.User)
-// 			if err := results.Scan(&userModel.ID); err != nil {
-// 				transaction.Rollback()
-// 				log.Println(err)
-// 			}
-// 			checkAndInsertUserChannel(bot, m, userModel.ID, channelID, db, transaction, inlineKeys)
-// 		}
-// 	}
-// }
-
-// func checkAndInsertUserChannel(bot *tb.Bot, m *tb.Message, queryUserID int64, channelID string, db *sql.DB, transaction *sql.Tx, inlineKeys [][]tb.InlineButton) {
-// 	userModelID := strconv.FormatInt(queryUserID, 10)
-// 	//check if channel for user is exists
-// 	checkUserChannelStatement, err := db.Prepare("SELECT ch.id as id FROM `channels` as ch inner join `users_channels` as uc on uc.channelID = ch.id and uc.userID=? and ch.channelID=?")
-// 	if err != nil {
-// 		transaction.Rollback()
-// 		log.Println(err)
-// 	}
-// 	defer checkUserChannelStatement.Close()
-// 	checkUserChannel, err := checkUserChannelStatement.Query(userModelID, channelID)
-// 	if err != nil {
-// 		transaction.Rollback()
-// 		log.Println(err)
-// 	}
-// 	if !checkUserChannel.Next() {
-// 		getChannelIDStatement, err := db.Prepare("SELECT `id` FROM `channels` where `channelID`=?")
-// 		if err != nil {
-// 			transaction.Rollback()
-// 			log.Println(err)
-// 		}
-// 		defer getChannelIDStatement.Close()
-// 		getChannelID, err := getChannelIDStatement.Query(channelID)
-// 		if err != nil {
-// 			transaction.Rollback()
-// 			log.Println(err)
-// 		}
-// 		if getChannelID.Next() {
-// 			channelModel := new(model.Channel)
-// 			if err := getChannelID.Scan(&channelModel.ID); err != nil {
-// 				transaction.Rollback()
-// 				log.Println(err)
-// 			}
-// 			channelModelID := strconv.FormatInt(channelModel.ID, 10)
-// 			_, err := transaction.Exec("INSERT INTO `users_channels` (`userID`,`channelID`,`createdAt`,`updatedAt`) VALUES('" + userModelID + "','" + channelModelID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
-// 			if err != nil {
-// 				transaction.Rollback()
-// 				log.Println(err)
-// 			}
-// 		}
-// 	}
-// 	channelDetailStatement, err := db.Prepare("SELECT ch.`id` as id, ch.channelName as channelName, co.companyName as companyName  FROM `channels` as ch inner join `companies_channels` as cc on ch.id = cc.channelID inner join `companies` as co on cc.companyID = co.id where ch.`channelID`=?")
-// 	if err != nil {
-// 		transaction.Rollback()
-// 		log.Println(err)
-// 	}
-// 	defer channelDetailStatement.Close()
-// 	channelDetail, err := channelDetailStatement.Query(channelID)
-// 	if err != nil {
-// 		transaction.Rollback()
-// 		log.Println(err)
-// 	}
-// 	if channelDetail.Next() {
-// 		channelModelData := new(model.Channel)
-// 		companyModel := new(model.Company)
-// 		if err := channelDetail.Scan(&channelModelData.ID, &channelModelData.ChannelName, &companyModel.CompanyName); err != nil {
-// 			transaction.Rollback()
-// 			log.Println(err)
-// 		}
-// 		channelModelID := strconv.FormatInt(channelModelData.ID, 10)
-// 		//check the user is active or not
-// 		checkUserChannelActivityStatement, err := db.Prepare("SELECT `id`,`status` from `users_channels` where `userID`=? and `channelID`=? and `status`='ACTIVE'")
-// 		if err != nil {
-// 			transaction.Rollback()
-// 			log.Println(err)
-// 		}
-// 		defer checkUserChannelActivityStatement.Close()
-// 		checkUserChannelActivity, err := checkUserChannelActivityStatement.Query(userModelID, channelModelID)
-// 		if err != nil {
-// 			transaction.Rollback()
-// 			log.Println(err)
-// 		}
-// 		//inactive user last active channels
-// 		_, err = transaction.Exec("update `users_current_active_channel` set `status`='INACTIVE' where `userID`='" + userModelID + "'")
-// 		if err != nil {
-// 			transaction.Rollback()
-// 			log.Println(err)
-// 		}
-// 		//set user active channel
-// 		_, err = transaction.Exec("INSERT INTO `users_current_active_channel` (`userID`,`channelID`,`createdAt`,`updatedAt`) VALUES('" + userModelID + "','" + channelModelID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
-// 		if err != nil {
-// 			transaction.Rollback()
-// 			log.Println(err)
-// 		}
-// 		transaction.Commit()
-// 		if checkUserChannelActivity.Next() {
-// 			//send welcome message and show inline keyboards
-// 			_, err = bot.Send(m.Chat, "Welcome to the channel "+channelModelData.ChannelName+" the channel blongs to company "+companyModel.CompanyName+" You can use the inline keyboards to do an action on the channel or etc...", &tb.ReplyMarkup{
-// 				InlineKeyboard: inlineKeys,
-// 			})
-// 			if err != nil {
-// 				log.Println(err)
-// 			}
-// 		} else {
-// 			//show a message for verification because the user isn't verify
-// 			_, err := bot.Send(m.Chat, "You trying to join to the channel "+channelModelData.ChannelName+" blongs to company "+companyModel.CompanyName+" If do want to send a message on channel you should send and verify your email address")
-// 			if err != nil {
-// 				log.Println(err)
-// 			}
-// 			//TODO show verification btn and get user email to send a code for activation
-// 			//TODO active user verification in the pivot table
-// 			//TODO if user is active in one company channels the user should be active in other company channels
-// 		}
-// 	}
-// }
 
 func NewMessageHandler(bot *tb.Bot, c *tb.User) {
 	options := new(tb.SendOptions)

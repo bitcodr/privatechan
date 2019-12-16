@@ -24,6 +24,7 @@ type Channel struct {
 	ChannelURL  string  `json:"channelURL"`
 	ChannelID   string  `json:"channelID"`
 	ChannelName string  `json:"channelName"`
+	UniqueID    string  `json:"uniqueID"`
 	CreatedAt   string  `json:"createdAt"`
 	UpdatedAt   string  `json:"updatedAt"`
 	Company     Company `json:"company"`

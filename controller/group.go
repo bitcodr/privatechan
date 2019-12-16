@@ -3,6 +3,7 @@ package controller
 import (
 	"database/sql"
 	"github.com/amiraliio/tgbp/lang"
+	"github.com/google/uuid"
 	"log"
 	"strconv"
 	"time"
@@ -35,8 +36,14 @@ func RegisterGroup(bot *tb.Bot, m *tb.Message) {
 		if err != nil {
 			log.Println(err)
 		}
+		inviteLink, err := bot.GetInviteLink(m.Chat)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		uniqueID := uuid.New().String()
 		//insert channel
-		channelInserted, err := transaction.Exec("INSERT INTO `channels` (`channelType`,`channelID`,`channelName`,`createdAt`,`updatedAt`) VALUES('group','" + channelID + "','" + m.Chat.Title + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+		channelInserted, err := transaction.Exec("INSERT INTO `channels` (`channelType`,`channelURL`,`channelID`,`channelName`,`uniqueID`,`createdAt`,`updatedAt`) VALUES('group','" + channelID + "','" + inviteLink + "','" + m.Chat.Title + "','" + uniqueID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
 		if err != nil {
 			transaction.Rollback()
 			log.Println(err)
@@ -96,6 +103,8 @@ func RegisterGroup(bot *tb.Bot, m *tb.Message) {
 			if err := bot.Delete(successMessage); err != nil {
 				log.Println(err)
 			}
+			_, _ = bot.Send(m.Chat, "This is your channel unique ID: "+uniqueID+" you can save this unique ID and remove this message")
+			time.Sleep(2 * time.Second)
 			compose := tb.InlineButton{
 				Unique: "compose_message_in_group_" + channelID,
 				Text:   "📝 New Anonymous Message 👻",
@@ -140,7 +149,7 @@ func NewMessageGroupHandler(bot *tb.Bot, m *tb.User) {
 	markup := new(tb.ReplyMarkup)
 	markup.ReplyKeyboardRemove = true
 	options.ReplyMarkup = markup
-	bot.Send(m, "Please send your message:",options)
+	bot.Send(m, "Please send your message:", options)
 }
 
 func JoinFromGroup(bot *tb.Bot, m *tb.Message, channelID string) {
