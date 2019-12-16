@@ -180,6 +180,13 @@ func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelT
 				return
 			}
 		}
+	} else {
+		_, err := transaction.Exec("INSERT INTO `companies_email_suffixes` (`suffix`,`companyID`,`createdAt`) VALUES('" + emailSuffixed.Data + "','" + strconv.FormatInt(companyID, 10) + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+		if err != nil {
+			transaction.Rollback()
+			log.Println(err)
+			return
+		}
 	}
 
 	//insert channel
