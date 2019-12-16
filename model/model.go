@@ -20,14 +20,15 @@ type CompanyEmailSuffixes struct {
 }
 
 type Channel struct {
-	ID          int64   `json:"id"`
-	ChannelURL  string  `json:"channelURL"`
-	ChannelID   string  `json:"channelID"`
-	ChannelName string  `json:"channelName"`
-	UniqueID    string  `json:"uniqueID"`
-	CreatedAt   string  `json:"createdAt"`
-	UpdatedAt   string  `json:"updatedAt"`
-	Company     Company `json:"company"`
+	ID                int64   `json:"id"`
+	ChannelURL        string  `json:"channelURL"`
+	ChannelID         string  `json:"channelID"`
+	ChannelName       string  `json:"channelName"`
+	UniqueID          string  `json:"uniqueID"`
+	ManualChannelName string  `json:"manualChannelName"`
+	CreatedAt         string  `json:"createdAt"`
+	UpdatedAt         string  `json:"updatedAt"`
+	Company           Company `json:"company"`
 }
 
 type CompanyChannel struct {

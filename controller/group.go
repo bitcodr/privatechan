@@ -36,14 +36,9 @@ func RegisterGroup(bot *tb.Bot, m *tb.Message) {
 		if err != nil {
 			log.Println(err)
 		}
-		inviteLink, err := bot.GetInviteLink(m.Chat)
-		if err != nil {
-			log.Println(err)
-			return
-		}
 		uniqueID := uuid.New().String()
 		//insert channel
-		channelInserted, err := transaction.Exec("INSERT INTO `channels` (`channelType`,`channelURL`,`channelID`,`channelName`,`uniqueID`,`createdAt`,`updatedAt`) VALUES('group','" + channelID + "','" + inviteLink + "','" + m.Chat.Title + "','" + uniqueID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+		channelInserted, err := transaction.Exec("INSERT INTO `channels` (`channelType`,`channelID`,`channelName`,`uniqueID`,`createdAt`,`updatedAt`) VALUES('group','" + channelID + "','" + m.Chat.Title + "','" + uniqueID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
 		if err != nil {
 			transaction.Rollback()
 			log.Println(err)
@@ -106,7 +101,7 @@ func RegisterGroup(bot *tb.Bot, m *tb.Message) {
 			sendOptionModel := new(tb.SendOptions)
 			sendOptionModel.ParseMode = tb.ModeHTML
 			_, err = bot.Send(m.Chat, "This is your group unique ID, you can save it and remove this message: <code> "+uniqueID+" </code>", sendOptionModel)
-						if err != nil {
+			if err != nil {
 				log.Println(err)
 			}
 			time.Sleep(2 * time.Second)

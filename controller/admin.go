@@ -30,19 +30,7 @@ func SetUpCompanyByAdmin(bot *tb.Bot, m *tb.Message, lastState *model.UserLastSt
 					return
 				}
 				defer db.Close()
-				var textValue string
-				if columnName != "channelID" {
-					textValue = strings.TrimSpace(text)
-				} else {
-					textValue = strconv.FormatInt(m.OriginalChat.ID, 10)
-					if !checkIsBotIsChannelAdminOrNot(bot, m, userID) {
-						return
-					}
-					if !checkIsBotIsGroupAdminOrNot(bot, m, userID) {
-						return
-					}
-				}
-				_, err = db.Query("INSERT INTO `temp_setup_flow` (`tableName`,`columnName`,`data`,`userID`,`relation`,`createdAt`) VALUES ('" + tableName + "','" + columnName + "','" + textValue + "','" + strconv.Itoa(userID) + "','setup_verified_company_account_" + strconv.Itoa(userID) + "_" + relationDate + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+				_, err = db.Query("INSERT INTO `temp_setup_flow` (`tableName`,`columnName`,`data`,`userID`,`relation`,`createdAt`) VALUES ('" + tableName + "','" + columnName + "','" + strings.TrimSpace(text) + "','" + strconv.Itoa(userID) + "','setup_verified_company_account_" + strconv.Itoa(userID) + "_" + relationDate + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
 				if err != nil {
 					log.Println(err)
 					return
@@ -59,86 +47,6 @@ func SetUpCompanyByAdmin(bot *tb.Bot, m *tb.Message, lastState *model.UserLastSt
 	initQuestion := viper.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N1.QUESTION")
 	sendMessageUserWithActionOnKeyboards(bot, userID, initQuestion, true)
 	SaveUserLastState(bot, "1_"+strconv.FormatInt(time.Now().Unix(), 10), userID, "setup_verified_company_account")
-}
-
-func checkIsBotIsChannelAdminOrNot(bot *tb.Bot, m *tb.Message, userID int) bool {
-	if m.OriginalChat.Type == tb.ChatChannelPrivate || m.OriginalChat.Type == tb.ChatChannel {
-		members, err := bot.AdminsOf(m.OriginalChat)
-		if err != nil {
-			log.Println(err)
-			userModel := new(tb.User)
-			userModel.ID = userID
-			_, _ = bot.Send(userModel, "Bot Is Not Admin, Please add this bot as admin in the channel and then forward a message from the channel")
-			return false
-		}
-		if members == nil {
-			userModel := new(tb.User)
-			userModel.ID = userID
-			_, _ = bot.Send(userModel, "Bot Is Not Admin, Please add this bot as admin in the channel and then forward a message from the channel")
-			return false
-		}
-		var isAdmin bool
-		for _, v := range members {
-			isAdmin = false
-			if v.User.ID == viper.GetInt("APP.TELEGRAM_BOT_ID") {
-				isAdmin = true
-				break
-			}
-		}
-		if !isAdmin {
-			userModel := new(tb.User)
-			userModel.ID = userID
-			_, _ = bot.Send(userModel, "Bot Is Not Admin, Please add this bot as admin in the channel and then forward a message from the channel")
-			return false
-		}
-		return true
-	}
-	return true
-}
-
-func checkIsBotIsGroupAdminOrNot(bot *tb.Bot, m *tb.Message, userID int) bool {
-	if m.OriginalChat.Type == tb.ChatGroup || m.OriginalChat.Type == tb.ChatSuperGroup {
-		admins, err := bot.AdminsOf(m.OriginalChat)
-		if err != nil {
-			log.Println(err)
-			userModel := new(tb.User)
-			userModel.ID = userID
-			_, _ = bot.Send(userModel, "Bot Is Not Admin OR Member ,Please add this bot as admin in the group and then forward a message from the group")
-			return false
-		}
-		userModel := new(tb.User)
-		userModel.ID = viper.GetInt("APP.TELEGRAM_BOT_ID")
-		members, err := bot.ChatMemberOf(m.OriginalChat, userModel)
-		if err != nil {
-			log.Println(err)
-			userModel := new(tb.User)
-			userModel.ID = userID
-			_, _ = bot.Send(userModel, "Bot Is Not Admin OR Member ,Please add this bot as admin in the group and then forward a message from the group")
-			return false
-		}
-		if admins == nil && members == nil {
-			userModel := new(tb.User)
-			userModel.ID = userID
-			_, _ = bot.Send(userModel, "Bot Is Not Admin OR Member ,Please add this bot as admin in the group and then forward a message from the group")
-			return false
-		}
-		var isAdmin bool
-		for _, v := range admins {
-			isAdmin = false
-			if v.User.ID == viper.GetInt("APP.TELEGRAM_BOT_ID") {
-				isAdmin = true
-				break
-			}
-		}
-		if !isAdmin && members == nil {
-			userModel := new(tb.User)
-			userModel.ID = userID
-			_, _ = bot.Send(userModel, "Bot Is Not Admin OR Member ,Please add this bot as admin in the group and then forward a message from the group")
-			return false
-		}
-		return true
-	}
-	return true
 }
 
 //next question
@@ -217,7 +125,7 @@ func finalStage(bot *tb.Bot, relationDate string, db *sql.DB, text string, userI
 		transaction, err := db.Begin()
 		if err == nil {
 			//insert company
-			insertFinalStateData(bot, userID, transaction, channelTableData, companyTableData, companies_email_suffixes, channels_settings)
+			insertFinalStateData(bot, userID, transaction, channelTableData, companyTableData, companies_email_suffixes, channels_settings, db)
 			//update state of temp setup data
 			_, err = transaction.Exec("update `temp_setup_flow` set `status`='INACTIVE' where status='ACTIVE' and relation=? and `userID`=?", "setup_verified_company_account_"+strconv.Itoa(userID)+"_"+relationDate, userID)
 			if err != nil {
@@ -232,7 +140,7 @@ func finalStage(bot *tb.Bot, relationDate string, db *sql.DB, text string, userI
 	}
 }
 
-func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelTableData, companyTableData, companies_email_suffixes, channels_settings []*model.TempSetupFlow) {
+func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelTableData, companyTableData, companies_email_suffixes, channels_settings []*model.TempSetupFlow, db *sql.DB) {
 	if companyTableData == nil || companies_email_suffixes == nil || len(companies_email_suffixes) != 1 || channelTableData == nil || channels_settings == nil {
 		transaction.Rollback()
 		log.Println("final data must not be null")
@@ -276,28 +184,31 @@ func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelT
 	}
 
 	//insert channel
-	var channelType, channelName, channelURL, channelID string
+	var channelType, manualChannelName, uniqueID, channelURL string
 	for _, v := range channelTableData {
 		if v.ColumnName == "channelType" {
 			channelType = v.Data
 		}
-		if v.ColumnName == "channelName" {
-			channelName = v.Data
+		if v.ColumnName == "manualChannelName" {
+			manualChannelName = v.Data
+		}
+		if v.ColumnName == "uniqueID" {
+			uniqueID = v.Data
 		}
 		if v.ColumnName == "channelURL" {
 			channelURL = v.Data
 		}
-		if v.ColumnName == "channelID" {
-			channelID = v.Data
-		}
 	}
-	insertChannel, err := transaction.Exec("INSERT INTO `channels` (`channelURL`,`channelName`,`channelType`,`channelID`,`createdAt`) VALUES('" + channelURL + "','" + channelName + "','" + channelType + "','" + channelID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+	resultsStatement, err := db.Prepare("SELECT channelID,id FROM `channels` where `status`= 'ACTIVE' and `uniqueID`=?")
 	if err != nil {
 		transaction.Rollback()
 		log.Println(err)
 		return
 	}
-	channelInsertedID, err := insertChannel.LastInsertId()
+	defer resultsStatement.Close()
+	channelModel := new(model.Channel)
+	_ = resultsStatement.QueryRow(uniqueID).Scan(&channelModel.ChannelID, &channelModel.ID)
+	_, err = transaction.Exec("update `channels` set `manualChannelName`='" + manualChannelName + "', `channelType`='" + channelType + "', `channelURL`='" + channelURL + "' where `uniqueID`='" + uniqueID + "'")
 	if err != nil {
 		transaction.Rollback()
 		log.Println(err)
@@ -305,7 +216,7 @@ func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelT
 	}
 
 	//insert company channel
-	_, err = transaction.Exec("INSERT INTO `companies_channels` (`companyID`,`channelID`,`createdAt`) VALUES('" + strconv.FormatInt(companyID, 10) + "','" + strconv.FormatInt(channelInsertedID, 10) + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+	_, err = transaction.Exec("INSERT INTO `companies_channels` (`companyID`,`channelID`,`createdAt`) VALUES('" + strconv.FormatInt(companyID, 10) + "','" + strconv.FormatInt(channelModel.ID, 10) + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
 	if err != nil {
 		transaction.Rollback()
 		log.Println(err)
@@ -348,7 +259,7 @@ func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelT
 			}
 		}
 	}
-	_, err = transaction.Exec("INSERT INTO `channels_settings` (`joinVerify`,`newMessageVerify`,`replyVerify`,`directVerify`,`channelID`,`createdAt`) VALUES('" + joinVerify + "','" + newMessageVerify + "','" + replyVerify + "','" + directVerify + "','" + strconv.FormatInt(channelInsertedID, 10) + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+	_, err = transaction.Exec("INSERT INTO `channels_settings` (`joinVerify`,`newMessageVerify`,`replyVerify`,`directVerify`,`channelID`,`createdAt`) VALUES('" + joinVerify + "','" + newMessageVerify + "','" + replyVerify + "','" + directVerify + "','" + strconv.FormatInt(channelModel.ID, 10) + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
 	if err != nil {
 		transaction.Rollback()
 		log.Println(err)
@@ -357,9 +268,9 @@ func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelT
 
 	//send  message to channel to start conversation
 	compose := tb.InlineButton{
-		Unique: "compose_message_in_group_" + channelID,
+		Unique: "compose_message_in_group_" + channelModel.ChannelID,
 		Text:   "📝 New Anonymous Message 👻",
-		URL:    "https://t.me/" + viper.GetString("APP.BOTUSERNAME") + "?start=compose_message_in_group_" + channelID,
+		URL:    "https://t.me/" + viper.GetString("APP.BOTUSERNAME") + "?start=compose_message_in_group_" + channelModel.ChannelID,
 	}
 	groupKeys := [][]tb.InlineButton{
 		[]tb.InlineButton{compose},
@@ -369,7 +280,7 @@ func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelT
 	newSendOption := new(tb.SendOptions)
 	newSendOption.ReplyMarkup = newReplyModel
 	newSendOption.ParseMode = tb.ModeMarkdown
-	idOfChannel, err := strconv.Atoi(channelID)
+	idOfChannel, err := strconv.Atoi(channelModel.ChannelID)
 	if err != nil {
 		transaction.Rollback()
 		log.Println(err)
