@@ -9,7 +9,6 @@ import (
 
 	"github.com/amiraliio/tgbp/config"
 	"github.com/amiraliio/tgbp/model"
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/spf13/viper"
 	tb "gopkg.in/tucnak/telebot.v2"
 )

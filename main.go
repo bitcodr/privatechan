@@ -29,23 +29,23 @@ func main() {
 		return
 	}
 
-	joinGroup := tb.InlineButton{
-		Unique: "join_group",
-		Text:   "Join To The Other Company Channels",
-	}
-	newSurvey := tb.InlineButton{
-		Unique: "new_survey_to_group",
-		Text:   "New Survey To The Channel",
-	}
-	newMessage := tb.InlineButton{
-		Unique: "new_message_to_group",
-		Text:   "New Message To The Channel",
-	}
-	inlineKeys := [][]tb.InlineButton{
-		[]tb.InlineButton{joinGroup},
-		[]tb.InlineButton{newMessage},
-		[]tb.InlineButton{newSurvey},
-	}
+	// joinGroup := tb.InlineButton{
+	// 	Unique: "join_group",
+	// 	Text:   "Join To The Other Company Channels",
+	// }
+	// newSurvey := tb.InlineButton{
+	// 	Unique: "new_survey_to_group",
+	// 	Text:   "New Survey To The Channel",
+	// }
+	// newMessage := tb.InlineButton{
+	// 	Unique: "new_message_to_group",
+	// 	Text:   "New Message To The Channel",
+	// }
+	// inlineKeys := [][]tb.InlineButton{
+	// 	[]tb.InlineButton{joinGroup},
+	// 	[]tb.InlineButton{newMessage},
+	// 	[]tb.InlineButton{newSurvey},
+	// }
 
 	//bot startup buttons
 	addAnonMessage := tb.ReplyButton{
@@ -65,10 +65,12 @@ func main() {
 
 	//register a channel with the company name directly from channel
 	bot.Handle(tb.OnChannelPost, func(m *tb.Message) {
-		if m.Sender != nil {
-			controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "register_channel")
+		if m.Text == strings.TrimSpace("/enable_anonymity_support") {
+			if m.Sender != nil {
+				controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "register_channel")
+			}
+			controller.RegisterChannel(bot, m)
 		}
-		controller.RegisterChannel(bot, m)
 	})
 
 	//register a channel with the company name directly from channel
@@ -88,12 +90,12 @@ func main() {
 	})
 
 	//new message inline message handler
-	bot.Handle(&newMessage, func(c *tb.Callback) {
-		if c.Sender != nil {
-			controller.SaveUserLastState(bot, c.Message.Text, c.Sender.ID, "new_message_to_group")
-		}
-		controller.NewMessageHandler(bot, c.Sender)
-	})
+	// bot.Handle(&newMessage, func(c *tb.Callback) {
+	// 	if c.Sender != nil {
+	// 		controller.SaveUserLastState(bot, c.Message.Text, c.Sender.ID, "new_message_to_group")
+	// 	}
+	// 	controller.NewMessageHandler(bot, c.Sender)
+	// })
 
 	//on text handlers
 	bot.Handle(tb.OnText, func(m *tb.Message) {
@@ -105,12 +107,12 @@ func main() {
 			controller.StartBot(bot, m, startBotKeys)
 		}
 
-		if strings.Contains(m.Text, " join_group") {
-			if m.Sender != nil {
-				controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "join_group")
-			}
-			controller.JoinFromChannel(bot, m, inlineKeys)
-		}
+		// if strings.Contains(m.Text, " join_group") {
+		// 	if m.Sender != nil {
+		// 		controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "join_group")
+		// 	}
+		// 	controller.JoinFromChannel(bot, m, inlineKeys)
+		// }
 
 		if strings.Contains(m.Text, "reply_to_message_on_group_") {
 			if m.Sender != nil {

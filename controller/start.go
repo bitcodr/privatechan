@@ -1,7 +1,6 @@
 package controller
 
 import (
-	_ "github.com/go-sql-driver/mysql"
 	tb "gopkg.in/tucnak/telebot.v2"
 	"log"
 )
