@@ -229,6 +229,8 @@ func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelT
 		return
 	}
 
+	//TODO remove previus company
+
 	//insert channel settings
 	var joinVerify, newMessageVerify, replyVerify, directVerify string
 	for _, v := range channels_settings {
