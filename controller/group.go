@@ -99,11 +99,16 @@ func RegisterGroup(bot *tb.Bot, m *tb.Message) {
 			}
 			transaction.Commit()
 			successMessage, _ := bot.Send(m.Chat, "You're group registered successfully")
-			time.Sleep(3 * time.Second)
+			time.Sleep(2 * time.Second)
 			if err := bot.Delete(successMessage); err != nil {
 				log.Println(err)
 			}
-			_, _ = bot.Send(m.Chat, "This is your channel unique ID: "+uniqueID+" you can save this unique ID and remove this message")
+			sendOptionModel := new(tb.SendOptions)
+			sendOptionModel.ParseMode = tb.ModeHTML
+			_, err = bot.Send(m.Chat, "This is your group unique ID, you can save it and remove this message: <code> "+uniqueID+" </code>", sendOptionModel)
+						if err != nil {
+				log.Println(err)
+			}
 			time.Sleep(2 * time.Second)
 			compose := tb.InlineButton{
 				Unique: "compose_message_in_group_" + channelID,
