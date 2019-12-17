@@ -184,13 +184,8 @@ func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelT
 	}
 	defer companyResultsStatement.Close()
 	companyNewModel := new(model.Company)
-	if err := companyResultsStatement.QueryRow(companyName).Scan(&companyNewModel.ID, &companyNewModel.CompanyName); err != nil {
-		transaction.Rollback()
-		log.Println(err)
-		return
-	}
 	var companyID int64
-	if companyNewModel == nil || companyNewModel.ID == 0 {
+	if err := companyResultsStatement.QueryRow(companyName).Scan(&companyNewModel.ID, &companyNewModel.CompanyName); err != nil {
 		insertCompany, err := transaction.Exec("INSERT INTO `companies` (`companyName`,`companyType`,`createdAt`) VALUES('" + companyName + "','" + companyType + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
 		if err != nil {
 			transaction.Rollback()
