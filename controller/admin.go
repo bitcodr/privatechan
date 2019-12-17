@@ -145,6 +145,7 @@ func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelT
 		log.Println("final data must not be null")
 		return
 	}
+
 	//insert company
 	var companyName, companyType string
 	for _, v := range companyTableData {
@@ -155,17 +156,35 @@ func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelT
 			companyType = v.Data
 		}
 	}
-	insertCompany, err := transaction.Exec("INSERT INTO `companies` (`companyName`,`companyType`,`createdAt`) VALUES('" + companyName + "','" + companyType + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+	companyResultsStatement, err := db.Prepare("SELECT id,companyName FROM `companies` where `companyName`=?")
 	if err != nil {
 		transaction.Rollback()
 		log.Println(err)
 		return
 	}
-	companyID, err := insertCompany.LastInsertId()
-	if err != nil {
+	defer companyResultsStatement.Close()
+	companyNewModel := new(model.Company)
+	if err := companyResultsStatement.QueryRow(companyName).Scan(&companyNewModel.ID, &companyNewModel.CompanyName); err != nil {
 		transaction.Rollback()
 		log.Println(err)
 		return
+	}
+	var companyID int64
+	if companyNewModel == nil || companyNewModel.ID == 0 {
+		insertCompany, err := transaction.Exec("INSERT INTO `companies` (`companyName`,`companyType`,`createdAt`) VALUES('" + companyName + "','" + companyType + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+		if err != nil {
+			transaction.Rollback()
+			log.Println(err)
+			return
+		}
+		companyID, err = insertCompany.LastInsertId()
+		if err != nil {
+			transaction.Rollback()
+			log.Println(err)
+			return
+		}
+	} else {
+		companyID = companyNewModel.ID
 	}
 
 	//insert company_email_suffixes
@@ -229,7 +248,13 @@ func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelT
 		return
 	}
 
-	//TODO remove previus company
+	//remove previous company, which create with channel id
+	_, err = transaction.Exec("delete from companies where `companyName`='" + channelModel.ChannelID + "'")
+	if err != nil {
+		transaction.Rollback()
+		log.Println(err)
+		return
+	}
 
 	//insert channel settings
 	var joinVerify, newMessageVerify, replyVerify, directVerify string
