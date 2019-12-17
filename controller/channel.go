@@ -146,7 +146,13 @@ func RegisterChannel(bot *tb.Bot, m *tb.Message) {
 func NewMessageHandler(bot *tb.Bot, c *tb.User) {
 	options := new(tb.SendOptions)
 	markup := new(tb.ReplyMarkup)
-	markup.ReplyKeyboardRemove = true
+	homeBTN := tb.ReplyButton{
+		Text: "Home",
+	}
+	replyKeys := [][]tb.ReplyButton{
+		[]tb.ReplyButton{homeBTN},
+	}
+	markup.ReplyKeyboard = replyKeys
 	options.ReplyMarkup = markup
 	bot.Send(c, "Please send your message:", options)
 }
@@ -154,7 +160,13 @@ func NewMessageHandler(bot *tb.Bot, c *tb.User) {
 func SendReply(bot *tb.Bot, m *tb.User) {
 	options := new(tb.SendOptions)
 	markup := new(tb.ReplyMarkup)
-	markup.ReplyKeyboardRemove = true
+	homeBTN := tb.ReplyButton{
+		Text: "Home",
+	}
+	replyKeys := [][]tb.ReplyButton{
+		[]tb.ReplyButton{homeBTN},
+	}
+	markup.ReplyKeyboard = replyKeys
 	options.ReplyMarkup = markup
 	bot.Send(m, "Please send your reply to the message:", options)
 }
@@ -162,7 +174,13 @@ func SendReply(bot *tb.Bot, m *tb.User) {
 func SanedDM(bot *tb.Bot, m *tb.User) {
 	options := new(tb.SendOptions)
 	markup := new(tb.ReplyMarkup)
-	markup.ReplyKeyboardRemove = true
+	homeBTN := tb.ReplyButton{
+		Text: "Home",
+	}
+	replyKeys := [][]tb.ReplyButton{
+		[]tb.ReplyButton{homeBTN},
+	}
+	markup.ReplyKeyboard = replyKeys
 	options.ReplyMarkup = markup
 	bot.Send(m, "Please send your direct message to the user:", options)
 }
@@ -170,7 +188,13 @@ func SanedDM(bot *tb.Bot, m *tb.User) {
 func SanedAnswerDM(bot *tb.Bot, m *tb.User) {
 	options := new(tb.SendOptions)
 	markup := new(tb.ReplyMarkup)
-	markup.ReplyKeyboardRemove = true
+	homeBTN := tb.ReplyButton{
+		Text: "Home",
+	}
+	replyKeys := [][]tb.ReplyButton{
+		[]tb.ReplyButton{homeBTN},
+	}
+	markup.ReplyKeyboard = replyKeys
 	options.ReplyMarkup = markup
 	bot.Send(m, "Please send your direct message to the user:", options)
 }
@@ -220,7 +244,17 @@ func SaveAndSendMessage(bot *tb.Bot, m *tb.Message) {
 					log.Println(err)
 				}
 				defer insertedMessage.Close()
-				bot.Send(m.Sender, "Sent your message has been sent anonymously to the group / channel "+activeChannel.ChannelName)
+				options := new(tb.SendOptions)
+				markup := new(tb.ReplyMarkup)
+				homeBTN := tb.ReplyButton{
+					Text: "Home",
+				}
+				replyKeys := [][]tb.ReplyButton{
+					[]tb.ReplyButton{homeBTN},
+				}
+				markup.ReplyKeyboard = replyKeys
+				options.ReplyMarkup = markup
+				bot.Send(m.Sender, "Sent your message has been sent anonymously to the group / channel "+activeChannel.ChannelName, options)
 				SaveUserLastState(bot, "", m.Sender.ID, "message_sent")
 			}
 		}
@@ -300,7 +334,17 @@ func SendAndSaveReplyMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserLa
 										log.Println(err)
 									}
 									defer insertedMessage.Close()
-									bot.Send(m.Sender, "Your reply message has been sent anonymously to the group / channel "+newChannelModel.ChannelName)
+									options := new(tb.SendOptions)
+									markup := new(tb.ReplyMarkup)
+									homeBTN := tb.ReplyButton{
+										Text: "Home",
+									}
+									replyKeys := [][]tb.ReplyButton{
+										[]tb.ReplyButton{homeBTN},
+									}
+									markup.ReplyKeyboard = replyKeys
+									options.ReplyMarkup = markup
+									bot.Send(m.Sender, "Your reply message has been sent anonymously to the group / channel "+newChannelModel.ChannelName, options)
 									SaveUserLastState(bot, "", m.Sender.ID, "reply_message_sent")
 								}
 							}
@@ -347,7 +391,17 @@ func SendAndSaveDirectMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserL
 						}
 						_, err := strconv.Atoi(messageModel.ChannelMessageID)
 						if err == nil {
-							bot.Send(m.Sender, "Your Direct Message Has Been Sent To The User")
+							options := new(tb.SendOptions)
+							markup := new(tb.ReplyMarkup)
+							homeBTN := tb.ReplyButton{
+								Text: "Home",
+							}
+							replyKeys := [][]tb.ReplyButton{
+								[]tb.ReplyButton{homeBTN},
+							}
+							markup.ReplyKeyboard = replyKeys
+							options.ReplyMarkup = markup
+							bot.Send(m.Sender, "Your Direct Message Has Been Sent To The User", options)
 							// sendMessageModel := new(tb.Message)
 							// sendMessageModel.ID = ChannelMessageDataID
 							newReplyModel := new(tb.ReplyMarkup)
@@ -394,14 +448,10 @@ func SendAnswerAndSaveDirectMessage(bot *tb.Bot, m *tb.Message, lastState *model
 			if len(data) == 3 {
 				channelID := strings.TrimSpace(data[0])
 				userID := strings.TrimSpace(data[1])
-				// botMessageID := data[2]
 				senderID := strconv.Itoa(m.Sender.ID)
 				newBotMessageID := strconv.Itoa(m.ID)
 				userIDInInt, err := strconv.Atoi(userID)
 				if err == nil {
-					// message := db.QueryRow("SELECT me.id,me.channelMessageID from `messages` as me inner join `channels` as ch on me.channelID=ch.id and ch.channelID='" + channelID + "' where me.`botMessageID`='" + botMessageID + "' and me.`userID`='" + userID + "'")
-					// messageModel := new(model.Message)
-					// if err := message.Scan(&messageModel.ID, &messageModel.ChannelMessageID); err == nil {
 					newReply := tb.InlineButton{
 						Unique: "answer_to_dm_" + channelID + "_" + senderID + "_" + newBotMessageID,
 						Text:   "Direct Reply",
@@ -409,16 +459,20 @@ func SendAnswerAndSaveDirectMessage(bot *tb.Bot, m *tb.Message, lastState *model
 					inlineKeys := [][]tb.InlineButton{
 						[]tb.InlineButton{newReply},
 					}
-					// ChannelMessageDataID, err := strconv.Atoi(messageModel.ChannelMessageID)
-					// if err == nil {
-
-					bot.Send(m.Sender, "Your Direct Message Has Been Sent To The User")
-					// sendMessageModel := new(tb.Message)
-					// sendMessageModel.ID = ChannelMessageDataID
+					options := new(tb.SendOptions)
+					markup := new(tb.ReplyMarkup)
+					homeBTN := tb.ReplyButton{
+						Text: "Home",
+					}
+					replyKeys := [][]tb.ReplyButton{
+						[]tb.ReplyButton{homeBTN},
+					}
+					markup.ReplyKeyboard = replyKeys
+					options.ReplyMarkup = markup
+					bot.Send(m.Sender, "Your Direct Message Has Been Sent To The User", options)
 					newReplyModel := new(tb.ReplyMarkup)
 					newReplyModel.InlineKeyboard = inlineKeys
 					newSendOption := new(tb.SendOptions)
-					// newSendOption.ReplyTo = sendMessageModel
 					newSendOption.ReplyMarkup = newReplyModel
 					user := new(tb.User)
 					user.ID = userIDInInt
@@ -430,7 +484,6 @@ func SendAnswerAndSaveDirectMessage(bot *tb.Bot, m *tb.Message, lastState *model
 						}
 						defer db.Close()
 						newChannelMessageID := strconv.Itoa(sendMessage.ID)
-						// parentID := strconv.FormatInt(messageModel.ID, 10)
 						currentChannelStatement, err := db.Prepare("SELECT id from `channels` where `channelID`=?")
 						if err != nil {
 							log.Println(err)
@@ -453,8 +506,6 @@ func SendAnswerAndSaveDirectMessage(bot *tb.Bot, m *tb.Message, lastState *model
 							}
 						}
 					}
-					// }
-					// }
 				}
 			}
 		}

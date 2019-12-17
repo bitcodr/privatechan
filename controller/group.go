@@ -147,7 +147,13 @@ func RegisterGroup(bot *tb.Bot, m *tb.Message) {
 func NewMessageGroupHandler(bot *tb.Bot, m *tb.User) {
 	options := new(tb.SendOptions)
 	markup := new(tb.ReplyMarkup)
-	markup.ReplyKeyboardRemove = true
+	homeBTN := tb.ReplyButton{
+		Text: "Home",
+	}
+	replyKeys := [][]tb.ReplyButton{
+		[]tb.ReplyButton{homeBTN},
+	}
+	markup.ReplyKeyboard = replyKeys
 	options.ReplyMarkup = markup
 	bot.Send(m, "Please send your message:", options)
 }

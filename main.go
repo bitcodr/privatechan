@@ -74,9 +74,9 @@ func main() {
 	//on text handlers
 	bot.Handle(tb.OnText, func(m *tb.Message) {
 
-		if m.Text == "/start" {
+		if m.Text == "Home" {
 			if m.Sender != nil {
-				controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "start")
+				controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "home")
 			}
 			controller.StartBot(bot, m, startBotKeys)
 		}
@@ -130,6 +130,12 @@ func main() {
 
 	//callback handlers
 	bot.Handle(tb.OnCallback, func(c *tb.Callback) {
+		if c.Data == "Home" {
+			if c.Sender != nil {
+				controller.SaveUserLastState(bot, c.Data, c.Sender.ID, "home")
+			}
+			controller.StartBot(bot, c.Message, startBotKeys)
+		}
 		if strings.Contains(c.Data, "answer_to_dm_") {
 			if c.Sender != nil {
 				controller.SaveUserLastState(bot, c.Data, c.Sender.ID, "answer_to_dm")

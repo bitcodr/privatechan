@@ -54,28 +54,41 @@ func nextQuestion(bot *tb.Bot, m *tb.Message, lastState *model.UserLastState, re
 	answers := viper.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N" + strconv.Itoa(prevQuestionNo+1) + ".ANSWERS")
 	if answers != "" && strings.Contains(strings.TrimSpace(answers), ",") {
 		splittedAnswers := strings.Split(answers, ",")
-		inlineKeysNested := []tb.InlineButton{}
+		replyKeysNested := []tb.ReplyButton{}
 		for _, v := range splittedAnswers {
-			inlineBTN := tb.InlineButton{
-				Text:   v,
-				Unique: v,
+			replyBTN := tb.ReplyButton{
+				Text: v,
 			}
-			inlineKeysNested = append(inlineKeysNested, inlineBTN)
+			replyKeysNested = append(replyKeysNested, replyBTN)
 		}
-		inlineKeys := [][]tb.InlineButton{
-			inlineKeysNested,
+		homeBTN := tb.ReplyButton{
+			Text: "Home",
+		}
+		replyKeys := [][]tb.ReplyButton{
+			replyKeysNested,
+			[]tb.ReplyButton{homeBTN},
 		}
 		userModel := new(tb.User)
 		userModel.ID = userID
 		options := new(tb.SendOptions)
 		replyMarkupModel := new(tb.ReplyMarkup)
-		replyMarkupModel.InlineKeyboard = inlineKeys
+		replyMarkupModel.ReplyKeyboard = replyKeys
 		options.ReplyMarkup = replyMarkupModel
 		_, _ = bot.Send(userModel, questionText, options)
 	} else {
 		userModel := new(tb.User)
 		userModel.ID = userID
-		_, _ = bot.Send(userModel, questionText)
+		homeBTN := tb.ReplyButton{
+			Text: "Home",
+		}
+		replyKeys := [][]tb.ReplyButton{
+			[]tb.ReplyButton{homeBTN},
+		}
+		options := new(tb.SendOptions)
+		replyMarkupModel := new(tb.ReplyMarkup)
+		replyMarkupModel.ReplyKeyboard = replyKeys
+		options.ReplyMarkup = replyMarkupModel
+		_, _ = bot.Send(userModel, questionText, options)
 	}
 	SaveUserLastState(bot, strconv.Itoa(prevQuestionNo+1)+"_"+relationDate, userID, "setup_verified_company_account")
 }
@@ -84,8 +97,15 @@ func sendMessageUserWithActionOnKeyboards(bot *tb.Bot, userID int, message strin
 	userModel := new(tb.User)
 	userModel.ID = userID
 	options := new(tb.SendOptions)
+	homeBTN := tb.ReplyButton{
+		Text: "Home",
+	}
+	replyKeys := [][]tb.ReplyButton{
+		[]tb.ReplyButton{homeBTN},
+	}
 	replyModel := new(tb.ReplyMarkup)
 	replyModel.ReplyKeyboardRemove = showKeyboard
+	replyModel.ReplyKeyboard = replyKeys
 	options.ReplyMarkup = replyModel
 	_, _ = bot.Send(userModel, message, options)
 }
