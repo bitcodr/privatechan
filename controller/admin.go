@@ -121,7 +121,7 @@ func finalStage(bot *tb.Bot, relationDate string, db *sql.DB, text string, userI
 	if err == nil {
 		var channelTableData []*model.TempSetupFlow
 		var companyTableData []*model.TempSetupFlow
-		var companies_email_suffixes []*model.TempSetupFlow
+		var channels_email_suffixes []*model.TempSetupFlow
 		var channels_settings []*model.TempSetupFlow
 		for results.Next() {
 			tempSetupFlow := new(model.TempSetupFlow)
@@ -137,14 +137,14 @@ func finalStage(bot *tb.Bot, relationDate string, db *sql.DB, text string, userI
 				channelTableData = append(channelTableData, tempSetupFlow)
 			case "channels_settings":
 				channels_settings = append(channels_settings, tempSetupFlow)
-			case "companies_email_suffixes":
-				companies_email_suffixes = append(companies_email_suffixes, tempSetupFlow)
+			case "channels_email_suffixes":
+				channels_email_suffixes = append(channels_email_suffixes, tempSetupFlow)
 			}
 		}
 		transaction, err := db.Begin()
 		if err == nil {
 			//insert company
-			insertFinalStateData(bot, userID, transaction, channelTableData, companyTableData, companies_email_suffixes, channels_settings, db)
+			insertFinalStateData(bot, userID, transaction, channelTableData, companyTableData, channels_email_suffixes, channels_settings, db)
 			//update state of temp setup data
 			_, err = transaction.Exec("update `temp_setup_flow` set `status`='INACTIVE' where status='ACTIVE' and relation=? and `userID`=?", "setup_verified_company_account_"+strconv.Itoa(userID)+"_"+relationDate, userID)
 			if err != nil {
@@ -159,8 +159,8 @@ func finalStage(bot *tb.Bot, relationDate string, db *sql.DB, text string, userI
 	}
 }
 
-func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelTableData, companyTableData, companies_email_suffixes, channels_settings []*model.TempSetupFlow, db *sql.DB) {
-	if companyTableData == nil || companies_email_suffixes == nil || len(companies_email_suffixes) != 1 || channelTableData == nil || channels_settings == nil {
+func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelTableData, companyTableData, channels_email_suffixes, channels_settings []*model.TempSetupFlow, db *sql.DB) {
+	if companyTableData == nil || channels_email_suffixes == nil || len(channels_email_suffixes) != 1 || channelTableData == nil || channels_settings == nil {
 		transaction.Rollback()
 		log.Println("final data must not be null")
 		return
@@ -202,26 +202,6 @@ func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelT
 		companyID = companyNewModel.ID
 	}
 
-	//insert company_email_suffixes
-	emailSuffixed := companies_email_suffixes[0]
-	if strings.Contains(emailSuffixed.Data, ",") {
-		suffixes := strings.Split(emailSuffixed.Data, ",")
-		for _, suffix := range suffixes {
-			_, err := transaction.Exec("INSERT INTO `companies_email_suffixes` (`suffix`,`companyID`,`createdAt`) VALUES('" + suffix + "','" + strconv.FormatInt(companyID, 10) + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
-			if err != nil {
-				transaction.Rollback()
-				log.Println(err)
-				return
-			}
-		}
-	} else {
-		_, err := transaction.Exec("INSERT INTO `companies_email_suffixes` (`suffix`,`companyID`,`createdAt`) VALUES('" + emailSuffixed.Data + "','" + strconv.FormatInt(companyID, 10) + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
-		if err != nil {
-			transaction.Rollback()
-			log.Println(err)
-			return
-		}
-	}
 
 	//insert channel
 	var channelType, manualChannelName, uniqueID, channelURL string
@@ -269,6 +249,27 @@ func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelT
 		transaction.Rollback()
 		log.Println(err)
 		return
+	}
+
+		//insert channels_email_suffixes
+	emailSuffixed := channels_email_suffixes[0]
+	if strings.Contains(emailSuffixed.Data, ",") {
+		suffixes := strings.Split(emailSuffixed.Data, ",")
+		for _, suffix := range suffixes {
+			_, err := transaction.Exec("INSERT INTO `channels_email_suffixes` (`suffix`,`channelID`,`createdAt`) VALUES('" + suffix + "','" + strconv.FormatInt(channelModel.ID, 10) + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+			if err != nil {
+				transaction.Rollback()
+				log.Println(err)
+				return
+			}
+		}
+	} else {
+		_, err := transaction.Exec("INSERT INTO `channels_email_suffixes` (`suffix`,`channelID`,`createdAt`) VALUES('" + emailSuffixed.Data + "','" + strconv.FormatInt(channelModel.ID, 10) + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+		if err != nil {
+			transaction.Rollback()
+			log.Println(err)
+			return
+		}
 	}
 
 	//insert channel settings
