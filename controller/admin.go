@@ -168,11 +168,7 @@ func finalStage(bot *tb.Bot, relationDate string, db *sql.DB, text string, userI
 
 func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelTableData, companyTableData, channelsEmailSuffixes, channelsSettings []*model.TempSetupFlow, db *sql.DB) {
 	if companyTableData == nil || channelsEmailSuffixes == nil || len(channelsEmailSuffixes) != 1 || channelTableData == nil || channelsSettings == nil {
-		err := transaction.Rollback()
-		if err != nil {
-			log.Println("final data must not be null")
-			return
-		}
+		transaction.Rollback()
 		log.Println("final data must not be null")
 		return
 	}
@@ -189,7 +185,7 @@ func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelT
 	}
 	companyResultsStatement, err := db.Prepare("SELECT id,companyName FROM `companies` where `companyName`=?")
 	if err != nil {
-		_ = transaction.Rollback()
+		transaction.Rollback()
 		log.Println(err)
 		return
 	}
