@@ -90,9 +90,14 @@ func RegisterGroup(bot *tb.Bot, m *tb.Message) {
 				if err != nil {
 					transaction.Rollback()
 					log.Println(err)
+					return
 				}
 			}
-			transaction.Commit()
+			err = transaction.Commit()
+			if err != nil {
+				log.Println(err)
+				return
+			}
 			successMessage, _ := bot.Send(m.Chat, "You're group registered successfully")
 			time.Sleep(2 * time.Second)
 			if err := bot.Delete(successMessage); err != nil {
@@ -286,6 +291,11 @@ func checkAndInsertUserGroup(bot *tb.Bot, m *tb.Message, queryUserID int64, chan
 			transaction.Rollback()
 			log.Println(err)
 		}
-		transaction.Commit()
+		err := transaction.Commit()
+		if err != nil {
+			log.Println(err)
+			return
+		}
+
 	}
 }

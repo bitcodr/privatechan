@@ -154,7 +154,11 @@ func NewMessageHandler(bot *tb.Bot, c *tb.User) {
 	}
 	markup.ReplyKeyboard = replyKeys
 	options.ReplyMarkup = markup
-	bot.Send(c, "Please send your message:", options)
+	_, err := bot.Send(c, "Please send your message:", options)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 }
 
 func SendReply(bot *tb.Bot, m *tb.User) {
@@ -168,7 +172,11 @@ func SendReply(bot *tb.Bot, m *tb.User) {
 	}
 	markup.ReplyKeyboard = replyKeys
 	options.ReplyMarkup = markup
-	bot.Send(m, "Please send your reply to the message:", options)
+	_, err := bot.Send(m, "Please send your reply to the message:", options)
+	if err != nil {
+		log.Println(err)
+		return
+	}
 }
 
 func SanedDM(bot *tb.Bot, m *tb.User) {

@@ -121,8 +121,8 @@ func finalStage(bot *tb.Bot, relationDate string, db *sql.DB, text string, userI
 	if err == nil {
 		var channelTableData []*model.TempSetupFlow
 		var companyTableData []*model.TempSetupFlow
-		var channels_email_suffixes []*model.TempSetupFlow
-		var channels_settings []*model.TempSetupFlow
+		var channelsEmailSuffixes []*model.TempSetupFlow
+		var channelsSettings []*model.TempSetupFlow
 		for results.Next() {
 			tempSetupFlow := new(model.TempSetupFlow)
 			err := results.Scan(&tempSetupFlow.ID, &tempSetupFlow.TableName, &tempSetupFlow.ColumnName, &tempSetupFlow.Data, &tempSetupFlow.Relation, &tempSetupFlow.Status, &tempSetupFlow.UserID, &tempSetupFlow.CreatedAt)
@@ -136,32 +136,43 @@ func finalStage(bot *tb.Bot, relationDate string, db *sql.DB, text string, userI
 			case "channels":
 				channelTableData = append(channelTableData, tempSetupFlow)
 			case "channels_settings":
-				channels_settings = append(channels_settings, tempSetupFlow)
+				channelsSettings = append(channelsSettings, tempSetupFlow)
 			case "channels_email_suffixes":
-				channels_email_suffixes = append(channels_email_suffixes, tempSetupFlow)
+				channelsEmailSuffixes = append(channelsEmailSuffixes, tempSetupFlow)
 			}
 		}
 		transaction, err := db.Begin()
-		if err == nil {
-			//insert company
-			insertFinalStateData(bot, userID, transaction, channelTableData, companyTableData, channels_email_suffixes, channels_settings, db)
-			//update state of temp setup data
-			_, err = transaction.Exec("update `temp_setup_flow` set `status`='INACTIVE' where status='ACTIVE' and relation=? and `userID`=?", "setup_verified_company_account_"+strconv.Itoa(userID)+"_"+relationDate, userID)
-			if err != nil {
-				transaction.Rollback()
-				log.Println(err)
-				return
-			}
-			transaction.Commit()
-			sendMessageUserWithActionOnKeyboards(bot, userID, "The company registered successfully", false)
-			SaveUserLastState(bot, text, userID, "done_setup_verified_company_account")
+		if err != nil {
+			log.Println(err)
+			return
 		}
+		//insert company
+		insertFinalStateData(bot, userID, transaction, channelTableData, companyTableData, channelsEmailSuffixes, channelsSettings, db)
+		//update state of temp setup data
+		_, err = transaction.Exec("update `temp_setup_flow` set `status`='INACTIVE' where status='ACTIVE' and relation=? and `userID`=?", "setup_verified_company_account_"+strconv.Itoa(userID)+"_"+relationDate, userID)
+		if err != nil {
+			_ = transaction.Rollback()
+			log.Println(err)
+			return
+		}
+		err = transaction.Commit()
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		sendMessageUserWithActionOnKeyboards(bot, userID, "The company registered successfully", false)
+		SaveUserLastState(bot, text, userID, "done_setup_verified_company_account")
+
 	}
 }
 
-func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelTableData, companyTableData, channels_email_suffixes, channels_settings []*model.TempSetupFlow, db *sql.DB) {
-	if companyTableData == nil || channels_email_suffixes == nil || len(channels_email_suffixes) != 1 || channelTableData == nil || channels_settings == nil {
-		transaction.Rollback()
+func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelTableData, companyTableData, channelsEmailSuffixes, channelsSettings []*model.TempSetupFlow, db *sql.DB) {
+	if companyTableData == nil || channelsEmailSuffixes == nil || len(channelsEmailSuffixes) != 1 || channelTableData == nil || channelsSettings == nil {
+		err := transaction.Rollback()
+		if err != nil {
+			log.Println("final data must not be null")
+			return
+		}
 		log.Println("final data must not be null")
 		return
 	}
@@ -178,7 +189,7 @@ func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelT
 	}
 	companyResultsStatement, err := db.Prepare("SELECT id,companyName FROM `companies` where `companyName`=?")
 	if err != nil {
-		transaction.Rollback()
+		_ = transaction.Rollback()
 		log.Println(err)
 		return
 	}
@@ -188,20 +199,19 @@ func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelT
 	if err := companyResultsStatement.QueryRow(companyName).Scan(&companyNewModel.ID, &companyNewModel.CompanyName); err != nil {
 		insertCompany, err := transaction.Exec("INSERT INTO `companies` (`companyName`,`companyType`,`createdAt`) VALUES('" + companyName + "','" + companyType + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
 		if err != nil {
-			transaction.Rollback()
+			_ = transaction.Rollback()
 			log.Println(err)
 			return
 		}
 		companyID, err = insertCompany.LastInsertId()
 		if err != nil {
-			transaction.Rollback()
+			_ = transaction.Rollback()
 			log.Println(err)
 			return
 		}
 	} else {
 		companyID = companyNewModel.ID
 	}
-
 
 	//insert channel
 	var channelType, manualChannelName, uniqueID, channelURL string
@@ -251,8 +261,8 @@ func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelT
 		return
 	}
 
-		//insert channels_email_suffixes
-	emailSuffixed := channels_email_suffixes[0]
+	//insert channelsEmailSuffixes
+	emailSuffixed := channelsEmailSuffixes[0]
 	if strings.Contains(emailSuffixed.Data, ",") {
 		suffixes := strings.Split(emailSuffixed.Data, ",")
 		for _, suffix := range suffixes {
@@ -274,7 +284,7 @@ func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelT
 
 	//insert channel settings
 	var joinVerify, newMessageVerify, replyVerify, directVerify string
-	for _, v := range channels_settings {
+	for _, v := range channelsSettings {
 		if v.ColumnName == "joinVerify" {
 			switch v.Data {
 			case "Yes":
