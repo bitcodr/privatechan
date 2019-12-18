@@ -124,6 +124,8 @@ func main() {
 				controller.SendAnswerAndSaveDirectMessage(bot, m, lastState)
 			case lastState.State == "setup_verified_company_account" || strings.Contains(m.Text, setupVerifiedCompany.Text):
 				controller.SetUpCompanyByAdmin(bot, m, lastState, m.Text, m.Sender.ID)
+			case lastState.State == "register_user_with_email" || strings.Contains(m.Text, joinCompanyChannels.Text):
+				controller.RegisterUserWithemail(bot, m, lastState, m.Text, m.Sender.ID)
 			}
 		}
 	})
@@ -147,6 +149,8 @@ func main() {
 			switch {
 			case lastState.State == "setup_verified_company_account":
 				controller.SetUpCompanyByAdmin(bot, c.Message, lastState, c.Data, c.Sender.ID)
+			case lastState.State == "register_user_with_email":
+				controller.RegisterUserWithemail(bot, c.Message, lastState, c.Data, c.Sender.ID)
 			}
 		}
 	})
