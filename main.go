@@ -74,7 +74,7 @@ func main() {
 	//on text handlers
 	bot.Handle(tb.OnText, func(m *tb.Message) {
 
-		if m.Text == "Home" {
+		if m.Text == "Home" || m.Text == "/start" {
 			if m.Sender != nil {
 				controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "home")
 			}
@@ -132,7 +132,7 @@ func main() {
 
 	//callback handlers
 	bot.Handle(tb.OnCallback, func(c *tb.Callback) {
-		if c.Data == "Home" {
+		if c.Data == "Home" || c.Data == "/start" {
 			if c.Sender != nil {
 				controller.SaveUserLastState(bot, c.Data, c.Sender.ID, "home")
 			}
