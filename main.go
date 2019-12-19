@@ -125,7 +125,7 @@ func main() {
 			case lastState.State == "setup_verified_company_account" || strings.Contains(m.Text, setupVerifiedCompany.Text):
 				controller.SetUpCompanyByAdmin(bot, m, lastState, m.Text, m.Sender.ID)
 			case lastState.State == "register_user_with_email" || strings.Contains(m.Text, joinCompanyChannels.Text):
-				controller.RegisterUserWithemail(bot, m, lastState, m.Text, m.Sender.ID)
+				controller.RegisterUserWithemail(bot, m, lastState, strings.TrimSpace(m.Text), m.Sender.ID)
 			}
 		}
 	})
@@ -150,7 +150,7 @@ func main() {
 			case lastState.State == "setup_verified_company_account":
 				controller.SetUpCompanyByAdmin(bot, c.Message, lastState, c.Data, c.Sender.ID)
 			case lastState.State == "register_user_with_email":
-				controller.RegisterUserWithemail(bot, c.Message, lastState, c.Data, c.Sender.ID)
+				controller.RegisterUserWithemail(bot, c.Message, lastState, strings.TrimSpace(c.Data), c.Sender.ID)
 			}
 		}
 	})

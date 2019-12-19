@@ -241,6 +241,14 @@ func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelT
 		return
 	}
 
+	//remove previous companies_channels, which create with channel id
+	_, err = transaction.Exec("delete from `companies_channels` where `channelID`='" + strconv.FormatInt(channelModel.ID, 10) + "'")
+	if err != nil {
+		transaction.Rollback()
+		log.Println(err)
+		return
+	}
+
 	//insert company channel
 	_, err = transaction.Exec("INSERT INTO `companies_channels` (`companyID`,`channelID`,`createdAt`) VALUES('" + strconv.FormatInt(companyID, 10) + "','" + strconv.FormatInt(channelModel.ID, 10) + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
 	if err != nil {
@@ -250,7 +258,7 @@ func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelT
 	}
 
 	//remove previous company, which create with channel id
-	_, err = transaction.Exec("delete from companies where `companyName`='" + channelModel.ChannelID + "'")
+	_, err = transaction.Exec("delete from `companies` where `companyName`='" + channelModel.ChannelID + "'")
 	if err != nil {
 		transaction.Rollback()
 		log.Println(err)
