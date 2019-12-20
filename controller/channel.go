@@ -16,6 +16,7 @@ import (
 )
 
 //TODO change query to queryRow
+//TODO change value of queries to ?
 
 //RegisterChannel
 func RegisterChannel(bot *tb.Bot, m *tb.Message) {
@@ -552,13 +553,12 @@ func GetUserLastState(bot *tb.Bot, m *tb.Message, user int) *model.UserLastState
 		log.Println(err)
 	}
 	defer db.Close()
-	userID := strconv.Itoa(user)
-	userLastStateQueryStatement, err := db.Prepare("SELECT `data`,`state` from `users_last_state` where `userId`='" + userID + "' order by `createdAt` DESC limit 1")
+	userLastStateQueryStatement, err := db.Prepare("SELECT `data`,`state` from `users_last_state` where `userId`=? order by `createdAt` DESC limit 1")
 	if err != nil {
 		log.Println(err)
 	}
 	defer userLastStateQueryStatement.Close()
-	userLastStateQuery, err := userLastStateQueryStatement.Query(userID)
+	userLastStateQuery, err := userLastStateQueryStatement.Query(user)
 	if err != nil {
 		log.Println(err)
 	}
