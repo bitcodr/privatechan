@@ -126,6 +126,10 @@ func main() {
 				controller.SetUpCompanyByAdmin(bot, m, lastState, m.Text, m.Sender.ID)
 			case lastState.State == "register_user_with_email" || strings.Contains(m.Text, joinCompanyChannels.Text):
 				controller.RegisterUserWithemail(bot, m, lastState, strings.TrimSpace(m.Text), m.Sender.ID)
+			case lastState.State == "confirm_register_company_email_address" && (strings.Contains(m.Text, "No") || strings.Contains(m.Text, "Yes")):
+				controller.ConfirmRegisterCompanyRequest(bot, m, lastState, strings.TrimSpace(m.Text), m.Sender.ID)
+			case lastState.State == "register_user_for_the_company" && (strings.Contains(m.Text, "No") || strings.Contains(m.Text, "Yes")):
+				controller.ConfirmRegisterUserForTheCompany(bot, m, lastState, strings.TrimSpace(m.Text), m.Sender.ID)
 			}
 		}
 	})
