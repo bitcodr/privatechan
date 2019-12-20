@@ -118,14 +118,13 @@ func ConfirmRegisterUserForTheCompany(bot *tb.Bot, m *tb.Message, lastState *mod
 	userModel.ID = userID
 	switch text {
 	case "Yes":
-		JoinFromGroup(bot, m, lastState.Data)
 		db, err := config.DB()
 		if err != nil {
 			log.Println(err)
 			return
 		}
 		defer db.Close()
-		resultsStatement, err := db.Prepare("SELECT channelURL,manualChannelName FROM `channels` where id=?")
+		resultsStatement, err := db.Prepare("SELECT channelID,channelURL,manualChannelName FROM `channels` where id=?")
 		if err != nil {
 			log.Println(err)
 			return
@@ -137,15 +136,16 @@ func ConfirmRegisterUserForTheCompany(bot *tb.Bot, m *tb.Message, lastState *mod
 			log.Println(err)
 			return
 		}
-		if err := resultsStatement.QueryRow(channelID).Scan(&channelModel.ChannelURL, &channelModel.ManualChannelName); err != nil {
+		if err := resultsStatement.QueryRow(channelID).Scan(&channelModel.ChannelID, &channelModel.ChannelURL, &channelModel.ManualChannelName); err != nil {
 			log.Println(err)
 			return
 		}
+		JoinFromGroup(bot, m, channelModel.ChannelID)
 		//TODO send email verification
+		//TODO update user email address
 		SaveUserLastState(bot, "", userID, "join_request_added")
 		options := new(tb.SendOptions)
 		startBTN := tb.InlineButton{
-			Unique: "start_user_messagaing",
 			Text: "Click Here To Start Communication",
 			URL:  channelModel.ChannelURL,
 		}
