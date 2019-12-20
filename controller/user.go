@@ -23,7 +23,7 @@ func RegisterUserWithemail(bot *tb.Bot, m *tb.Message, lastState *model.UserLast
 		emails := []string{"gmail.com", "yahoo.com", "hotmail.com", "outlook.com", "zoho.com", "icloud.com", "mail.com", "aol.com", "yandex.com"}
 		emailSuffix := strings.Split(text, "@")
 		if helpers.SortAndSearchInStrings(emails, emailSuffix[1]) {
-			bot.Send(userModel, "You Can't Enter an Free Email Services")
+			bot.Send(userModel, "You Can't Enter a Free Email Service, Please Enter Your Email in Your Company:")
 			return
 		}
 		db, err := config.DB()
@@ -32,14 +32,14 @@ func RegisterUserWithemail(bot *tb.Bot, m *tb.Message, lastState *model.UserLast
 			return
 		}
 		defer db.Close()
-		checkTheCompanyEmailSuffixExist(bot, "@"+emailSuffix[1], db, userModel)
+		checkTheCompanyEmailSuffixExist(bot, text, "@"+emailSuffix[1], db, userModel)
 		return
 	}
 	SaveUserLastState(bot, text, userID, "register_user_with_email")
-	bot.Send(userModel, "Please Enter Your Company Email:", homeKeyOption())
+	bot.Send(userModel, "Please Enter Your Email in Your Company:", homeKeyOption())
 }
 
-func checkTheCompanyEmailSuffixExist(bot *tb.Bot, emailSuffix string, db *sql.DB, userModel *tb.User) {
+func checkTheCompanyEmailSuffixExist(bot *tb.Bot, email, emailSuffix string, db *sql.DB, userModel *tb.User) {
 	tempData, err := db.Prepare("SELECT co.companyName,ch.id,ch.channelName from `channels_email_suffixes` as cs inner join `channels` as ch on cs.channelID=ch.id inner join `companies_channels` as cc on ch.Id=cc.channelID inner join `companies` as co on cc.companyID=co.id where cs.suffix=?")
 	if err != nil {
 		log.Println(err)
@@ -70,7 +70,7 @@ func checkTheCompanyEmailSuffixExist(bot *tb.Bot, emailSuffix string, db *sql.DB
 		bot.Send(userModel, "The company according to your email doesn't exist, do you confirm sending a registration request for your company?", options)
 		return
 	}
-	SaveUserLastState(bot, strconv.FormatInt(channelModel.ID, 10), userModel.ID, "register_user_for_the_company")
+	SaveUserLastState(bot, strconv.FormatInt(channelModel.ID, 10)+"_"+email, userModel.ID, "register_user_for_the_company")
 	bot.Send(userModel, "Do you confirm that you want to register to the channel/group "+channelModel.ChannelName+" blongs to the company "+companyModel.CompanyName+"?", options)
 }
 
@@ -124,6 +124,15 @@ func ConfirmRegisterUserForTheCompany(bot *tb.Bot, m *tb.Message, lastState *mod
 			return
 		}
 		defer db.Close()
+		if !strings.Contains(lastState.Data, "_") {
+			log.Println("string must be two part, channelID and userEmail")
+			return
+		}
+		channelData := strings.Split(lastState.Data, "_")
+		if len(channelData) != 2 {
+			log.Println("length of channel data must be 2")
+			return
+		}
 		resultsStatement, err := db.Prepare("SELECT channelID,channelURL,manualChannelName FROM `channels` where id=?")
 		if err != nil {
 			log.Println(err)
@@ -131,7 +140,7 @@ func ConfirmRegisterUserForTheCompany(bot *tb.Bot, m *tb.Message, lastState *mod
 		}
 		defer resultsStatement.Close()
 		channelModel := new(model.Channel)
-		channelID, err := strconv.ParseInt(lastState.Data, 10, 0)
+		channelID, err := strconv.ParseInt(channelData[0], 10, 0)
 		if err != nil {
 			log.Println(err)
 			return
@@ -140,11 +149,21 @@ func ConfirmRegisterUserForTheCompany(bot *tb.Bot, m *tb.Message, lastState *mod
 			log.Println(err)
 			return
 		}
-		JoinFromGroup(bot, m, channelModel.ChannelID)
 		//TODO send email verification
-		//TODO update user email address
+		JoinFromGroup(bot, m, channelModel.ChannelID)
+		_, err = db.Query("update `users` set `email`=? where `userID`=?", channelData[1], userID)
+		if err != nil {
+			log.Println(err)
+			return
+		}
 		SaveUserLastState(bot, "", userID, "join_request_added")
 		options := new(tb.SendOptions)
+		homeBTN := tb.ReplyButton{
+			Text: "Home",
+		}
+		replyBTN := [][]tb.ReplyButton{
+			[]tb.ReplyButton{homeBTN},
+		}
 		startBTN := tb.InlineButton{
 			Text: "Click Here To Start Communication",
 			URL:  channelModel.ChannelURL,
@@ -152,15 +171,10 @@ func ConfirmRegisterUserForTheCompany(bot *tb.Bot, m *tb.Message, lastState *mod
 		replyKeys := [][]tb.InlineButton{
 			[]tb.InlineButton{startBTN},
 		}
-		homeBTN := tb.ReplyButton{
-			Text: "Home",
-		}
-		replyBTN := [][]tb.ReplyButton{
-			[]tb.ReplyButton{homeBTN},
-		}
 		replyModel := new(tb.ReplyMarkup)
-		replyModel.InlineKeyboard = replyKeys
 		replyModel.ReplyKeyboard = replyBTN
+		replyModel.InlineKeyboard = replyKeys
+
 		options.ReplyMarkup = replyModel
 		bot.Send(userModel, "You are now member of channel/group "+channelModel.ManualChannelName, options)
 	case "No":
