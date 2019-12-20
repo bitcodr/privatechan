@@ -125,27 +125,42 @@ func ConfirmRegisterUserForTheCompany(bot *tb.Bot, m *tb.Message, lastState *mod
 			return
 		}
 		defer db.Close()
-		resultsStatement, err := db.Prepare("SELECT channelURL,manualChannelName FROM `channels` where channelID=?")
+		resultsStatement, err := db.Prepare("SELECT channelURL,manualChannelName FROM `channels` where id=?")
 		if err != nil {
 			log.Println(err)
 			return
 		}
 		defer resultsStatement.Close()
 		channelModel := new(model.Channel)
-		if err := resultsStatement.QueryRow(lastState.Data).Scan(&channelModel.ChannelURL, &channelModel.ManualChannelName); err != nil {
+		channelID, err := strconv.ParseInt(lastState.Data, 10, 0)
+		if err != nil {
 			log.Println(err)
 			return
 		}
+		if err := resultsStatement.QueryRow(channelID).Scan(&channelModel.ChannelURL, &channelModel.ManualChannelName); err != nil {
+			log.Println(err)
+			return
+		}
+		//TODO send email verification
 		SaveUserLastState(bot, "", userID, "join_request_added")
 		options := new(tb.SendOptions)
 		startBTN := tb.InlineButton{
+			Unique: "start_user_messagaing",
 			Text: "Click Here To Start Communication",
+			URL:  channelModel.ChannelURL,
 		}
 		replyKeys := [][]tb.InlineButton{
 			[]tb.InlineButton{startBTN},
 		}
+		homeBTN := tb.ReplyButton{
+			Text: "Home",
+		}
+		replyBTN := [][]tb.ReplyButton{
+			[]tb.ReplyButton{homeBTN},
+		}
 		replyModel := new(tb.ReplyMarkup)
 		replyModel.InlineKeyboard = replyKeys
+		replyModel.ReplyKeyboard = replyBTN
 		options.ReplyMarkup = replyModel
 		bot.Send(userModel, "You are now member of channel/group "+channelModel.ManualChannelName, options)
 	case "No":

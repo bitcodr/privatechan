@@ -112,25 +112,23 @@ func main() {
 			controller.NewMessageGroupHandler(bot, m.Sender)
 		}
 		lastState := controller.GetUserLastState(bot, m, m.Sender.ID)
-		if lastState != nil {
-			switch {
-			case lastState.State == "new_message_to_group" && !strings.Contains(m.Text, "compose_message_in_group_"):
-				controller.SaveAndSendMessage(bot, m)
-			case lastState.State == "reply_to_message_on_group" && !strings.Contains(m.Text, "reply_to_message_on_group_"):
-				controller.SendAndSaveReplyMessage(bot, m, lastState)
-			case lastState.State == "reply_by_dm_to_user_on_group" && !strings.Contains(m.Text, "reply_by_dm_to_user_on_group_"):
-				controller.SendAndSaveDirectMessage(bot, m, lastState)
-			case lastState.State == "answer_to_dm" && !strings.Contains(m.Text, "answer_to_dm_"):
-				controller.SendAnswerAndSaveDirectMessage(bot, m, lastState)
-			case lastState.State == "setup_verified_company_account" || strings.Contains(m.Text, setupVerifiedCompany.Text):
-				controller.SetUpCompanyByAdmin(bot, m, lastState, m.Text, m.Sender.ID)
-			case lastState.State == "register_user_with_email" || strings.Contains(m.Text, joinCompanyChannels.Text):
-				controller.RegisterUserWithemail(bot, m, lastState, strings.TrimSpace(m.Text), m.Sender.ID)
-			case lastState.State == "confirm_register_company_email_address" && (strings.Contains(m.Text, "No") || strings.Contains(m.Text, "Yes")):
-				controller.ConfirmRegisterCompanyRequest(bot, m, lastState, strings.TrimSpace(m.Text), m.Sender.ID)
-			case lastState.State == "register_user_for_the_company" && (strings.Contains(m.Text, "No") || strings.Contains(m.Text, "Yes")):
-				controller.ConfirmRegisterUserForTheCompany(bot, m, lastState, strings.TrimSpace(m.Text), m.Sender.ID)
-			}
+		switch {
+		case lastState.State == "new_message_to_group" && !strings.Contains(m.Text, "compose_message_in_group_"):
+			controller.SaveAndSendMessage(bot, m)
+		case lastState.State == "reply_to_message_on_group" && !strings.Contains(m.Text, "reply_to_message_on_group_"):
+			controller.SendAndSaveReplyMessage(bot, m, lastState)
+		case lastState.State == "reply_by_dm_to_user_on_group" && !strings.Contains(m.Text, "reply_by_dm_to_user_on_group_"):
+			controller.SendAndSaveDirectMessage(bot, m, lastState)
+		case lastState.State == "answer_to_dm" && !strings.Contains(m.Text, "answer_to_dm_"):
+			controller.SendAnswerAndSaveDirectMessage(bot, m, lastState)
+		case lastState.State == "setup_verified_company_account" || strings.Contains(m.Text, setupVerifiedCompany.Text):
+			controller.SetUpCompanyByAdmin(bot, m, lastState, m.Text, m.Sender.ID)
+		case lastState.State == "register_user_with_email" || strings.Contains(m.Text, joinCompanyChannels.Text):
+			controller.RegisterUserWithemail(bot, m, lastState, strings.TrimSpace(m.Text), m.Sender.ID)
+		case lastState.State == "confirm_register_company_email_address" && (strings.Contains(m.Text, "No") || strings.Contains(m.Text, "Yes")):
+			controller.ConfirmRegisterCompanyRequest(bot, m, lastState, strings.TrimSpace(m.Text), m.Sender.ID)
+		case lastState.State == "register_user_for_the_company" && (strings.Contains(m.Text, "No") || strings.Contains(m.Text, "Yes")):
+			controller.ConfirmRegisterUserForTheCompany(bot, m, lastState, strings.TrimSpace(m.Text), m.Sender.ID)
 		}
 	})
 
@@ -149,13 +147,11 @@ func main() {
 			controller.SanedAnswerDM(bot, c.Sender)
 		}
 		lastState := controller.GetUserLastState(bot, c.Message, c.Sender.ID)
-		if lastState != nil {
-			switch {
-			case lastState.State == "setup_verified_company_account":
-				controller.SetUpCompanyByAdmin(bot, c.Message, lastState, c.Data, c.Sender.ID)
-			case lastState.State == "register_user_with_email":
-				controller.RegisterUserWithemail(bot, c.Message, lastState, strings.TrimSpace(c.Data), c.Sender.ID)
-			}
+		switch {
+		case lastState.State == "setup_verified_company_account":
+			controller.SetUpCompanyByAdmin(bot, c.Message, lastState, c.Data, c.Sender.ID)
+		case lastState.State == "register_user_with_email":
+			controller.RegisterUserWithemail(bot, c.Message, lastState, strings.TrimSpace(c.Data), c.Sender.ID)
 		}
 	})
 

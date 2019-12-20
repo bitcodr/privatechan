@@ -553,7 +553,7 @@ func GetUserLastState(bot *tb.Bot, m *tb.Message, user int) *model.UserLastState
 	}
 	defer db.Close()
 	userID := strconv.Itoa(user)
-	userLastStateQueryStatement, err := db.Prepare("SELECT ch.data,ch.state from `users_last_state` as ch inner join `users` as us on ch.userID=us.id and us.userID=? and us.`status`='ACTIVE' where ch.status='ACTIVE'")
+	userLastStateQueryStatement, err := db.Prepare("SELECT `data`,`state` from `users_last_state` where `userId`='" + userID + "' order by `createdAt` DESC limit 1")
 	if err != nil {
 		log.Println(err)
 	}
@@ -562,53 +562,28 @@ func GetUserLastState(bot *tb.Bot, m *tb.Message, user int) *model.UserLastState
 	if err != nil {
 		log.Println(err)
 	}
+	userLastState := new(model.UserLastState)
 	if userLastStateQuery.Next() {
-		userLastState := new(model.UserLastState)
 		if err := userLastStateQuery.Scan(&userLastState.Data, &userLastState.State); err != nil {
 			log.Println(err)
 		}
 		return userLastState
 	}
-	return nil
+	return userLastState
 }
 
 func SaveUserLastState(bot *tb.Bot, data string, userDataID int, state string) {
 	db, err := config.DB()
 	if err != nil {
 		log.Println(err)
+		return
 	}
 	defer db.Close()
 	userID := strconv.Itoa(userDataID)
-	resultsStatement, err := db.Prepare("SELECT id FROM `users` where `status`= 'ACTIVE' and `userID`=?")
+	insertedState, err := db.Query("INSERT INTO `users_last_state` (`userID`,`state`,`data`,`createdAt`) VALUES('" + userID + "','" + state + "','" + strings.TrimSpace(data) + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
 	if err != nil {
 		log.Println(err)
+		return
 	}
-	defer resultsStatement.Close()
-	results, err := resultsStatement.Query(userID)
-	if err != nil {
-		log.Println(err)
-	}
-	if results.Next() {
-		userModel := new(model.User)
-		if err := results.Scan(&userModel.ID); err != nil {
-			log.Println(err)
-		}
-		transaction, err := db.Begin()
-		if err != nil {
-			log.Println(err)
-		}
-		//TODO remove update
-		userModelID := strconv.FormatInt(userModel.ID, 10)
-		_, err = transaction.Exec("update `users_last_state` set `status`='INACTIVE' where `userID`='" + userModelID + "'")
-		if err != nil {
-			transaction.Rollback()
-			log.Println(err)
-		}
-		_, err = transaction.Exec("INSERT INTO `users_last_state` (`userID`,`state`,`data`,`createdAt`,`updatedAt`) VALUES('" + userModelID + "','" + state + "','" + strings.TrimSpace(data) + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
-		if err != nil {
-			transaction.Rollback()
-			log.Println(err)
-		}
-		transaction.Commit()
-	}
+	defer insertedState.Close()
 }
