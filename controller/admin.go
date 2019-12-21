@@ -280,7 +280,7 @@ func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelT
 	} else {
 		_, err := transaction.Exec("INSERT INTO `channels_email_suffixes` (`suffix`,`channelID`,`createdAt`) VALUES('" + emailSuffixed.Data + "','" + strconv.FormatInt(channelModel.ID, 10) + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
 		if err != nil {
-			transaction.Rollback()
+			_ = transaction.Rollback()
 			log.Println(err)
 			return
 		}
