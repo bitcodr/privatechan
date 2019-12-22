@@ -113,6 +113,14 @@ type UserLastState struct {
 	User      User   `json:"user"`
 }
 
+type UsersActivationKey struct {
+	ID        int64  `json:"id"`
+	UserID    int64  `json:"userID"`
+	CreatedAt string `json:"createdAt"`
+	ActiveKey string `json:"activeKey"`
+	User      User   `json:"user"`
+}
+
 type TempSetupFlow struct {
 	ID         int64  `json:"id"`
 	TableName  string `json:"tableName"`

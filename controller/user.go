@@ -158,7 +158,29 @@ func ConfirmRegisterUserForTheCompany(bot *tb.Bot, m *tb.Message, lastState *mod
 }
 
 func RegisterUserWithEmail(bot *tb.Bot, m *tb.Message, lastState *model.UserLastState, text string, userID int) {
+	db, err := config.DB()
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer db.Close()
+	userModel := new(tb.User)
+	userModel.ID = userID
+	userActiveKey, err := db.Prepare("SELECT `activeKey` FROM `users_activation_key` where userID=? order by `createdAt` DESC limit 1")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer userActiveKey.Close()
+	userActiveKeyModel := new(model.UsersActivationKey)
+	if err := userActiveKey.QueryRow(userID).Scan(&userActiveKeyModel.ActiveKey); err != nil {
+		log.Println(err)
+		return
+	}
 	//TODO check token expire time
+	if !helpers.CheckPasswordHash(text, userActiveKeyModel.ActiveKey) {
+		bot.Send(userModel, "The key Is Invalid", homeKeyOption())
+	}
 	if !strings.Contains(lastState.Data, "_") {
 		log.Println("string must be two part, channelID and userEmail")
 		return
@@ -168,12 +190,6 @@ func RegisterUserWithEmail(bot *tb.Bot, m *tb.Message, lastState *model.UserLast
 		log.Println("length of channel data must be 2")
 		return
 	}
-	db, err := config.DB()
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	defer db.Close()
 	resultsStatement, err := db.Prepare("SELECT channelID,channelURL,manualChannelName FROM `channels` where id=?")
 	if err != nil {
 		log.Println(err)
@@ -215,7 +231,5 @@ func RegisterUserWithEmail(bot *tb.Bot, m *tb.Message, lastState *model.UserLast
 	replyModel.ReplyKeyboard = replyBTN
 	replyModel.InlineKeyboard = replyKeys
 	options.ReplyMarkup = replyModel
-	userModel := new(tb.User)
-	userModel.ID = userID
 	bot.Send(userModel, "You are now member of channel/group "+channelModel.ManualChannelName, options)
 }
