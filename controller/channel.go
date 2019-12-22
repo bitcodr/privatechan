@@ -553,7 +553,7 @@ func GetUserLastState(bot *tb.Bot, m *tb.Message, user int) *model.UserLastState
 		log.Println(err)
 	}
 	defer db.Close()
-	userLastStateQueryStatement, err := db.Prepare("SELECT `data`,`state` from `users_last_state` where `userId`=? order by `createdAt` DESC limit 1")
+	userLastStateQueryStatement, err := db.Prepare("SELECT `data`,`state`,`userID` from `users_last_state` where `userId`=? order by `createdAt` DESC limit 1")
 	if err != nil {
 		log.Println(err)
 	}
@@ -564,7 +564,7 @@ func GetUserLastState(bot *tb.Bot, m *tb.Message, user int) *model.UserLastState
 	}
 	userLastState := new(model.UserLastState)
 	if userLastStateQuery.Next() {
-		if err := userLastStateQuery.Scan(&userLastState.Data, &userLastState.State); err != nil {
+		if err := userLastStateQuery.Scan(&userLastState.Data, &userLastState.State, &userLastState.UserID); err != nil {
 			log.Println(err)
 		}
 		return userLastState

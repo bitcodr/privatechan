@@ -119,7 +119,6 @@ func ConfirmRegisterUserForTheCompany(bot *tb.Bot, m *tb.Message, lastState *mod
 	userModel.ID = userID
 	switch text {
 	case "Yes":
-		//TODO check user exist or not
 		if !strings.Contains(lastState.Data, "_") {
 			log.Println("string must be two part, channelID and userEmail")
 			return
@@ -135,6 +134,17 @@ func ConfirmRegisterUserForTheCompany(bot *tb.Bot, m *tb.Message, lastState *mod
 			return
 		}
 		defer db.Close()
+		userExistOrNot, err := db.Prepare("SELECT us.id FROM `users` as us inner join `users_channels` as uc on us.id=uc.userID and uc.channelID=? where us.userID=?")
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		defer userExistOrNot.Close()
+		userDBModel := new(model.User)
+		if err := userExistOrNot.QueryRow(channelData[0], userID).Scan(&userDBModel.ID); err == nil {
+			bot.Send(userModel, "You've been registered in the channel/group")
+			return
+		}
 		rand.Seed(time.Now().UnixNano())
 		randomeNumber := rand.Intn(100000)
 		hashedRandomNumber, err := helpers.HashPassword(strconv.Itoa(randomeNumber))
@@ -148,7 +158,7 @@ func ConfirmRegisterUserForTheCompany(bot *tb.Bot, m *tb.Message, lastState *mod
 			return
 		}
 		defer insertCompanyRequest.Close()
-		helpers.SendEmail(strconv.Itoa(randomeNumber), channelData[1])
+		go helpers.SendEmail(strconv.Itoa(randomeNumber), channelData[1])
 		SaveUserLastState(bot, lastState.Data, userID, "email_for_user_registration")
 		bot.Send(userModel, "Please Enter The Code That Sent To Your Email Address", homeKeyOption())
 	case "No":
@@ -166,14 +176,14 @@ func RegisterUserWithEmail(bot *tb.Bot, m *tb.Message, lastState *model.UserLast
 	defer db.Close()
 	userModel := new(tb.User)
 	userModel.ID = userID
-	userActiveKey, err := db.Prepare("SELECT `activeKey` FROM `users_activation_key` where userID=? order by `createdAt` DESC limit 1")
+	userActiveKey, err := db.Prepare("SELECT `activeKey`,`createdAt` FROM `users_activation_key` where userID=? order by `createdAt` DESC limit 1")
 	if err != nil {
 		log.Println(err)
 		return
 	}
 	defer userActiveKey.Close()
 	userActiveKeyModel := new(model.UsersActivationKey)
-	if err := userActiveKey.QueryRow(userID).Scan(&userActiveKeyModel.ActiveKey); err != nil {
+	if err := userActiveKey.QueryRow(userID).Scan(&userActiveKeyModel.ActiveKey, &userActiveKeyModel.CreatedAt); err != nil {
 		log.Println(err)
 		return
 	}
