@@ -119,6 +119,7 @@ func ConfirmRegisterUserForTheCompany(bot *tb.Bot, m *tb.Message, lastState *mod
 	userModel.ID = userID
 	switch text {
 	case "Yes":
+		//TODO check user exist or not
 		if !strings.Contains(lastState.Data, "_") {
 			log.Println("string must be two part, channelID and userEmail")
 			return
@@ -136,7 +137,12 @@ func ConfirmRegisterUserForTheCompany(bot *tb.Bot, m *tb.Message, lastState *mod
 		defer db.Close()
 		rand.Seed(time.Now().UnixNano())
 		randomeNumber := rand.Intn(100000)
-		insertCompanyRequest, err := db.Query("INSERT INTO `users_activation_key` (`userID`,`activeKey`,`createdAt`) VALUES('" + strconv.FormatInt(lastState.UserID, 10) + "','" + strconv.Itoa(randomeNumber) + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+		hashedRandomNumber, err := helpers.HashPassword(strconv.Itoa(randomeNumber))
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		insertCompanyRequest, err := db.Query("INSERT INTO `users_activation_key` (`userID`,`activeKey`,`createdAt`) VALUES('" + strconv.FormatInt(lastState.UserID, 10) + "','" + hashedRandomNumber + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
 		if err != nil {
 			log.Println(err)
 			return

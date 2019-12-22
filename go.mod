@@ -11,6 +11,7 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.6.1
+	golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2
 	golang.org/x/sys v0.0.0-20191220220014-0732a990476f // indirect
 	google.golang.org/appengine v1.6.5 // indirect
 	gopkg.in/tucnak/telebot.v2 v2.0.0-20191005061224-d0707a9d73c4
