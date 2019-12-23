@@ -15,6 +15,7 @@ func main() {
 	//config
 	viper.SetConfigName("config")
 	viper.AddConfigPath(".")
+	viper.AddConfigPath("/var/www/privatechan")
 	err := viper.ReadInConfig()
 	if err != nil {
 		panic(fmt.Errorf("fatal error config file: %s", err))
