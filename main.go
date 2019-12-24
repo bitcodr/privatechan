@@ -89,8 +89,9 @@ func main() {
 			ids := strings.TrimPrefix(m.Text, "/start reply_to_message_on_group_")
 			data := strings.Split(ids, "_")
 			channelID := strings.TrimSpace(data[0])
+			messageID := strings.TrimSpace(data[2])
 			controller.JoinFromGroup(bot, m, channelID)
-			controller.SendReply(bot, m.Sender)
+			controller.SendReply(bot, m.Sender,channelID,messageID)
 		}
 
 		if strings.Contains(m.Text, "reply_by_dm_to_user_on_group_") {
@@ -110,7 +111,7 @@ func main() {
 			}
 			channelID := strings.ReplaceAll(m.Text, "/start compose_message_in_group_", "")
 			controller.JoinFromGroup(bot, m, channelID)
-			controller.NewMessageGroupHandler(bot, m.Sender)
+			controller.NewMessageGroupHandler(bot, m.Sender, channelID)
 		}
 		lastState := controller.GetUserLastState(bot, m, m.Sender.ID)
 		switch {

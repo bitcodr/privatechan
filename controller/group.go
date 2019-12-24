@@ -149,7 +149,21 @@ func RegisterGroup(bot *tb.Bot, m *tb.Message) {
 	}
 }
 
-func NewMessageGroupHandler(bot *tb.Bot, m *tb.User) {
+func NewMessageGroupHandler(bot *tb.Bot, m *tb.User, channelID string) {
+	db, err := config.DB()
+	if err != nil {
+		log.Println(err)
+	}
+	defer db.Close()
+	resultsStatement, err := db.Prepare("SELECT `channelName` FROM `channels` where `channelID`=?")
+	if err != nil {
+		log.Println(err)
+	}
+	defer resultsStatement.Close()
+	channelModel := new(model.Channel)
+	if err := resultsStatement.QueryRow(channelID).Scan(&channelModel.ChannelName); err != nil {
+		log.Println(err)
+	}
 	options := new(tb.SendOptions)
 	markup := new(tb.ReplyMarkup)
 	homeBTN := tb.ReplyButton{
@@ -160,7 +174,7 @@ func NewMessageGroupHandler(bot *tb.Bot, m *tb.User) {
 	}
 	markup.ReplyKeyboard = replyKeys
 	options.ReplyMarkup = markup
-	bot.Send(m, "Please send your message:", options)
+	bot.Send(m, "Please draft your anonymous new message to the group / channel: "+channelModel.ChannelName, options)
 }
 
 func JoinFromGroup(bot *tb.Bot, m *tb.Message, channelID string) {

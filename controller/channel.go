@@ -144,25 +144,25 @@ func RegisterChannel(bot *tb.Bot, m *tb.Message) {
 	}
 }
 
-func NewMessageHandler(bot *tb.Bot, c *tb.User) {
-	options := new(tb.SendOptions)
-	markup := new(tb.ReplyMarkup)
-	homeBTN := tb.ReplyButton{
-		Text: "Home",
-	}
-	replyKeys := [][]tb.ReplyButton{
-		[]tb.ReplyButton{homeBTN},
-	}
-	markup.ReplyKeyboard = replyKeys
-	options.ReplyMarkup = markup
-	_, err := bot.Send(c, "Please send your message:", options)
+func SendReply(bot *tb.Bot, m *tb.User, channelID, messageID string) {
+	db, err := config.DB()
 	if err != nil {
 		log.Println(err)
 		return
 	}
-}
-
-func SendReply(bot *tb.Bot, m *tb.User) {
+	defer db.Close()
+	resultsStatement, err := db.Prepare("SELECT ch.channelName,me.message FROM `channels` as ch inner join messages as me on ch.id=me.channelID and me.botMessageID=? where ch.channelID=?")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer resultsStatement.Close()
+	channelModel := new(model.Channel)
+	messageModel := new(model.Message)
+	if err := resultsStatement.QueryRow(messageID, channelID).Scan(&channelModel.ChannelName, &messageModel.Message); err != nil {
+		log.Println(err)
+		return
+	}
 	options := new(tb.SendOptions)
 	markup := new(tb.ReplyMarkup)
 	homeBTN := tb.ReplyButton{
@@ -173,7 +173,7 @@ func SendReply(bot *tb.Bot, m *tb.User) {
 	}
 	markup.ReplyKeyboard = replyKeys
 	options.ReplyMarkup = markup
-	_, err := bot.Send(m, "Please send your reply to the message:", options)
+	_, err = bot.Send(m, "Please send your reply to the message: '"+messageModel.Message+"...' on "+channelModel.ChannelName, options)
 	if err != nil {
 		log.Println(err)
 		return
@@ -248,7 +248,7 @@ func SaveAndSendMessage(bot *tb.Bot, m *tb.Message) {
 					log.Println(err)
 				}
 				defer db.Close()
-				insertedMessage, err := db.Query("INSERT INTO `messages` (`userID`,`channelID`,`channelMessageID`,`botMessageID`,`createdAt`) VALUES('" + senderID + "','" + channelID + "','" + channelMessageID + "','" + botMessageID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+				insertedMessage, err := db.Query("INSERT INTO `messages` (`message`,`userID`,`channelID`,`channelMessageID`,`botMessageID`,`createdAt`) VALUES('" + m.Text + "','" + senderID + "','" + channelID + "','" + channelMessageID + "','" + botMessageID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
 				if err != nil {
 					log.Println(err)
 				}
@@ -263,7 +263,7 @@ func SaveAndSendMessage(bot *tb.Bot, m *tb.Message) {
 				}
 				markup.ReplyKeyboard = replyKeys
 				options.ReplyMarkup = markup
-				bot.Send(m.Sender, "Sent your message has been sent anonymously to the group / channel "+activeChannel.ChannelName, options)
+				bot.Send(m.Sender, "Your message has been sent anonymously to the group / channel "+activeChannel.ChannelName, options)
 				SaveUserLastState(bot, "", m.Sender.ID, "message_sent")
 			}
 		}
@@ -338,7 +338,7 @@ func SendAndSaveReplyMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserLa
 								newChannelModel := new(model.Channel)
 								if err := currentChannel.Scan(&newChannelModel.ID, &newChannelModel.ChannelName); err == nil {
 									newChannelModelID := strconv.FormatInt(newChannelModel.ID, 10)
-									insertedMessage, err := db.Query("INSERT INTO `messages` (`userID`,`channelID`,`channelMessageID`,`botMessageID`,`parentID`,`createdAt`) VALUES('" + senderID + "','" + newChannelModelID + "','" + newChannelMessageID + "','" + newBotMessageID + "','" + parentID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+									insertedMessage, err := db.Query("INSERT INTO `messages` (`message`,`userID`,`channelID`,`channelMessageID`,`botMessageID`,`parentID`,`createdAt`) VALUES('" + m.Text + "','" + senderID + "','" + newChannelModelID + "','" + newChannelMessageID + "','" + newBotMessageID + "','" + parentID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
 									if err != nil {
 										log.Println(err)
 									}

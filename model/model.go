@@ -87,6 +87,7 @@ type Message struct {
 	ParentID         int64   `json:"parentID"`
 	ChannelMessageID string  `json:"channelMessageID"`
 	BotMessageID     string  `json:"botMessageID"`
+	Message          string  `json:"message"`
 	User             User    `json:"user"`
 	Channel          Channel `json:"channel"`
 }

@@ -162,7 +162,6 @@ func finalStage(bot *tb.Bot, relationDate string, db *sql.DB, text string, userI
 		}
 		sendMessageUserWithActionOnKeyboards(bot, userID, "The company registered successfully", false)
 		SaveUserLastState(bot, text, userID, "done_setup_verified_company_account")
-
 	}
 }
 
@@ -285,7 +284,7 @@ func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelT
 			return
 		}
 	}
-
+	
 	//insert channel settings
 	var joinVerify, newMessageVerify, replyVerify, directVerify string
 	for _, v := range channelsSettings {
