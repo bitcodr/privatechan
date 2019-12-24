@@ -190,6 +190,7 @@ func RegisterUserWithEmail(bot *tb.Bot, m *tb.Message, lastState *model.UserLast
 	//TODO check token expire time
 	if !helpers.CheckPasswordHash(text, userActiveKeyModel.ActiveKey) {
 		bot.Send(userModel, "The key Is Invalid", homeKeyOption())
+		return
 	}
 	if !strings.Contains(lastState.Data, "_") {
 		log.Println("string must be two part, channelID and userEmail")

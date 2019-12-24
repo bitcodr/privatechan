@@ -131,6 +131,8 @@ func main() {
 			controller.ConfirmRegisterCompanyRequest(bot, m, lastState, strings.TrimSpace(m.Text), m.Sender.ID)
 		case lastState.State == "register_user_for_the_company" && (strings.Contains(m.Text, "No") || strings.Contains(m.Text, "Yes")):
 			controller.ConfirmRegisterUserForTheCompany(bot, m, lastState, strings.TrimSpace(m.Text), m.Sender.ID)
+		case lastState.State == "email_for_user_registration":
+			controller.RegisterUserWithEmail(bot, m, lastState, strings.TrimSpace(m.Text), m.Sender.ID)
 		}
 	})
 
