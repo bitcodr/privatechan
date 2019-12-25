@@ -74,6 +74,7 @@ func main() {
 
 	//on text handlers
 	bot.Handle(tb.OnText, func(m *tb.Message) {
+		lastState := controller.GetUserLastState(bot, m, m.Sender.ID)
 
 		if m.Text == "Home" || m.Text == "/start" {
 			if m.Sender != nil {
@@ -91,7 +92,7 @@ func main() {
 			channelID := strings.TrimSpace(data[0])
 			messageID := strings.TrimSpace(data[2])
 			controller.JoinFromGroup(bot, m, channelID)
-			controller.SendReply(bot, m.Sender,channelID,messageID)
+			controller.SendReply(bot, m.Sender, channelID, messageID)
 		}
 
 		if strings.Contains(m.Text, "reply_by_dm_to_user_on_group_") {
@@ -106,6 +107,7 @@ func main() {
 		}
 
 		if strings.Contains(m.Text, "compose_message_in_group_") {
+			controller.CheckUserRegisteredOrNot(bot, m, lastState, m.Text, m.Sender.ID)
 			if m.Sender != nil {
 				controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "new_message_to_group")
 			}
@@ -113,7 +115,7 @@ func main() {
 			controller.JoinFromGroup(bot, m, channelID)
 			controller.NewMessageGroupHandler(bot, m.Sender, channelID)
 		}
-		lastState := controller.GetUserLastState(bot, m, m.Sender.ID)
+
 		switch {
 		case lastState.State == "new_message_to_group" && !strings.Contains(m.Text, "compose_message_in_group_"):
 			controller.SaveAndSendMessage(bot, m)
@@ -134,6 +136,7 @@ func main() {
 		case lastState.State == "email_for_user_registration":
 			controller.RegisterUserWithEmail(bot, m, lastState, strings.TrimSpace(m.Text), m.Sender.ID)
 		}
+
 	})
 
 	//callback handlers

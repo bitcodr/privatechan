@@ -244,3 +244,13 @@ func RegisterUserWithEmail(bot *tb.Bot, m *tb.Message, lastState *model.UserLast
 	options.ReplyMarkup = replyModel
 	bot.Send(userModel, "You are now member of channel/group "+channelModel.ManualChannelName, options)
 }
+
+
+
+func CheckUserRegisteredOrNot(bot *tb.Bot, m *tb.Message, lastState *model.UserLastState, text string, userID int){
+	//TODO check the channel is registered or not
+	//TODO if the channel is one of the company that user is registered verification is not necessary
+	//TODO also check it according to event channel is required a action for instance reply is mandatory or not
+	//TODO check if user is registered to company or not
+
+}
