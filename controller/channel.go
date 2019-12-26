@@ -31,22 +31,26 @@ func RegisterChannel(bot *tb.Bot, m *tb.Message) {
 	db, err := config.DB()
 	if err != nil {
 		log.Println(err)
+		return
 	}
 	defer db.Close()
 	statement, err := db.Prepare("SELECT id FROM `channels` where channelID=?")
 	if err != nil {
 		log.Println(err)
+		return
 	}
 	defer statement.Close()
 	results, err := statement.Query(channelID)
 	if err != nil {
 		log.Println(err)
+		return
 	}
 	if !results.Next() {
 		//start transaction
 		transaction, err := db.Begin()
 		if err != nil {
 			log.Println(err)
+			return
 		}
 		uniqueID := uuid.New().String()
 		//insert channel
@@ -54,6 +58,7 @@ func RegisterChannel(bot *tb.Bot, m *tb.Message) {
 		if err != nil {
 			transaction.Rollback()
 			log.Println(err)
+			return
 		}
 		insertedChannelID, err := channelInserted.LastInsertId()
 		if err == nil {
@@ -64,12 +69,14 @@ func RegisterChannel(bot *tb.Bot, m *tb.Message) {
 			if err != nil {
 				transaction.Rollback()
 				log.Println(err)
+				return
 			}
 			defer companyStatement.Close()
 			companyExists, err := companyStatement.Query(companyFlag)
 			if err != nil {
 				transaction.Rollback()
 				log.Println(err)
+				return
 			}
 			if !companyExists.Next() {
 				//insert company
@@ -77,6 +84,7 @@ func RegisterChannel(bot *tb.Bot, m *tb.Message) {
 				if err != nil {
 					transaction.Rollback()
 					log.Println(err)
+					return
 				}
 				insertedCompanyID, err := companyInserted.LastInsertId()
 				if err == nil {
@@ -87,6 +95,7 @@ func RegisterChannel(bot *tb.Bot, m *tb.Message) {
 					if err != nil {
 						transaction.Rollback()
 						log.Println(err)
+						return
 					}
 				}
 			} else {
@@ -94,6 +103,7 @@ func RegisterChannel(bot *tb.Bot, m *tb.Message) {
 				if err := companyExists.Scan(&companyModel.ID); err != nil {
 					transaction.Rollback()
 					log.Println(err)
+					return
 				}
 				companyModelID := strconv.FormatInt(companyModel.ID, 10)
 				channelModelID := strconv.FormatInt(insertedChannelID, 10)
@@ -102,6 +112,7 @@ func RegisterChannel(bot *tb.Bot, m *tb.Message) {
 				if err != nil {
 					transaction.Rollback()
 					log.Println(err)
+					return
 				}
 			}
 			transaction.Commit()
@@ -109,12 +120,14 @@ func RegisterChannel(bot *tb.Bot, m *tb.Message) {
 			time.Sleep(2 * time.Second)
 			if err := bot.Delete(successMessage); err != nil {
 				log.Println(err)
+				return
 			}
 			sendOptionModel := new(tb.SendOptions)
 			sendOptionModel.ParseMode = tb.ModeHTML
 			_, err = bot.Send(m.Chat, "This is your channel unique ID, you can save it and remove this message: <code> "+uniqueID+" </code>", sendOptionModel)
 			if err != nil {
 				log.Println(err)
+				return
 			}
 			time.Sleep(2 * time.Second)
 			compose := tb.InlineButton{
@@ -133,12 +146,15 @@ func RegisterChannel(bot *tb.Bot, m *tb.Message) {
 			pinMessage, err := bot.Send(m.Chat, lang.StartGroup, newSendOption)
 			if err != nil {
 				log.Println(err)
+				return
 			}
 			if err := bot.Pin(pinMessage); err != nil {
 				log.Println(err)
+				return
 			}
 			if err := bot.Delete(m); err != nil {
 				log.Println(err)
+				return
 			}
 		}
 	}
@@ -256,11 +272,13 @@ func SaveAndSendMessage(bot *tb.Bot, m *tb.Message) {
 				db, err := config.DB()
 				if err != nil {
 					log.Println(err)
+					return
 				}
 				defer db.Close()
 				insertedMessage, err := db.Query("INSERT INTO `messages` (`message`,`userID`,`channelID`,`channelMessageID`,`botMessageID`,`createdAt`) VALUES('" + m.Text + "','" + senderID + "','" + channelID + "','" + channelMessageID + "','" + botMessageID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
 				if err != nil {
 					log.Println(err)
+					return
 				}
 				defer insertedMessage.Close()
 				options := new(tb.SendOptions)
@@ -294,11 +312,13 @@ func SendAndSaveReplyMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserLa
 				db, err := config.DB()
 				if err != nil {
 					log.Println(err)
+					return
 				}
 				defer db.Close()
 				messageStatement, err := db.Prepare("SELECT me.id,me.channelMessageID from `messages` as me inner join `channels` as ch on me.channelID=ch.id and ch.channelID=? where me.`botMessageID`=? and me.`userID`=?")
 				if err != nil {
 					log.Println(err)
+					return
 				}
 				defer messageStatement.Close()
 				message := messageStatement.QueryRow(channelID, botMessageID, userID)
@@ -344,6 +364,7 @@ func SendAndSaveReplyMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserLa
 								currentChannelStatement, err := db.Prepare("SELECT id,channelName from `channels` where channelID=?")
 								if err != nil {
 									log.Println(err)
+									return
 								}
 								defer currentChannelStatement.Close()
 								currentChannel := currentChannelStatement.QueryRow(channelID)
@@ -353,6 +374,7 @@ func SendAndSaveReplyMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserLa
 									insertedMessage, err := db.Query("INSERT INTO `messages` (`message`,`userID`,`channelID`,`channelMessageID`,`botMessageID`,`parentID`,`createdAt`) VALUES('" + m.Text + "','" + senderID + "','" + newChannelModelID + "','" + newChannelMessageID + "','" + newBotMessageID + "','" + parentID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
 									if err != nil {
 										log.Println(err)
+										return
 									}
 									defer insertedMessage.Close()
 									options := new(tb.SendOptions)
@@ -393,11 +415,13 @@ func SendAndSaveDirectMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserL
 					db, err := config.DB()
 					if err != nil {
 						log.Println(err)
+						return
 					}
 					defer db.Close()
 					messageStatement, err := db.Prepare("SELECT me.id,me.channelMessageID from `messages` as me inner join `channels` as ch on me.channelID=ch.id and ch.channelID=? where me.`botMessageID`=? and me.`userID`=?")
 					if err != nil {
 						log.Println(err)
+						return
 					}
 					defer messageStatement.Close()
 					message := messageStatement.QueryRow(channelID, botMessageID, userID)
@@ -439,6 +463,7 @@ func SendAndSaveDirectMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserL
 								currentChannelStatement, err := db.Prepare("SELECT id from `channels` where channelID=?")
 								if err != nil {
 									log.Println(err)
+									return
 								}
 								defer currentChannelStatement.Close()
 								currentChannel := currentChannelStatement.QueryRow(channelID)
@@ -448,6 +473,7 @@ func SendAndSaveDirectMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserL
 									insertedMessage, err := db.Query("INSERT INTO `messages` (`userID`,`channelID`,`channelMessageID`,`botMessageID`,`parentID`,`createdAt`) VALUES('" + senderID + "','" + newChannelModelID + "','" + newChannelMessageID + "','" + newBotMessageID + "','" + parentID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
 									if err != nil {
 										log.Println(err)
+										return
 									}
 									defer insertedMessage.Close()
 									SaveUserLastState(bot, "", m.Sender.ID, "direct_message_sent")
@@ -502,17 +528,20 @@ func SendAnswerAndSaveDirectMessage(bot *tb.Bot, m *tb.Message, lastState *model
 						db, err := config.DB()
 						if err != nil {
 							log.Println(err)
+							return
 						}
 						defer db.Close()
 						newChannelMessageID := strconv.Itoa(sendMessage.ID)
 						currentChannelStatement, err := db.Prepare("SELECT id from `channels` where `channelID`=?")
 						if err != nil {
 							log.Println(err)
+							return
 						}
 						defer currentChannelStatement.Close()
 						currentChannel, err := currentChannelStatement.Query(channelID)
 						if err != nil {
 							log.Println(err)
+							return
 						}
 						if currentChannel.Next() {
 							newChannelModel := new(model.Channel)
@@ -521,6 +550,7 @@ func SendAnswerAndSaveDirectMessage(bot *tb.Bot, m *tb.Message, lastState *model
 								insertedMessage, err := db.Query("INSERT INTO `messages` (`userID`,`channelID`,`channelMessageID`,`botMessageID`,`createdAt`) VALUES('" + senderID + "','" + newChannelModelID + "','" + newChannelMessageID + "','" + newBotMessageID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
 								if err != nil {
 									log.Println(err)
+									return
 								}
 								defer insertedMessage.Close()
 								SaveUserLastState(bot, "", m.Sender.ID, "direct_message_sent")
