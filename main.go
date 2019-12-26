@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/amiraliio/tgbp/controller"
@@ -96,11 +97,22 @@ func main() {
 		}
 
 		if strings.Contains(m.Text, "reply_by_dm_to_user_on_group_") {
+			ids := strings.TrimPrefix(m.Text, "/start reply_by_dm_to_user_on_group_")
+			data := strings.Split(ids, "_")
+			directSenderID, err := strconv.Atoi(data[1])
+			if err != nil {
+				if err != nil {
+					log.Println(err)
+				}
+				return
+			}
+			if m.Sender.ID == directSenderID {
+				bot.Send(m.Sender, "You cannot send direct message to your self", controller.HomeKeyOption())
+				return
+			}
 			if m.Sender != nil {
 				controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "reply_by_dm_to_user_on_group")
 			}
-			ids := strings.TrimPrefix(m.Text, "/start reply_by_dm_to_user_on_group_")
-			data := strings.Split(ids, "_")
 			channelID := strings.TrimSpace(data[0])
 			controller.JoinFromGroup(bot, m, channelID)
 			controller.SanedDM(bot, m.Sender)

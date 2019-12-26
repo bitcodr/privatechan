@@ -37,7 +37,7 @@ func RegisterUserWithemail(bot *tb.Bot, m *tb.Message, lastState *model.UserLast
 		return
 	}
 	SaveUserLastState(bot, text, userID, "register_user_with_email")
-	bot.Send(userModel, "Please Enter Your Email in Your Company:", homeKeyOption())
+	bot.Send(userModel, "Please Enter Your Email in Your Company:", HomeKeyOption())
 }
 
 func checkTheCompanyEmailSuffixExist(bot *tb.Bot, email, emailSuffix string, db *sql.DB, userModel *tb.User) {
@@ -93,14 +93,14 @@ func ConfirmRegisterCompanyRequest(bot *tb.Bot, m *tb.Message, lastState *model.
 		}
 		defer insertCompanyRequest.Close()
 		SaveUserLastState(bot, "", userID, "join_request_added")
-		bot.Send(userModel, "Your Request Sent To The Admin And Will be Active After Confirmation.", homeKeyOption())
+		bot.Send(userModel, "Your Request Sent To The Admin And Will be Active After Confirmation.", HomeKeyOption())
 	case "No":
 		SaveUserLastState(bot, "", userID, "join_request_dismissed")
-		bot.Send(userModel, "You Can Continue in Bot by Pressing The Home Button", homeKeyOption())
+		bot.Send(userModel, "You Can Continue in Bot by Pressing The Home Button", HomeKeyOption())
 	}
 }
 
-func homeKeyOption() *tb.SendOptions {
+func HomeKeyOption() *tb.SendOptions {
 	options := new(tb.SendOptions)
 	homeBTN := tb.ReplyButton{
 		Text: "Home",
@@ -160,10 +160,10 @@ func ConfirmRegisterUserForTheCompany(bot *tb.Bot, m *tb.Message, lastState *mod
 		defer insertCompanyRequest.Close()
 		go helpers.SendEmail(strconv.Itoa(randomeNumber), channelData[1])
 		SaveUserLastState(bot, lastState.Data, userID, "email_for_user_registration")
-		bot.Send(userModel, "Please Enter The Code That Sent To Your Email Address", homeKeyOption())
+		bot.Send(userModel, "Please Enter The Code That Sent To Your Email Address", HomeKeyOption())
 	case "No":
 		SaveUserLastState(bot, "", userID, "cancel_user_registration_for_the_company")
-		bot.Send(userModel, "You Can Continue in Bot by Pressing The Home Button", homeKeyOption())
+		bot.Send(userModel, "You Can Continue in Bot by Pressing The Home Button", HomeKeyOption())
 	}
 }
 
@@ -189,7 +189,7 @@ func RegisterUserWithEmail(bot *tb.Bot, m *tb.Message, lastState *model.UserLast
 	}
 	//TODO check token expire time
 	if !helpers.CheckPasswordHash(text, userActiveKeyModel.ActiveKey) {
-		bot.Send(userModel, "The key Is Invalid", homeKeyOption())
+		bot.Send(userModel, "The key Is Invalid", HomeKeyOption())
 		return
 	}
 	if !strings.Contains(lastState.Data, "_") {
