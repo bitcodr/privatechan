@@ -82,6 +82,7 @@ func main() {
 				controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "home")
 			}
 			controller.StartBot(bot, m, startBotKeys)
+			return
 		}
 
 		if strings.Contains(m.Text, "reply_to_message_on_group_") {
@@ -94,6 +95,7 @@ func main() {
 			messageID := strings.TrimSpace(data[2])
 			controller.JoinFromGroup(bot, m, channelID)
 			controller.SendReply(bot, m.Sender, channelID, messageID)
+			return
 		}
 
 		if strings.Contains(m.Text, "reply_by_dm_to_user_on_group_") {
@@ -115,7 +117,8 @@ func main() {
 			}
 			channelID := strings.TrimSpace(data[0])
 			controller.JoinFromGroup(bot, m, channelID)
-			controller.SanedDM(bot, m.Sender)
+			controller.SanedDM(bot, m.Sender, directSenderID, channelID)
+			return
 		}
 
 		if strings.Contains(m.Text, "compose_message_in_group_") {
@@ -126,27 +129,37 @@ func main() {
 			channelID := strings.ReplaceAll(m.Text, "/start compose_message_in_group_", "")
 			controller.JoinFromGroup(bot, m, channelID)
 			controller.NewMessageGroupHandler(bot, m.Sender, channelID)
+			return
 		}
 
 		switch {
 		case lastState.State == "new_message_to_group" && !strings.Contains(m.Text, "compose_message_in_group_"):
 			controller.SaveAndSendMessage(bot, m)
+			return
 		case lastState.State == "reply_to_message_on_group" && !strings.Contains(m.Text, "reply_to_message_on_group_"):
 			controller.SendAndSaveReplyMessage(bot, m, lastState)
+			return
 		case lastState.State == "reply_by_dm_to_user_on_group" && !strings.Contains(m.Text, "reply_by_dm_to_user_on_group_"):
 			controller.SendAndSaveDirectMessage(bot, m, lastState)
+			return
 		case lastState.State == "answer_to_dm" && !strings.Contains(m.Text, "answer_to_dm_"):
 			controller.SendAnswerAndSaveDirectMessage(bot, m, lastState)
+			return
 		case lastState.State == "setup_verified_company_account" || strings.Contains(m.Text, setupVerifiedCompany.Text):
 			controller.SetUpCompanyByAdmin(bot, m, lastState, m.Text, m.Sender.ID)
+			return
 		case lastState.State == "register_user_with_email" || strings.Contains(m.Text, joinCompanyChannels.Text):
 			controller.RegisterUserWithemail(bot, m, lastState, strings.TrimSpace(m.Text), m.Sender.ID)
+			return
 		case lastState.State == "confirm_register_company_email_address" && (strings.Contains(m.Text, "No") || strings.Contains(m.Text, "Yes")):
 			controller.ConfirmRegisterCompanyRequest(bot, m, lastState, strings.TrimSpace(m.Text), m.Sender.ID)
+			return
 		case lastState.State == "register_user_for_the_company" && (strings.Contains(m.Text, "No") || strings.Contains(m.Text, "Yes")):
 			controller.ConfirmRegisterUserForTheCompany(bot, m, lastState, strings.TrimSpace(m.Text), m.Sender.ID)
+			return
 		case lastState.State == "email_for_user_registration":
 			controller.RegisterUserWithEmail(bot, m, lastState, strings.TrimSpace(m.Text), m.Sender.ID)
+			return
 		}
 
 	})
@@ -158,19 +171,23 @@ func main() {
 				controller.SaveUserLastState(bot, c.Data, c.Sender.ID, "home")
 			}
 			controller.StartBot(bot, c.Message, startBotKeys)
+			return
 		}
 		if strings.Contains(c.Data, "answer_to_dm_") {
 			if c.Sender != nil {
 				controller.SaveUserLastState(bot, c.Data, c.Sender.ID, "answer_to_dm")
 			}
 			controller.SanedAnswerDM(bot, c.Sender)
+			return
 		}
 		lastState := controller.GetUserLastState(bot, c.Message, c.Sender.ID)
 		switch {
 		case lastState.State == "setup_verified_company_account":
 			controller.SetUpCompanyByAdmin(bot, c.Message, lastState, c.Data, c.Sender.ID)
+			return
 		case lastState.State == "register_user_with_email":
 			controller.RegisterUserWithemail(bot, c.Message, lastState, strings.TrimSpace(c.Data), c.Sender.ID)
+			return
 		}
 	})
 

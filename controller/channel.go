@@ -180,7 +180,7 @@ func SendReply(bot *tb.Bot, m *tb.User, channelID, messageID string) {
 	}
 }
 
-func SanedDM(bot *tb.Bot, m *tb.User) {
+func SanedDM(bot *tb.Bot, m *tb.User, directSenderID int, channelID string) {
 	options := new(tb.SendOptions)
 	markup := new(tb.ReplyMarkup)
 	homeBTN := tb.ReplyButton{
@@ -191,7 +191,14 @@ func SanedDM(bot *tb.Bot, m *tb.User) {
 	}
 	markup.ReplyKeyboard = replyKeys
 	options.ReplyMarkup = markup
-	bot.Send(m, "Please send your direct message to the user:", options)
+	options.ParseMode = tb.ModeHTML
+	user := GetUserByTelegramID(directSenderID)
+	channel := GetChannelByTelegramID(channelID)
+	_, err := bot.Send(m, "<code>Please send your direct message to the user:</code><b>"+strconv.FormatInt(user.ID, 10)+user.UserID+"</b> <code>From:</code> <b>"+channel.ChannelName+"</b>", options)
+	if err !=nil{
+		log.Println(err)
+		return
+	}
 }
 
 func SanedAnswerDM(bot *tb.Bot, m *tb.User) {
@@ -237,9 +244,12 @@ func SaveAndSendMessage(bot *tb.Bot, m *tb.Message) {
 		if err == nil {
 			user := new(tb.User)
 			user.ID = activeChannelID
-			message, err := bot.Send(user, m.Text, &tb.ReplyMarkup{
-				InlineKeyboard: inlineKeys,
-			})
+			options := new(tb.SendOptions)
+			replyModel := new(tb.ReplyMarkup)
+			replyModel.InlineKeyboard = inlineKeys
+			options.ReplyMarkup = replyModel
+			options.ParseMode = tb.ModeHTML
+			message, err := bot.Send(user, "From: <b>"+strconv.FormatInt(activeChannel.User.ID, 10)+activeChannel.User.UserID+"</b> <pre>\n"+m.Text+"</pre>", options)
 			if err == nil {
 				channelMessageID := strconv.Itoa(message.ID)
 				channelID := strconv.FormatInt(activeChannel.ID, 10)
@@ -316,6 +326,7 @@ func SendAndSaveReplyMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserLa
 						}
 						ChannelMessageDataID, err := strconv.Atoi(messageModel.ChannelMessageID)
 						if err == nil {
+							activeChannel := GetUserCurrentActiveChannel(bot, m)
 							sendMessageModel := new(tb.Message)
 							sendMessageModel.ID = ChannelMessageDataID
 							newReplyModel := new(tb.ReplyMarkup)
@@ -323,9 +334,10 @@ func SendAndSaveReplyMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserLa
 							newSendOption := new(tb.SendOptions)
 							newSendOption.ReplyTo = sendMessageModel
 							newSendOption.ReplyMarkup = newReplyModel
+							newSendOption.ParseMode = tb.ModeHTML
 							user := new(tb.User)
 							user.ID = channelIntValue
-							sendMessage, err := bot.Send(user, m.Text, newSendOption)
+							sendMessage, err := bot.Send(user, "From: <b>"+strconv.FormatInt(activeChannel.User.ID, 10)+activeChannel.User.UserID+"</b> <pre>\n"+m.Text+"</pre>", newSendOption)
 							if err == nil {
 								newChannelMessageID := strconv.Itoa(sendMessage.ID)
 								parentID := strconv.FormatInt(messageModel.ID, 10)
@@ -528,7 +540,7 @@ func GetUserCurrentActiveChannel(bot *tb.Bot, m *tb.Message) *model.Channel {
 	}
 	defer db.Close()
 	userID := strconv.Itoa(m.Sender.ID)
-	userActiveStatement, err := db.Prepare("SELECT ch.id,ch.channelID,ch.channelName from `channels` as ch inner join `users_current_active_channel` as uc on ch.id=uc.channelID and uc.status='ACTIVE' inner join `users` as us on uc.userID=us.id and us.userID=? and us.`status`='ACTIVE'")
+	userActiveStatement, err := db.Prepare("SELECT ch.id,ch.channelID,ch.channelName,us.id,us.userID from `channels` as ch inner join `users_current_active_channel` as uc on ch.id=uc.channelID and uc.status='ACTIVE' inner join `users` as us on uc.userID=us.id and us.userID=? and us.`status`='ACTIVE'")
 	if err != nil {
 		log.Println(err)
 	}
@@ -539,9 +551,11 @@ func GetUserCurrentActiveChannel(bot *tb.Bot, m *tb.Message) *model.Channel {
 	}
 	if userActiveChannel.Next() {
 		channelModel := new(model.Channel)
-		if err := userActiveChannel.Scan(&channelModel.ID, &channelModel.ChannelID, &channelModel.ChannelName); err != nil {
+		userModel := new(model.User)
+		if err := userActiveChannel.Scan(&channelModel.ID, &channelModel.ChannelID, &channelModel.ChannelName, &userModel.ID, &userModel.UserID); err != nil {
 			log.Println(err)
 		}
+		channelModel.User = userModel
 		return channelModel
 	}
 	return nil
@@ -586,4 +600,29 @@ func SaveUserLastState(bot *tb.Bot, data string, userDataID int, state string) {
 		return
 	}
 	defer insertedState.Close()
+}
+
+func GetChannelByTelegramID(channelID string) *model.Channel {
+	db, err := config.DB()
+	if err != nil {
+		log.Println(err)
+	}
+	defer db.Close()
+	userLastStateQueryStatement, err := db.Prepare("SELECT `channelName` from `channels` where `channelID`=? ")
+	if err != nil {
+		log.Println(err)
+	}
+	defer userLastStateQueryStatement.Close()
+	userLastStateQuery, err := userLastStateQueryStatement.Query(channelID)
+	if err != nil {
+		log.Println(err)
+	}
+	channelModel := new(model.Channel)
+	if userLastStateQuery.Next() {
+		if err := userLastStateQuery.Scan(&channelModel.ChannelName); err != nil {
+			log.Println(err)
+		}
+		return channelModel
+	}
+	return channelModel
 }

@@ -14,6 +14,7 @@ func StartBot(bot *tb.Bot, m *tb.Message, replyKeys [][]tb.ReplyButton) {
 	_, err := bot.Send(m.Sender, "What Do You Want To Do?", newSendOption)
 	if err != nil {
 		log.Println(err)
+		return
 	}
 }
 

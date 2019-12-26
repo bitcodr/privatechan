@@ -245,9 +245,32 @@ func RegisterUserWithEmail(bot *tb.Bot, m *tb.Message, lastState *model.UserLast
 	bot.Send(userModel, "You are now member of channel/group "+channelModel.ManualChannelName, options)
 }
 
+func GetUserByTelegramID(userID int) *model.User {
+	db, err := config.DB()
+	if err != nil {
+		log.Println(err)
+	}
+	defer db.Close()
+	userLastStateQueryStatement, err := db.Prepare("SELECT `id`,`userID` from `users` where `userID`=? ")
+	if err != nil {
+		log.Println(err)
+	}
+	defer userLastStateQueryStatement.Close()
+	userLastStateQuery, err := userLastStateQueryStatement.Query(userID)
+	if err != nil {
+		log.Println(err)
+	}
+	userModel := new(model.User)
+	if userLastStateQuery.Next() {
+		if err := userLastStateQuery.Scan(&userModel.ID, &userModel.UserID); err != nil {
+			log.Println(err)
+		}
+		return userModel
+	}
+	return userModel
+}
 
-
-func CheckUserRegisteredOrNot(bot *tb.Bot, m *tb.Message, lastState *model.UserLastState, text string, userID int){
+func CheckUserRegisteredOrNot(bot *tb.Bot, m *tb.Message, lastState *model.UserLastState, text string, userID int) {
 	//TODO check the channel is registered or not
 	//TODO if the channel is one of the company that user is registered verification is not necessary
 	//TODO also check it according to event channel is required a action for instance reply is mandatory or not
