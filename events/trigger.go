@@ -27,9 +27,11 @@ func triggersEvents(app *config.App, bot *tb.Bot) {
 	}
 }
 
-func triggersEventsHandler(app *config.App, bot *tb.Bot, request *Event) bool {
-	bot.Handle(request.Event, func(message *tb.Message) bool {
-		return helpers.Invoke(BotService{}, request.Controller, app, bot, message, request)
+func triggersEventsHandler(app *config.App, bot *tb.Bot, request *Event) (result bool) {
+	result = false
+	bot.Handle(request.Event, func(message *tb.Message) {
+		helpers.Invoke(BotService{}, request.Controller, app, bot, message, request)
+		result = true
 	})
-	return false
+	return result
 }

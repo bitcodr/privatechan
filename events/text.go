@@ -116,30 +116,37 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 	}
 }
 
-func onTextEventsHandler(app *config.App, bot *tb.Bot, request *Event) bool {
-	bot.Handle(tb.OnText, func(message *tb.Message) bool {
-		return helpers.Invoke(BotService{}, request.Controller, app, bot, message, request)
+func onTextEventsHandler(app *config.App, bot *tb.Bot, request *Event) (result bool) {
+	result = false
+	bot.Handle(tb.OnText, func(message *tb.Message) {
+		helpers.Invoke(BotService{}, request.Controller, app, bot, message, request)
+		result = true
 	})
-	return false
+	return result
 }
 
-func inlineOnTextEventsHandler(app *config.App, bot *tb.Bot, request *Event) bool {
-	bot.Handle(tb.OnText, func(message *tb.Message) bool {
+func inlineOnTextEventsHandler(app *config.App, bot *tb.Bot, request *Event) (result bool) {
+	result = false
+	bot.Handle(tb.OnText, func(message *tb.Message) {
 		db := app.DB()
 		defer db.Close()
 		lastState := GetUserLastState(db, app, bot, message, message.Sender.ID)
 		switch {
 		case lastState.State == request.UserState && !strings.Contains(message.Text, request.Command):
-			return helpers.Invoke(BotService{}, request.Controller, db, app, bot, message, request, lastState)
+			helpers.Invoke(BotService{}, request.Controller, db, app, bot, message, request, lastState)
+			result = true
 		case lastState.State == request.UserState || strings.Contains(message.Text, request.Command):
-			return helpers.Invoke(BotService{}, request.Controller, db, app, bot, message, request, lastState, strings.TrimSpace(message.Text), message.Sender.ID)
+			helpers.Invoke(BotService{}, request.Controller, db, app, bot, message, request, lastState, strings.TrimSpace(message.Text), message.Sender.ID)
+			result = true
 		case lastState.State == request.UserState && (strings.Contains(message.Text, "No") || strings.Contains(message.Text, "Yes")):
-			return helpers.Invoke(BotService{}, request.Controller, db, app, bot, message, request, lastState)
+			helpers.Invoke(BotService{}, request.Controller, db, app, bot, message, request, lastState)
+			result = true
 		case lastState.State == request.UserState:
-			return helpers.Invoke(BotService{}, request.Controller, db, app, bot, message, request, lastState)
+			helpers.Invoke(BotService{}, request.Controller, db, app, bot, message, request, lastState)
+			result = true
 		default:
-			return false
+			result = false
 		}
 	})
-	return false
+	return result
 }

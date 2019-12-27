@@ -43,26 +43,31 @@ func onCallbackEvents(app *config.App, bot *tb.Bot) {
 
 }
 
-func onCallbackEventsHandler(app *config.App, bot *tb.Bot, request *Event) bool {
-	bot.Handle(tb.OnCallback, func(c *tb.Callback) bool {
-		return helpers.Invoke(BotService{}, request.Controller, app, bot, c, request)
+func onCallbackEventsHandler(app *config.App, bot *tb.Bot, request *Event) (result bool) {
+	result = false
+	bot.Handle(tb.OnCallback, func(c *tb.Callback) {
+		helpers.Invoke(BotService{}, request.Controller, app, bot, c, request)
+		result = true
 	})
-	return false
+	return result
 }
 
-func inlineOnCallbackEventsHandler(app *config.App, bot *tb.Bot, request *Event) bool {
-	bot.Handle(tb.OnCallback, func(c *tb.Callback) bool {
+func inlineOnCallbackEventsHandler(app *config.App, bot *tb.Bot, request *Event) (result bool) {
+	result = false
+	bot.Handle(tb.OnCallback, func(c *tb.Callback) {
 		db := app.DB()
 		defer db.Close()
 		lastState := GetUserLastState(db, app, bot, c.Message, c.Sender.ID)
 		switch {
 		case c.Data == request.Command || c.Data == request.Command1:
-			return helpers.Invoke(BotService{}, request.Controller, app, bot, c, request)
+			helpers.Invoke(BotService{}, request.Controller, app, bot, c, request)
+			result = true
 		case lastState.State == request.UserState:
-			return helpers.Invoke(BotService{}, request.Controller, db, app, bot, c.Message, request, lastState, strings.TrimSpace(c.Data), c.Sender.ID)
+			helpers.Invoke(BotService{}, request.Controller, db, app, bot, c.Message, request, lastState, strings.TrimSpace(c.Data), c.Sender.ID)
+			result = true
 		default:
-			return false
+			result = false
 		}
 	})
-	return false
+	return result
 }
