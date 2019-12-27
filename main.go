@@ -34,7 +34,7 @@ func main() {
 
 	//handle bot events
 	events.Init(app, bot)
-
+ 
 	//on text handlers
 	bot.Handle(tb.OnText, func(m *tb.Message) {
 		lastState := botService.GetUserLastState(bot, m, m.Sender.ID)
