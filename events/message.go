@@ -73,4 +73,14 @@ func messageEvents(app *config.App, bot *tb.Bot) {
 	}) {
 		return
 	}
+
+	if callbackEventsHandler(app, bot, &Event{
+		Event:      tb.OnText,
+		UserState:  "answer_to_dm",
+		Command:    "answer_to_dm_",
+		Controller: "SanedAnswerDM",
+	}) {
+		return
+	}
+
 }

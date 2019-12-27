@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-func (service *BotService) SetUpCompanyByAdmin(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event, lastState *models.UserLastState, text string, userID int) bool {
+func (service *events.BotService) SetUpCompanyByAdmin(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event, lastState *models.UserLastState, text string, userID int) bool {
 	if lastState.Data != "" && lastState.State == "setup_verified_company_account" {
 		questions := viper.GetStringMap("SUPERADMIN.COMPANY.SETUP.QUESTIONS")
 		numberOfQuestion := strings.Split(lastState.Data, "_")
@@ -45,7 +45,7 @@ func (service *BotService) SetUpCompanyByAdmin(db *sql.DB, app *config.App, bot 
 }
 
 //next question
-func (service *BotService) nextQuestion(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, lastState *models.UserLastState, relationDate string, prevQuestionNo int, text string, userID int) {
+func (service *events.BotService) nextQuestion(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, lastState *models.UserLastState, relationDate string, prevQuestionNo int, text string, userID int) {
 	questionText := viper.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N" + strconv.Itoa(prevQuestionNo+1) + ".QUESTION")
 	answers := viper.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N" + strconv.Itoa(prevQuestionNo+1) + ".ANSWERS")
 	if answers != "" && strings.Contains(strings.TrimSpace(answers), ",") {
@@ -89,7 +89,7 @@ func (service *BotService) nextQuestion(db *sql.DB, app *config.App, bot *tb.Bot
 	SaveUserLastState(db, app, bot, strconv.Itoa(prevQuestionNo+1)+"_"+relationDate, userID, "setup_verified_company_account")
 }
 
-func (service *BotService) sendMessageUserWithActionOnKeyboards(db *sql.DB, app *config.App, bot *tb.Bot, userID int, message string, showKeyboard bool) {
+func (service *events.BotService) sendMessageUserWithActionOnKeyboards(db *sql.DB, app *config.App, bot *tb.Bot, userID int, message string, showKeyboard bool) {
 	userModel := new(tb.User)
 	userModel.ID = userID
 	options := new(tb.SendOptions)
@@ -106,7 +106,7 @@ func (service *BotService) sendMessageUserWithActionOnKeyboards(db *sql.DB, app 
 	_, _ = bot.Send(userModel, message, options)
 }
 
-func (service *BotService) finalStage(app *config.App, bot *tb.Bot, relationDate string, db *sql.DB, text string, userID int) {
+func (service *events.BotService) finalStage(app *config.App, bot *tb.Bot, relationDate string, db *sql.DB, text string, userID int) {
 	tempData, err := db.Prepare("SELECT id,tableName,columnName,data,relation,status,userID,createdAt from `temp_setup_flow` where status='ACTIVE' and relation=? and userID=?")
 	if err != nil {
 		log.Println(err)
@@ -161,7 +161,7 @@ func (service *BotService) finalStage(app *config.App, bot *tb.Bot, relationDate
 	}
 }
 
-func (service *BotService) insertFinalStateData(app *config.App, bot *tb.Bot, userID int, transaction *sql.Tx, channelTableData, companyTableData, channelsEmailSuffixes, channelsSettings []*models.TempSetupFlow, db *sql.DB) {
+func (service *events.BotService) insertFinalStateData(app *config.App, bot *tb.Bot, userID int, transaction *sql.Tx, channelTableData, companyTableData, channelsEmailSuffixes, channelsSettings []*models.TempSetupFlow, db *sql.DB) {
 	if companyTableData == nil || channelsEmailSuffixes == nil || len(channelsEmailSuffixes) != 1 || channelTableData == nil || channelsSettings == nil {
 		transaction.Rollback()
 		log.Println("final data must not be null")

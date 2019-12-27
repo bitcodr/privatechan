@@ -40,4 +40,12 @@ func userEvents(app *config.App, bot *tb.Bot) {
 	}) {
 		return
 	}
+
+	if inlineCallbackEventsHandler(app, bot, &Event{
+		Event:      tb.OnCallback,
+		UserState:  "register_user_with_email",
+		Controller: "RegisterUserWithemail",
+	}) {
+		return
+	}
 }

@@ -26,4 +26,13 @@ func callbackEvents(app *config.App, bot *tb.Bot) {
 		return
 	}
 
+	//TODO callback if necessary
+	// if c.Data == "Home" || c.Data == "/start" {
+	// 		if c.Sender != nil {
+	// 			controllers.SaveUserLastState(bot, c.Data, c.Sender.ID, "home")
+	// 		}
+	// 		controllers.StartBot(bot, c.Message, startBotKeys)
+	// 		return
+	// 	}
+
 }

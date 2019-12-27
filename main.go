@@ -1,14 +1,11 @@
 package main
 
 import (
-	"github.com/amiraliio/tgbp/controllers"
-	"github.com/amiraliio/tgbp/events"
+	"log"
 	"os"
-	"strings"
 
 	"github.com/amiraliio/tgbp/config"
-	tb "gopkg.in/tucnak/telebot.v2"
-	"log"
+	"github.com/amiraliio/tgbp/events"
 )
 
 func main() {
@@ -35,31 +32,6 @@ func main() {
 	//handle bot events
 	events.Init(app, bot)
 
-	//callback handlers
-	bot.Handle(tb.OnCallback, func(c *tb.Callback) {
-		if c.Data == "Home" || c.Data == "/start" {
-			if c.Sender != nil {
-				controllers.SaveUserLastState(bot, c.Data, c.Sender.ID, "home")
-			}
-			controllers.StartBot(bot, c.Message, startBotKeys)
-			return
-		}
-		if strings.Contains(c.Data, "answer_to_dm_") {
-			if c.Sender != nil {
-				controllers.SaveUserLastState(bot, c.Data, c.Sender.ID, "answer_to_dm")
-			}
-			controllers.SanedAnswerDM(bot, c.Sender)
-			return
-		}
-		lastState := controllers.GetUserLastState(bot, c.Message, c.Sender.ID)
-		switch {
-		case lastState.State == "setup_verified_company_account":
-			controllers.SetUpCompanyByAdmin(bot, c.Message, lastState, c.Data, c.Sender.ID)
-		case lastState.State == "register_user_with_email":
-			controllers.RegisterUserWithemail(bot, c.Message, lastState, strings.TrimSpace(c.Data), c.Sender.ID)
-		}
-		return
-	})
-
+	//start the bot
 	bot.Start()
 }

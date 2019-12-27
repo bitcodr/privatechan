@@ -16,7 +16,7 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-func (service *BotService) RegisterGroup(app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event) bool{
+func (service *events.BotService) RegisterGroup(app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event) bool {
 	db := app.DB()
 	defer db.Close()
 	if m.Sender != nil {
@@ -166,11 +166,11 @@ func (service *BotService) RegisterGroup(app *config.App, bot *tb.Bot, m *tb.Mes
 	return true
 }
 
-func (service *BotService) NewMessageGroupHandler(app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event) bool{
+func (service *events.BotService) NewMessageGroupHandler(app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event) bool {
 	if strings.Contains(m.Text, request.Command) {
 		db := app.DB()
 		defer db.Close()
-		lastState := service.GetUserLastState(db, app, bot, m, m.Sender.ID)
+		lastState := events.GetUserLastState(db, app, bot, m, m.Sender.ID)
 		service.CheckUserRegisteredOrNot(db, app, bot, m, lastState, m.Text, m.Sender.ID)
 		if m.Sender != nil {
 			SaveUserLastState(db, app, bot, m.Text, m.Sender.ID, request.UserState)
@@ -204,7 +204,7 @@ func (service *BotService) NewMessageGroupHandler(app *config.App, bot *tb.Bot, 
 	return false
 }
 
-func (service *BotService) JoinFromGroup(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, channelID string) {
+func (service *events.BotService) JoinFromGroup(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, channelID string) {
 	userID := strconv.Itoa(m.Sender.ID)
 	//check if user is not created
 	resultsStatement, err := db.Prepare("SELECT id FROM `users` where `status`= 'ACTIVE' and `userID`=?")
@@ -250,7 +250,7 @@ func (service *BotService) JoinFromGroup(db *sql.DB, app *config.App, bot *tb.Bo
 	}
 }
 
-func (service *BotService) checkAndInsertUserGroup(app *config.App, bot *tb.Bot, m *tb.Message, queryUserID int64, channelID string, db *sql.DB, transaction *sql.Tx) {
+func (service *events.BotService) checkAndInsertUserGroup(app *config.App, bot *tb.Bot, m *tb.Message, queryUserID int64, channelID string, db *sql.DB, transaction *sql.Tx) {
 	userModelID := strconv.FormatInt(queryUserID, 10)
 	//check if channel for user is exists
 	checkUserChannelStatement, err := db.Prepare("SELECT ch.id as id FROM `channels` as ch inner join `users_channels` as uc on uc.channelID = ch.id and uc.userID=? and ch.channelID=?")
