@@ -16,10 +16,10 @@ type Event struct {
 }
 
 func Init(app *config.App, bot *tb.Bot) {
+	triggersEvents(app, bot)
+	keyboardsEvents(app, bot)
 	onTextEvents(app, bot)
 	onCallbackEvents(app, bot)
-	keyboardsEvents(app, bot)
-	triggersEvents(app, bot)
 }
 
 func GetUserLastState(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, user int) *models.UserLastState {
