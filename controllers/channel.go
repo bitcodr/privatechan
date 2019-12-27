@@ -23,7 +23,7 @@ import (
 type BotService struct{}
 
 //RegisterChannel
-func (service *BotService) RegisterChannel(app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event) bool{
+func (service *BotService) RegisterChannel(app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event) bool {
 	if strings.TrimSpace(m.Text) == request.Command {
 		db := app.DB()
 		defer db.Close()
@@ -167,7 +167,7 @@ func (service *BotService) RegisterChannel(app *config.App, bot *tb.Bot, m *tb.M
 	return false
 }
 
-func (service *BotService) SendReply(app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event) bool{
+func (service *BotService) SendReply(app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event) bool {
 	if strings.Contains(m.Text, request.Command) {
 		db := app.DB()
 		defer db.Close()
@@ -211,7 +211,7 @@ func (service *BotService) SendReply(app *config.App, bot *tb.Bot, m *tb.Message
 	return false
 }
 
-func (service *BotService) SanedDM(app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event) bool{
+func (service *BotService) SanedDM(app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event) bool {
 	if strings.Contains(m.Text, request.Command) {
 		db := app.DB()
 		defer db.Close()
@@ -268,7 +268,7 @@ func (service *BotService) SanedAnswerDM(db *sql.DB, app *config.App, bot *tb.Bo
 	bot.Send(m, "Please send your direct message to the user:", options)
 }
 
-func (service *BotService) SaveAndSendMessage(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message) {
+func (service *BotService) SaveAndSendMessage(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event, lastState *models.UserLastState) bool {
 	activeChannel := service.GetUserCurrentActiveChannel(db, app, bot, m)
 	if activeChannel != nil {
 		senderID := strconv.Itoa(m.Sender.ID)
@@ -307,7 +307,7 @@ func (service *BotService) SaveAndSendMessage(db *sql.DB, app *config.App, bot *
 				insertedMessage, err := db.Query("INSERT INTO `messages` (`message`,`userID`,`channelID`,`channelMessageID`,`botMessageID`,`createdAt`) VALUES('" + m.Text + "','" + senderID + "','" + channelID + "','" + channelMessageID + "','" + botMessageID + "','" + app.CurrentTime + "')")
 				if err != nil {
 					log.Println(err)
-					return
+					return true
 				}
 				defer insertedMessage.Close()
 				options := new(tb.SendOptions)
@@ -325,9 +325,10 @@ func (service *BotService) SaveAndSendMessage(db *sql.DB, app *config.App, bot *
 			}
 		}
 	}
+	return true
 }
 
-func (service *BotService) SendAndSaveReplyMessage(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, lastState *models.UserLastState) {
+func (service *BotService) SendAndSaveReplyMessage(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event, lastState *models.UserLastState) bool {
 	if lastState.Data != "" {
 		ids := strings.TrimPrefix(lastState.Data, "/start reply_to_message_on_group_")
 		if ids != "" {
@@ -341,7 +342,7 @@ func (service *BotService) SendAndSaveReplyMessage(db *sql.DB, app *config.App, 
 				messageStatement, err := db.Prepare("SELECT me.id,me.channelMessageID from `messages` as me inner join `channels` as ch on me.channelID=ch.id and ch.channelID=? where me.`botMessageID`=? and me.`userID`=?")
 				if err != nil {
 					log.Println(err)
-					return
+					return true
 				}
 				defer messageStatement.Close()
 				message := messageStatement.QueryRow(channelID, botMessageID, userID)
@@ -387,7 +388,7 @@ func (service *BotService) SendAndSaveReplyMessage(db *sql.DB, app *config.App, 
 								currentChannelStatement, err := db.Prepare("SELECT id,channelName from `channels` where channelID=?")
 								if err != nil {
 									log.Println(err)
-									return
+									return true
 								}
 								defer currentChannelStatement.Close()
 								currentChannel := currentChannelStatement.QueryRow(channelID)
@@ -397,7 +398,7 @@ func (service *BotService) SendAndSaveReplyMessage(db *sql.DB, app *config.App, 
 									insertedMessage, err := db.Query("INSERT INTO `messages` (`message`,`userID`,`channelID`,`channelMessageID`,`botMessageID`,`parentID`,`createdAt`) VALUES('" + m.Text + "','" + senderID + "','" + newChannelModelID + "','" + newChannelMessageID + "','" + newBotMessageID + "','" + parentID + "','" + app.CurrentTime + "')")
 									if err != nil {
 										log.Println(err)
-										return
+										return true
 									}
 									defer insertedMessage.Close()
 									options := new(tb.SendOptions)
@@ -420,9 +421,10 @@ func (service *BotService) SendAndSaveReplyMessage(db *sql.DB, app *config.App, 
 			}
 		}
 	}
+	return true
 }
 
-func (service *BotService) SendAndSaveDirectMessage(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, lastState *models.UserLastState) {
+func (service *BotService) SendAndSaveDirectMessage(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event, lastState *models.UserLastState) bool{
 	if lastState.Data != "" {
 		ids := strings.TrimPrefix(lastState.Data, "/start reply_by_dm_to_user_on_group_")
 		if ids != "" {
@@ -438,7 +440,7 @@ func (service *BotService) SendAndSaveDirectMessage(db *sql.DB, app *config.App,
 					messageStatement, err := db.Prepare("SELECT me.id,me.channelMessageID from `messages` as me inner join `channels` as ch on me.channelID=ch.id and ch.channelID=? where me.`botMessageID`=? and me.`userID`=?")
 					if err != nil {
 						log.Println(err)
-						return
+						return true
 					}
 					defer messageStatement.Close()
 					message := messageStatement.QueryRow(channelID, botMessageID, userID)
@@ -480,7 +482,7 @@ func (service *BotService) SendAndSaveDirectMessage(db *sql.DB, app *config.App,
 								currentChannelStatement, err := db.Prepare("SELECT id from `channels` where channelID=?")
 								if err != nil {
 									log.Println(err)
-									return
+									return true
 								}
 								defer currentChannelStatement.Close()
 								currentChannel := currentChannelStatement.QueryRow(channelID)
@@ -490,7 +492,7 @@ func (service *BotService) SendAndSaveDirectMessage(db *sql.DB, app *config.App,
 									insertedMessage, err := db.Query("INSERT INTO `messages` (`userID`,`channelID`,`channelMessageID`,`botMessageID`,`parentID`,`createdAt`) VALUES('" + senderID + "','" + newChannelModelID + "','" + newChannelMessageID + "','" + newBotMessageID + "','" + parentID + "','" + app.CurrentTime + "')")
 									if err != nil {
 										log.Println(err)
-										return
+										return true
 									}
 									defer insertedMessage.Close()
 									SaveUserLastState(db, app, bot, "", m.Sender.ID, "direct_message_sent")
@@ -502,9 +504,10 @@ func (service *BotService) SendAndSaveDirectMessage(db *sql.DB, app *config.App,
 			}
 		}
 	}
+	return true
 }
 
-func (service *BotService) SendAnswerAndSaveDirectMessage(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, lastState *models.UserLastState) {
+func (service *BotService) SendAnswerAndSaveDirectMessage(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event, lastState *models.UserLastState) bool{
 	if lastState.Data != "" {
 		ids := strings.ReplaceAll(lastState.Data, "answer_to_dm_", "")
 		if ids != "" {
@@ -546,13 +549,13 @@ func (service *BotService) SendAnswerAndSaveDirectMessage(db *sql.DB, app *confi
 						currentChannelStatement, err := db.Prepare("SELECT id from `channels` where `channelID`=?")
 						if err != nil {
 							log.Println(err)
-							return
+							return true
 						}
 						defer currentChannelStatement.Close()
 						currentChannel, err := currentChannelStatement.Query(channelID)
 						if err != nil {
 							log.Println(err)
-							return
+							return true
 						}
 						if currentChannel.Next() {
 							newChannelModel := new(models.Channel)
@@ -561,7 +564,7 @@ func (service *BotService) SendAnswerAndSaveDirectMessage(db *sql.DB, app *confi
 								insertedMessage, err := db.Query("INSERT INTO `messages` (`userID`,`channelID`,`channelMessageID`,`botMessageID`,`createdAt`) VALUES('" + senderID + "','" + newChannelModelID + "','" + newChannelMessageID + "','" + newBotMessageID + "','" + app.CurrentTime + "')")
 								if err != nil {
 									log.Println(err)
-									return
+									return true
 								}
 								defer insertedMessage.Close()
 								SaveUserLastState(db, app, bot, "", m.Sender.ID, "direct_message_sent")
@@ -572,6 +575,7 @@ func (service *BotService) SendAnswerAndSaveDirectMessage(db *sql.DB, app *confi
 			}
 		}
 	}
+	return true
 }
 
 func (service *BotService) GetUserCurrentActiveChannel(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message) *models.Channel {

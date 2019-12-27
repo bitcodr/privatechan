@@ -3,6 +3,7 @@ package controllers
 import (
 	"database/sql"
 	"github.com/amiraliio/tgbp/config"
+	"github.com/amiraliio/tgbp/events"
 	"github.com/amiraliio/tgbp/models"
 	"github.com/spf13/viper"
 	tb "gopkg.in/tucnak/telebot.v2"
@@ -12,7 +13,7 @@ import (
 	"time"
 )
 
-func (service *BotService) SetUpCompanyByAdmin(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, lastState *models.UserLastState, text string, userID int) bool {
+func (service *BotService) SetUpCompanyByAdmin(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event, lastState *models.UserLastState, text string, userID int) bool {
 	if lastState.Data != "" && lastState.State == "setup_verified_company_account" {
 		questions := viper.GetStringMap("SUPERADMIN.COMPANY.SETUP.QUESTIONS")
 		numberOfQuestion := strings.Split(lastState.Data, "_")

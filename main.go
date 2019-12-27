@@ -34,42 +34,6 @@ func main() {
 
 	//handle bot events
 	events.Init(app, bot)
- 
-	//on text handlers
-	bot.Handle(tb.OnText, func(m *tb.Message) {
-		lastState := botService.GetUserLastState(bot, m, m.Sender.ID)
-
-		switch {
-		case lastState.State == "new_message_to_group" && !strings.Contains(m.Text, "compose_message_in_group_"):
-			botService.SaveAndSendMessage(bot, m)
-			return
-		case lastState.State == "reply_to_message_on_group" && !strings.Contains(m.Text, "reply_to_message_on_group_"):
-			botService.SendAndSaveReplyMessage(bot, m, lastState)
-			return
-		case lastState.State == "reply_by_dm_to_user_on_group" && !strings.Contains(m.Text, "reply_by_dm_to_user_on_group_"):
-			botService.SendAndSaveDirectMessage(bot, m, lastState)
-			return
-		case lastState.State == "answer_to_dm" && !strings.Contains(m.Text, "answer_to_dm_"):
-			botService.SendAnswerAndSaveDirectMessage(bot, m, lastState)
-			return
-		case lastState.State == "setup_verified_company_account" || strings.Contains(m.Text, setupVerifiedCompany.Text):
-			botService.SetUpCompanyByAdmin(bot, m, lastState, m.Text, m.Sender.ID)
-			return
-		case lastState.State == "register_user_with_email" || strings.Contains(m.Text, joinCompanyChannels.Text):
-			botService.RegisterUserWithemail(bot, m, lastState, strings.TrimSpace(m.Text), m.Sender.ID)
-			return
-		case lastState.State == "confirm_register_company_email_address" && (strings.Contains(m.Text, "No") || strings.Contains(m.Text, "Yes")):
-			botService.ConfirmRegisterCompanyRequest(bot, m, lastState, strings.TrimSpace(m.Text), m.Sender.ID)
-			return
-		case lastState.State == "register_user_for_the_company" && (strings.Contains(m.Text, "No") || strings.Contains(m.Text, "Yes")):
-			botService.ConfirmRegisterUserForTheCompany(bot, m, lastState, strings.TrimSpace(m.Text), m.Sender.ID)
-			return
-		case lastState.State == "email_for_user_registration":
-			botService.RegisterUserWithEmail(bot, m, lastState, strings.TrimSpace(m.Text), m.Sender.ID)
-			return
-		}
-		return
-	})
 
 	//callback handlers
 	bot.Handle(tb.OnCallback, func(c *tb.Callback) {

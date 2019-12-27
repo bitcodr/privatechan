@@ -18,6 +18,12 @@ func callbackEvents(app *config.App, bot *tb.Bot) {
 		return
 	}
 
+	if eventsHandler(app, bot, &Event{
+		Event:      &addAnonMessage,
+		UserState:  "add_anon_message",
+		Controller: "AddAnonMessageToChannel",
+	}) {
+		return
+	}
 
-	
 }

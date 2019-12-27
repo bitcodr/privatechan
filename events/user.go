@@ -8,10 +8,35 @@ import (
 
 func userEvents(app *config.App, bot *tb.Bot) {
 
-	if eventsHandler(app, bot, &Event{
-		Event:      &addAnonMessage,
-		UserState:  "add_anon_message",
-		Controller: "AddAnonMessageToChannel",
+	if inlineEventsHandler(app, bot, &Event{
+		Event:      tb.OnText,
+		UserState:  "register_user_with_email",
+		Command:    joinCompanyChannels.Text,
+		Controller: "RegisterUserWithemail",
+	}) {
+		return
+	}
+
+	if inlineEventsHandler(app, bot, &Event{
+		Event:      tb.OnText,
+		UserState:  "confirm_register_company_email_address",
+		Controller: "ConfirmRegisterCompanyRequest",
+	}) {
+		return
+	}
+
+	if inlineEventsHandler(app, bot, &Event{
+		Event:      tb.OnText,
+		UserState:  "register_user_for_the_company",
+		Controller: "ConfirmRegisterUserForTheCompany",
+	}) {
+		return
+	}
+
+	if inlineEventsHandler(app, bot, &Event{
+		Event:      tb.OnText,
+		UserState:  "email_for_user_registration",
+		Controller: "RegisterUserWithEmailAndCode",
 	}) {
 		return
 	}

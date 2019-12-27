@@ -8,4 +8,13 @@ import (
 
 func adminEvents(app *config.App,bot *tb.Bot) {
 
+	if inlineEventsHandler(app, bot, &Event{
+		Event:      tb.OnText,
+		UserState:  "setup_verified_company_account",
+		Command: setupVerifiedCompany.Text,
+		Controller: "SetUpCompanyByAdmin",
+	}) {
+		return
+	}
+
 }
