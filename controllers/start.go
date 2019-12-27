@@ -30,6 +30,25 @@ func (service *events.BotService) StartBot(app *config.App, bot *tb.Bot, message
 	return false
 }
 
+func (service *events.BotService) StartBotCallback(app *config.App, bot *tb.Bot, callback *tb.Callback, request *events.Event) bool {
+	db := app.DB()
+	defer db.Close()
+	if callback.Sender != nil {
+		SaveUserLastState(db, app, bot, callback.Data, callback.Sender.ID, request.UserState)
+	}
+	newReplyModel := new(tb.ReplyMarkup)
+	newReplyModel.ReplyKeyboard = events.StartBotKeys
+	newSendOption := new(tb.SendOptions)
+	newSendOption.ReplyMarkup = newReplyModel
+	_ = bot.Delete(callback.Message)
+	_, err := bot.Send(callback.Sender, "What Do You Want To Do?", newSendOption)
+	if err != nil {
+		log.Println(err)
+		return false
+	}
+	return true
+}
+
 func (service *events.BotService) AddAnonMessageToChannel(app *config.App, bot *tb.Bot, message *tb.Message, request *events.Event) bool {
 	db := app.DB()
 	defer db.Close()

@@ -24,6 +24,7 @@ func Init(app *config.App, bot *tb.Bot) {
 	userEvents(app, bot)
 	groupEvents(app, bot)
 	adminEvents(app, bot)
+	messageEvents(app, bot)
 }
 
 func eventsHandler(app *config.App, bot *tb.Bot, request *Event) bool {
@@ -46,6 +47,8 @@ func inlineCallbackEventsHandler(app *config.App, bot *tb.Bot, request *Event) b
 		defer db.Close()
 		lastState := GetUserLastState(db, app, bot, c.Message, c.Sender.ID)
 		switch {
+		case c.Data == request.Command || c.Data == request.Command1:
+			return helpers.Invoke(new(BotService), request.Controller, app, bot, c, request)
 		case lastState.State == request.UserState:
 			return helpers.Invoke(new(BotService), request.Controller, db, app, bot, c.Message, request, lastState, strings.TrimSpace(c.Data), c.Sender.ID)
 		default:

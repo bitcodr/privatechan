@@ -2,7 +2,3 @@
 package lang
 
 
-const(
-
-
-)
