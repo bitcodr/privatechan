@@ -135,7 +135,7 @@ func inlineOnTextEventsHandler(app *config.App, bot *tb.Bot, request *Event) (re
 		case lastState.State == request.UserState && !strings.Contains(message.Text, request.Command):
 			helpers.Invoke(BotService{}, request.Controller, db, app, bot, message, request, lastState)
 			result = true
-		case lastState.State == request.UserState || strings.Contains(message.Text, request.Command):
+		case lastState.State == request.UserState || (request.Command != "" && strings.Contains(message.Text, request.Command)):
 			helpers.Invoke(BotService{}, request.Controller, db, app, bot, message, request, lastState, strings.TrimSpace(message.Text), message.Sender.ID)
 			result = true
 		case lastState.State == request.UserState && (strings.Contains(message.Text, "No") || strings.Contains(message.Text, "Yes")):
