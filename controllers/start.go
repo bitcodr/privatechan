@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func (service BotService) StartBot(app *config.App, bot *tb.Bot, message *tb.Message, request *events.Event) bool {
+func (service events.BotService) StartBot(app *config.App, bot *tb.Bot, message *tb.Message, request *events.Event) bool {
 	if strings.TrimSpace(message.Text) == request.Command || strings.TrimSpace(message.Text) == request.Command1 {
 		db := app.DB()
 		defer db.Close()
@@ -30,7 +30,7 @@ func (service BotService) StartBot(app *config.App, bot *tb.Bot, message *tb.Mes
 	return false
 }
 
-func (service BotService) StartBotCallback(app *config.App, bot *tb.Bot, callback *tb.Callback, request *events.Event) bool {
+func (service events.BotService) StartBotCallback(app *config.App, bot *tb.Bot, callback *tb.Callback, request *events.Event) bool {
 	db := app.DB()
 	defer db.Close()
 	if callback.Sender != nil {
@@ -49,7 +49,7 @@ func (service BotService) StartBotCallback(app *config.App, bot *tb.Bot, callbac
 	return true
 }
 
-func (service BotService) AddAnonMessageToChannel(app *config.App, bot *tb.Bot, message *tb.Message, request *events.Event) bool {
+func (service events.BotService) AddAnonMessageToChannel(app *config.App, bot *tb.Bot, message *tb.Message, request *events.Event) bool {
 	db := app.DB()
 	defer db.Close()
 	if message.Sender != nil {

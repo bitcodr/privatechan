@@ -2,10 +2,10 @@
 package events
 
 import (
-	"strings"
 	"github.com/amiraliio/tgbp/config"
 	"github.com/amiraliio/tgbp/helpers"
 	tb "gopkg.in/tucnak/telebot.v2"
+	"strings"
 )
 
 func onCallbackEvents(app *config.App, bot *tb.Bot) {
@@ -45,7 +45,7 @@ func onCallbackEvents(app *config.App, bot *tb.Bot) {
 
 func onCallbackEventsHandler(app *config.App, bot *tb.Bot, request *Event) bool {
 	bot.Handle(tb.OnCallback, func(c *tb.Callback) bool {
-		return helpers.Invoke(new(BotService), request.Controller, app, bot, c, request)
+		return helpers.Invoke(BotService{}, request.Controller, app, bot, c, request)
 	})
 	return false
 }
@@ -57,9 +57,9 @@ func inlineOnCallbackEventsHandler(app *config.App, bot *tb.Bot, request *Event)
 		lastState := GetUserLastState(db, app, bot, c.Message, c.Sender.ID)
 		switch {
 		case c.Data == request.Command || c.Data == request.Command1:
-			return helpers.Invoke(new(BotService), request.Controller, app, bot, c, request)
+			return helpers.Invoke(BotService{}, request.Controller, app, bot, c, request)
 		case lastState.State == request.UserState:
-			return helpers.Invoke(new(BotService), request.Controller, db, app, bot, c.Message, request, lastState, strings.TrimSpace(c.Data), c.Sender.ID)
+			return helpers.Invoke(BotService{}, request.Controller, db, app, bot, c.Message, request, lastState, strings.TrimSpace(c.Data), c.Sender.ID)
 		default:
 			return false
 		}

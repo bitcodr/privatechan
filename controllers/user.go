@@ -14,7 +14,7 @@ import (
 	"time"
 )
 
-func (service BotService) RegisterUserWithemail(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event, lastState *models.UserLastState, text string, userID int) bool {
+func (service events.BotService) RegisterUserWithemail(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event, lastState *models.UserLastState, text string, userID int) bool {
 	userModel := new(tb.User)
 	userModel.ID = userID
 	if lastState.State == "register_user_with_email" {
@@ -36,7 +36,7 @@ func (service BotService) RegisterUserWithemail(db *sql.DB, app *config.App, bot
 	return true
 }
 
-func (service BotService) checkTheCompanyEmailSuffixExist(app *config.App, bot *tb.Bot, email, emailSuffix string, db *sql.DB, userModel *tb.User) {
+func (service events.BotService) checkTheCompanyEmailSuffixExist(app *config.App, bot *tb.Bot, email, emailSuffix string, db *sql.DB, userModel *tb.User) {
 	tempData, err := db.Prepare("SELECT co.companyName,ch.id,ch.channelName from `channels_email_suffixes` as cs inner join `channels` as ch on cs.channelID=ch.id inner join `companies_channels` as cc on ch.Id=cc.channelID inner join `companies` as co on cc.companyID=co.id where cs.suffix=? limit 1")
 	if err != nil {
 		log.Println(err)
@@ -71,7 +71,7 @@ func (service BotService) checkTheCompanyEmailSuffixExist(app *config.App, bot *
 	bot.Send(userModel, "Do you confirm that you want to register to the channel/group "+channelModel.ChannelName+" blongs to the company "+companyModel.CompanyName+"?", options)
 }
 
-func (service BotService) ConfirmRegisterCompanyRequest(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event, lastState *models.UserLastState) bool {
+func (service events.BotService) ConfirmRegisterCompanyRequest(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event, lastState *models.UserLastState) bool {
 	userModel := new(tb.User)
 	userModel.ID = m.Sender.ID
 	switch m.Text {
@@ -105,7 +105,7 @@ func HomeKeyOption(db *sql.DB, app *config.App) *tb.SendOptions {
 	return options
 }
 
-func (service BotService) ConfirmRegisterUserForTheCompany(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event, lastState *models.UserLastState) bool {
+func (service events.BotService) ConfirmRegisterUserForTheCompany(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event, lastState *models.UserLastState) bool {
 	userModel := new(tb.User)
 	userModel.ID = m.Sender.ID
 	switch m.Text {
@@ -153,7 +153,7 @@ func (service BotService) ConfirmRegisterUserForTheCompany(db *sql.DB, app *conf
 	return true
 }
 
-func (service BotService) RegisterUserWithEmailAndCode(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event, lastState *models.UserLastState) bool {
+func (service events.BotService) RegisterUserWithEmailAndCode(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event, lastState *models.UserLastState) bool {
 	userModel := new(tb.User)
 	userModel.ID = m.Sender.ID
 	userActiveKey, err := db.Prepare("SELECT `activeKey`,`createdAt` FROM `users_activation_key` where userID=? order by `createdAt` DESC limit 1")
@@ -226,7 +226,7 @@ func (service BotService) RegisterUserWithEmailAndCode(db *sql.DB, app *config.A
 	return true
 }
 
-func (service BotService) GetUserByTelegramID(db *sql.DB, app *config.App, userID int) *models.User {
+func (service events.BotService) GetUserByTelegramID(db *sql.DB, app *config.App, userID int) *models.User {
 	userLastStateQueryStatement, err := db.Prepare("SELECT `id`,`userID` from `users` where `userID`=? ")
 	if err != nil {
 		log.Println(err)
@@ -246,7 +246,7 @@ func (service BotService) GetUserByTelegramID(db *sql.DB, app *config.App, userI
 	return userModel
 }
 
-func (service BotService) CheckUserRegisteredOrNot(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, lastState *models.UserLastState, text string, userID int) {
+func (service events.BotService) CheckUserRegisteredOrNot(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, lastState *models.UserLastState, text string, userID int) {
 	//TODO check the channel is registered or not
 	//TODO if the channel is one of the company that user is registered verification is not necessary
 	//TODO also check it according to event channel is required a action for instance reply is mandatory or not

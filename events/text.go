@@ -118,7 +118,7 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 
 func onTextEventsHandler(app *config.App, bot *tb.Bot, request *Event) bool {
 	bot.Handle(tb.OnText, func(message *tb.Message) bool {
-		return helpers.Invoke(new(BotService), request.Controller, app, bot, message, request)
+		return helpers.Invoke(BotService{}, request.Controller, app, bot, message, request)
 	})
 	return false
 }
@@ -130,13 +130,13 @@ func inlineOnTextEventsHandler(app *config.App, bot *tb.Bot, request *Event) boo
 		lastState := GetUserLastState(db, app, bot, message, message.Sender.ID)
 		switch {
 		case lastState.State == request.UserState && !strings.Contains(message.Text, request.Command):
-			return helpers.Invoke(new(BotService), request.Controller, db, app, bot, message, request, lastState)
+			return helpers.Invoke(BotService{}, request.Controller, db, app, bot, message, request, lastState)
 		case lastState.State == request.UserState || strings.Contains(message.Text, request.Command):
-			return helpers.Invoke(new(BotService), request.Controller, db, app, bot, message, request, lastState, strings.TrimSpace(message.Text), message.Sender.ID)
+			return helpers.Invoke(BotService{}, request.Controller, db, app, bot, message, request, lastState, strings.TrimSpace(message.Text), message.Sender.ID)
 		case lastState.State == request.UserState && (strings.Contains(message.Text, "No") || strings.Contains(message.Text, "Yes")):
-			return helpers.Invoke(new(BotService), request.Controller, db, app, bot, message, request, lastState)
+			return helpers.Invoke(BotService{}, request.Controller, db, app, bot, message, request, lastState)
 		case lastState.State == request.UserState:
-			return helpers.Invoke(new(BotService), request.Controller, db, app, bot, message, request, lastState)
+			return helpers.Invoke(BotService{}, request.Controller, db, app, bot, message, request, lastState)
 		default:
 			return false
 		}

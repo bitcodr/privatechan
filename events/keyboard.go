@@ -21,7 +21,7 @@ func keyboardsEvents(app *config.App, bot *tb.Bot) {
 
 func keyboardsEventsHandler(app *config.App, bot *tb.Bot, request *Event) bool {
 	bot.Handle(request.Event, func(message *tb.Message) bool {
-		return helpers.Invoke(new(BotService), request.Controller, app, bot, message, request)
+		return helpers.Invoke(BotService{}, request.Controller, app, bot, message, request)
 	})
 	return false
 }
