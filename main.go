@@ -35,22 +35,9 @@ func main() {
 	//handle bot events
 	events.Init(app, bot)
 
-	botService := new(controllers.BotService)
-
 	//on text handlers
 	bot.Handle(tb.OnText, func(m *tb.Message) {
 		lastState := botService.GetUserLastState(bot, m, m.Sender.ID)
-
-		if strings.Contains(m.Text, "compose_message_in_group_") {
-			botService.CheckUserRegisteredOrNot(bot, m, lastState, m.Text, m.Sender.ID)
-			if m.Sender != nil {
-				controllers.SaveUserLastState(bot, m.Text, m.Sender.ID, "new_message_to_group")
-			}
-			channelID := strings.ReplaceAll(m.Text, "/start compose_message_in_group_", "")
-			botService.JoinFromGroup(bot, m, channelID)
-			botService.NewMessageGroupHandler(bot, m.Sender, channelID)
-			return
-		}
 
 		switch {
 		case lastState.State == "new_message_to_group" && !strings.Contains(m.Text, "compose_message_in_group_"):

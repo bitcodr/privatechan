@@ -8,9 +8,11 @@ import (
 
 func userEvents(app *config.App, bot *tb.Bot) {
 
-	eventsHandler(app, bot, &Event{
+	if eventsHandler(app, bot, &Event{
 		Event:      &addAnonMessage,
 		UserState:  "add_anon_message",
 		Controller: "AddAnonMessageToChannel",
-	})
+	}) {
+		return
+	}
 }

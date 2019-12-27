@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/amiraliio/tgbp/config"
@@ -15,7 +16,7 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-func (service *BotService) RegisterGroup(app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event) {
+func (service *BotService) RegisterGroup(app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event) bool{
 	db := app.DB()
 	defer db.Close()
 	if m.Sender != nil {
@@ -25,17 +26,20 @@ func (service *BotService) RegisterGroup(app *config.App, bot *tb.Bot, m *tb.Mes
 	resultsStatement, err := db.Prepare("SELECT id FROM `channels` where channelID=?")
 	if err != nil {
 		log.Println(err)
+		return true
 	}
 	defer resultsStatement.Close()
 	results, err := resultsStatement.Query(channelID)
 	if err != nil {
 		log.Println(err)
+		return true
 	}
 	if !results.Next() {
 		//start transaction
 		transaction, err := db.Begin()
 		if err != nil {
 			log.Println(err)
+			return true
 		}
 		uniqueID := uuid.New().String()
 		//insert channel
@@ -43,6 +47,7 @@ func (service *BotService) RegisterGroup(app *config.App, bot *tb.Bot, m *tb.Mes
 		if err != nil {
 			transaction.Rollback()
 			log.Println(err)
+			return true
 		}
 		insertedChannelID, err := channelInserted.LastInsertId()
 		if err == nil {
@@ -53,12 +58,14 @@ func (service *BotService) RegisterGroup(app *config.App, bot *tb.Bot, m *tb.Mes
 			if err != nil {
 				transaction.Rollback()
 				log.Println(err)
+				return true
 			}
 			defer companyExistsStatement.Close()
 			companyExists, err := companyExistsStatement.Query(companyFlag)
 			if err != nil {
 				transaction.Rollback()
 				log.Println(err)
+				return true
 			}
 			if !companyExists.Next() {
 				//insert company
@@ -66,6 +73,7 @@ func (service *BotService) RegisterGroup(app *config.App, bot *tb.Bot, m *tb.Mes
 				if err != nil {
 					transaction.Rollback()
 					log.Println(err)
+					return true
 				}
 				insertedCompanyID, err := companyInserted.LastInsertId()
 				if err == nil {
@@ -76,6 +84,7 @@ func (service *BotService) RegisterGroup(app *config.App, bot *tb.Bot, m *tb.Mes
 					if err != nil {
 						transaction.Rollback()
 						log.Println(err)
+						return true
 					}
 				}
 			} else {
@@ -83,6 +92,7 @@ func (service *BotService) RegisterGroup(app *config.App, bot *tb.Bot, m *tb.Mes
 				if err := companyExists.Scan(&companyModel.ID); err != nil {
 					transaction.Rollback()
 					log.Println(err)
+					return true
 				}
 				companyModelID := strconv.FormatInt(companyModel.ID, 10)
 				channelModelID := strconv.FormatInt(insertedChannelID, 10)
@@ -91,24 +101,26 @@ func (service *BotService) RegisterGroup(app *config.App, bot *tb.Bot, m *tb.Mes
 				if err != nil {
 					transaction.Rollback()
 					log.Println(err)
-					return
+					return true
 				}
 			}
 			err = transaction.Commit()
 			if err != nil {
 				log.Println(err)
-				return
+				return true
 			}
 			successMessage, _ := bot.Send(m.Chat, "You're group registered successfully")
 			time.Sleep(2 * time.Second)
 			if err := bot.Delete(successMessage); err != nil {
 				log.Println(err)
+				return true
 			}
 			sendOptionModel := new(tb.SendOptions)
 			sendOptionModel.ParseMode = tb.ModeHTML
 			_, err = bot.Send(m.Chat, "This is your group unique ID, you can save it and remove this message: <code> "+uniqueID+" </code>", sendOptionModel)
 			if err != nil {
 				log.Println(err)
+				return true
 			}
 			time.Sleep(2 * time.Second)
 			compose := tb.InlineButton{
@@ -127,6 +139,7 @@ func (service *BotService) RegisterGroup(app *config.App, bot *tb.Bot, m *tb.Mes
 			_, err = bot.Send(m.Chat, lang.StartGroup, newSendOption)
 			if err != nil {
 				log.Println(err)
+				return true
 			}
 		}
 	} else {
@@ -146,31 +159,49 @@ func (service *BotService) RegisterGroup(app *config.App, bot *tb.Bot, m *tb.Mes
 		_, err = bot.Send(m.Chat, lang.StartGroup, newSendOption)
 		if err != nil {
 			log.Println(err)
+			return true
 		}
+		return true
 	}
+	return true
 }
 
-func (service *BotService) NewMessageGroupHandler(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.User, channelID string) {
-	resultsStatement, err := db.Prepare("SELECT `channelName` FROM `channels` where `channelID`=?")
-	if err != nil {
-		log.Println(err)
+func (service *BotService) NewMessageGroupHandler(app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event) bool{
+	if strings.Contains(m.Text, request.Command) {
+		db := app.DB()
+		defer db.Close()
+		lastState := service.GetUserLastState(db, app, bot, m, m.Sender.ID)
+		service.CheckUserRegisteredOrNot(db, app, bot, m, lastState, m.Text, m.Sender.ID)
+		if m.Sender != nil {
+			SaveUserLastState(db, app, bot, m.Text, m.Sender.ID, request.UserState)
+		}
+		channelID := strings.ReplaceAll(m.Text, request.Command1, "")
+		service.JoinFromGroup(db, app, bot, m, channelID)
+		resultsStatement, err := db.Prepare("SELECT `channelName` FROM `channels` where `channelID`=?")
+		if err != nil {
+			log.Println(err)
+			return true
+		}
+		defer resultsStatement.Close()
+		channelModel := new(models.Channel)
+		if err := resultsStatement.QueryRow(channelID).Scan(&channelModel.ChannelName); err != nil {
+			log.Println(err)
+			return true
+		}
+		options := new(tb.SendOptions)
+		markup := new(tb.ReplyMarkup)
+		homeBTN := tb.ReplyButton{
+			Text: "Home",
+		}
+		replyKeys := [][]tb.ReplyButton{
+			[]tb.ReplyButton{homeBTN},
+		}
+		markup.ReplyKeyboard = replyKeys
+		options.ReplyMarkup = markup
+		bot.Send(m.Sender, "Please draft your anonymous new message to the group / channel: "+channelModel.ChannelName, options)
+		return true
 	}
-	defer resultsStatement.Close()
-	channelModel := new(models.Channel)
-	if err := resultsStatement.QueryRow(channelID).Scan(&channelModel.ChannelName); err != nil {
-		log.Println(err)
-	}
-	options := new(tb.SendOptions)
-	markup := new(tb.ReplyMarkup)
-	homeBTN := tb.ReplyButton{
-		Text: "Home",
-	}
-	replyKeys := [][]tb.ReplyButton{
-		[]tb.ReplyButton{homeBTN},
-	}
-	markup.ReplyKeyboard = replyKeys
-	options.ReplyMarkup = markup
-	bot.Send(m, "Please draft your anonymous new message to the group / channel: "+channelModel.ChannelName, options)
+	return false
 }
 
 func (service *BotService) JoinFromGroup(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, channelID string) {

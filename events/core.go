@@ -20,16 +20,15 @@ func Init(app *config.App, bot *tb.Bot) {
 	groupEvents(app, bot)
 	adminEvents(app, bot)
 }
-
-func eventsHandler(app *config.App, bot *tb.Bot, request *Event) {
-	bot.Handle(request.Event, func(message *tb.Message) {
-		helpers.Invoke(new(controllers.BotService), request.Controller, app, bot, message, request)
-		return
+ 
+func eventsHandler(app *config.App, bot *tb.Bot, request *Event) bool {
+	 bot.Handle(request.Event, func(message *tb.Message) {
+		 helpers.Invoke(new(controllers.BotService), request.Controller, app, bot, message, request)
 	})
-	return
+	return false
 }
 
-//TODO need refactor
+//TODO needs keyboard refactoring
 //bot startup buttons
 var addAnonMessage = tb.ReplyButton{
 	Text: "Add Anonymous Message to a Channel/Group",

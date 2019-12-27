@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-func (service *BotService) SetUpCompanyByAdmin(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, lastState *models.UserLastState, text string, userID int) {
+func (service *BotService) SetUpCompanyByAdmin(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, lastState *models.UserLastState, text string, userID int) bool {
 	if lastState.Data != "" && lastState.State == "setup_verified_company_account" {
 		questions := viper.GetStringMap("SUPERADMIN.COMPANY.SETUP.QUESTIONS")
 		numberOfQuestion := strings.Split(lastState.Data, "_")
@@ -26,20 +26,21 @@ func (service *BotService) SetUpCompanyByAdmin(db *sql.DB, app *config.App, bot 
 				_, err = db.Query("INSERT INTO `temp_setup_flow` (`tableName`,`columnName`,`data`,`userID`,`relation`,`createdAt`) VALUES ('" + tableName + "','" + columnName + "','" + strings.TrimSpace(text) + "','" + strconv.Itoa(userID) + "','setup_verified_company_account_" + strconv.Itoa(userID) + "_" + relationDate + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
 				if err != nil {
 					log.Println(err)
-					return
+					return true
 				}
 				if prevQuestionNo+1 > len(questions) {
 					service.finalStage(app, bot, relationDate, db, text, userID)
-					return
+					return true
 				}
 				service.nextQuestion(db, app, bot, m, lastState, relationDate, prevQuestionNo, text, userID)
 			}
 		}
-		return
+		return true
 	}
 	initQuestion := viper.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N1.QUESTION")
 	service.sendMessageUserWithActionOnKeyboards(db, app, bot, userID, initQuestion, true)
 	SaveUserLastState(db, app, bot, "1_"+strconv.FormatInt(time.Now().Unix(), 10), userID, "setup_verified_company_account")
+	return true
 }
 
 //next question

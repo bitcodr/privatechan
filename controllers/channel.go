@@ -23,7 +23,7 @@ import (
 type BotService struct{}
 
 //RegisterChannel
-func (service *BotService) RegisterChannel(app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event) {
+func (service *BotService) RegisterChannel(app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event) bool{
 	if strings.TrimSpace(m.Text) == request.Command {
 		db := app.DB()
 		defer db.Close()
@@ -34,27 +34,27 @@ func (service *BotService) RegisterChannel(app *config.App, bot *tb.Bot, m *tb.M
 		inviteLink, err := bot.GetInviteLink(m.Chat)
 		if err != nil {
 			log.Println(err)
-			return
+			return true
 		}
 		channelURL := inviteLink
 		channelID := strconv.FormatInt(m.Chat.ID, 10)
 		statement, err := db.Prepare("SELECT id FROM `channels` where channelID=?")
 		if err != nil {
 			log.Println(err)
-			return
+			return true
 		}
 		defer statement.Close()
 		results, err := statement.Query(channelID)
 		if err != nil {
 			log.Println(err)
-			return
+			return true
 		}
 		if !results.Next() {
 			//start transaction
 			transaction, err := db.Begin()
 			if err != nil {
 				log.Println(err)
-				return
+				return true
 			}
 			uniqueID := uuid.New().String()
 			//insert channel
@@ -62,7 +62,7 @@ func (service *BotService) RegisterChannel(app *config.App, bot *tb.Bot, m *tb.M
 			if err != nil {
 				transaction.Rollback()
 				log.Println(err)
-				return
+				return true
 			}
 			insertedChannelID, err := channelInserted.LastInsertId()
 			if err == nil {
@@ -73,14 +73,14 @@ func (service *BotService) RegisterChannel(app *config.App, bot *tb.Bot, m *tb.M
 				if err != nil {
 					transaction.Rollback()
 					log.Println(err)
-					return
+					return true
 				}
 				defer companyStatement.Close()
 				companyExists, err := companyStatement.Query(companyFlag)
 				if err != nil {
 					transaction.Rollback()
 					log.Println(err)
-					return
+					return true
 				}
 				if !companyExists.Next() {
 					//insert company
@@ -88,7 +88,7 @@ func (service *BotService) RegisterChannel(app *config.App, bot *tb.Bot, m *tb.M
 					if err != nil {
 						transaction.Rollback()
 						log.Println(err)
-						return
+						return true
 					}
 					insertedCompanyID, err := companyInserted.LastInsertId()
 					if err == nil {
@@ -99,7 +99,7 @@ func (service *BotService) RegisterChannel(app *config.App, bot *tb.Bot, m *tb.M
 						if err != nil {
 							transaction.Rollback()
 							log.Println(err)
-							return
+							return true
 						}
 					}
 				} else {
@@ -107,7 +107,7 @@ func (service *BotService) RegisterChannel(app *config.App, bot *tb.Bot, m *tb.M
 					if err := companyExists.Scan(&companyModel.ID); err != nil {
 						transaction.Rollback()
 						log.Println(err)
-						return
+						return true
 					}
 					companyModelID := strconv.FormatInt(companyModel.ID, 10)
 					channelModelID := strconv.FormatInt(insertedChannelID, 10)
@@ -116,7 +116,7 @@ func (service *BotService) RegisterChannel(app *config.App, bot *tb.Bot, m *tb.M
 					if err != nil {
 						transaction.Rollback()
 						log.Println(err)
-						return
+						return true
 					}
 				}
 				transaction.Commit()
@@ -124,14 +124,14 @@ func (service *BotService) RegisterChannel(app *config.App, bot *tb.Bot, m *tb.M
 				time.Sleep(2 * time.Second)
 				if err := bot.Delete(successMessage); err != nil {
 					log.Println(err)
-					return
+					return true
 				}
 				sendOptionModel := new(tb.SendOptions)
 				sendOptionModel.ParseMode = tb.ModeHTML
 				_, err = bot.Send(m.Chat, "This is your channel unique ID, you can save it and remove this message: <code> "+uniqueID+" </code>", sendOptionModel)
 				if err != nil {
 					log.Println(err)
-					return
+					return true
 				}
 				time.Sleep(2 * time.Second)
 				compose := tb.InlineButton{
@@ -150,70 +150,108 @@ func (service *BotService) RegisterChannel(app *config.App, bot *tb.Bot, m *tb.M
 				pinMessage, err := bot.Send(m.Chat, lang.StartGroup, newSendOption)
 				if err != nil {
 					log.Println(err)
-					return
+					return true
 				}
 				if err := bot.Pin(pinMessage); err != nil {
 					log.Println(err)
-					return
+					return true
 				}
 				if err := bot.Delete(m); err != nil {
 					log.Println(err)
-					return
+					return true
 				}
 			}
 		}
+		return true
 	}
+	return false
 }
 
-func (service *BotService) SendReply(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.User, channelID, messageID string) {
-	resultsStatement, err := db.Prepare("SELECT ch.channelName,me.message FROM `channels` as ch inner join messages as me on ch.id=me.channelID and me.botMessageID=? where ch.channelID=?")
-	if err != nil {
-		log.Println(err)
-		return
+func (service *BotService) SendReply(app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event) bool{
+	if strings.Contains(m.Text, request.Command) {
+		db := app.DB()
+		defer db.Close()
+		if m.Sender != nil {
+			SaveUserLastState(db, app, bot, m.Text, m.Sender.ID, request.UserState)
+		}
+		ids := strings.TrimPrefix(m.Text, request.Command1)
+		data := strings.Split(ids, "_")
+		channelID := strings.TrimSpace(data[0])
+		messageID := strings.TrimSpace(data[2])
+		service.JoinFromGroup(db, app, bot, m, channelID)
+		resultsStatement, err := db.Prepare("SELECT ch.channelName,me.message FROM `channels` as ch inner join messages as me on ch.id=me.channelID and me.botMessageID=? where ch.channelID=?")
+		if err != nil {
+			log.Println(err)
+			return true
+		}
+		defer resultsStatement.Close()
+		channelModel := new(models.Channel)
+		messageModel := new(models.Message)
+		if err := resultsStatement.QueryRow(messageID, channelID).Scan(&channelModel.ChannelName, &messageModel.Message); err != nil {
+			log.Println(err)
+			return true
+		}
+		options := new(tb.SendOptions)
+		markup := new(tb.ReplyMarkup)
+		homeBTN := tb.ReplyButton{
+			Text: "Home",
+		}
+		replyKeys := [][]tb.ReplyButton{
+			[]tb.ReplyButton{homeBTN},
+		}
+		markup.ReplyKeyboard = replyKeys
+		options.ReplyMarkup = markup
+		_, err = bot.Send(m.Sender, "Please send your reply to the message: '"+messageModel.Message+"...' on "+channelModel.ChannelName, options)
+		if err != nil {
+			log.Println(err)
+			return true
+		}
+		return true
 	}
-	defer resultsStatement.Close()
-	channelModel := new(models.Channel)
-	messageModel := new(models.Message)
-	if err := resultsStatement.QueryRow(messageID, channelID).Scan(&channelModel.ChannelName, &messageModel.Message); err != nil {
-		log.Println(err)
-		return
-	}
-	options := new(tb.SendOptions)
-	markup := new(tb.ReplyMarkup)
-	homeBTN := tb.ReplyButton{
-		Text: "Home",
-	}
-	replyKeys := [][]tb.ReplyButton{
-		[]tb.ReplyButton{homeBTN},
-	}
-	markup.ReplyKeyboard = replyKeys
-	options.ReplyMarkup = markup
-	_, err = bot.Send(m, "Please send your reply to the message: '"+messageModel.Message+"...' on "+channelModel.ChannelName, options)
-	if err != nil {
-		log.Println(err)
-		return
-	}
+	return false
 }
 
-func (service *BotService) SanedDM(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.User, directSenderID int, channelID string) {
-	options := new(tb.SendOptions)
-	markup := new(tb.ReplyMarkup)
-	homeBTN := tb.ReplyButton{
-		Text: "Home",
+func (service *BotService) SanedDM(app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event) bool{
+	if strings.Contains(m.Text, request.Command) {
+		db := app.DB()
+		defer db.Close()
+		ids := strings.TrimPrefix(m.Text, request.Command1)
+		data := strings.Split(ids, "_")
+		directSenderID, err := strconv.Atoi(data[1])
+		if err != nil {
+			log.Println(err)
+			return true
+		}
+		if m.Sender.ID == directSenderID {
+			bot.Send(m.Sender, "You cannot send direct message to your self", HomeKeyOption(db, app))
+			return true
+		}
+		if m.Sender != nil {
+			SaveUserLastState(db, app, bot, m.Text, m.Sender.ID, request.UserState)
+		}
+		channelID := strings.TrimSpace(data[0])
+		service.JoinFromGroup(db, app, bot, m, channelID)
+		options := new(tb.SendOptions)
+		markup := new(tb.ReplyMarkup)
+		homeBTN := tb.ReplyButton{
+			Text: "Home",
+		}
+		replyKeys := [][]tb.ReplyButton{
+			[]tb.ReplyButton{homeBTN},
+		}
+		markup.ReplyKeyboard = replyKeys
+		options.ReplyMarkup = markup
+		options.ParseMode = tb.ModeHTML
+		user := service.GetUserByTelegramID(db, app, directSenderID)
+		channel := service.GetChannelByTelegramID(db, app, channelID)
+		_, err = bot.Send(m.Sender, "<code>Please send your direct message to the user:</code><b>"+strconv.FormatInt(user.ID, 10)+user.UserID+"</b> <code>From:</code> <b>"+channel.ChannelName+"</b>", options)
+		if err != nil {
+			log.Println(err)
+			return true
+		}
+		return true
 	}
-	replyKeys := [][]tb.ReplyButton{
-		[]tb.ReplyButton{homeBTN},
-	}
-	markup.ReplyKeyboard = replyKeys
-	options.ReplyMarkup = markup
-	options.ParseMode = tb.ModeHTML
-	user := service.GetUserByTelegramID(db, app, directSenderID)
-	channel := service.GetChannelByTelegramID(db, app, channelID)
-	_, err := bot.Send(m, "<code>Please send your direct message to the user:</code><b>"+strconv.FormatInt(user.ID, 10)+user.UserID+"</b> <code>From:</code> <b>"+channel.ChannelName+"</b>", options)
-	if err != nil {
-		log.Println(err)
-		return
-	}
+	return false
 }
 
 func (service *BotService) SanedAnswerDM(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.User) {
@@ -231,8 +269,6 @@ func (service *BotService) SanedAnswerDM(db *sql.DB, app *config.App, bot *tb.Bo
 }
 
 func (service *BotService) SaveAndSendMessage(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message) {
-	//TODO inactive user last state
-	//TODO restart the bot and show keyboards again
 	activeChannel := service.GetUserCurrentActiveChannel(db, app, bot, m)
 	if activeChannel != nil {
 		senderID := strconv.Itoa(m.Sender.ID)

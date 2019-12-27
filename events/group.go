@@ -8,10 +8,12 @@ import (
 
 func groupEvents(app *config.App, bot *tb.Bot) {
 
-	eventsHandler(app, bot, &Event{
+	if eventsHandler(app, bot, &Event{
 		Event:      tb.OnAddedToGroup,
 		UserState:  "register_group",
 		Controller: "RegisterGroup",
-	})
+	}) {
+		return
+	}
 
 }

@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func (service *BotService) StartBot(app *config.App, bot *tb.Bot, message *tb.Message, request *events.Event) {
+func (service *BotService) StartBot(app *config.App, bot *tb.Bot, message *tb.Message, request *events.Event) bool {
 	if strings.TrimSpace(message.Text) == request.Command || strings.TrimSpace(message.Text) == request.Command1 {
 		db := app.DB()
 		defer db.Close()
@@ -23,16 +23,19 @@ func (service *BotService) StartBot(app *config.App, bot *tb.Bot, message *tb.Me
 		_, err := bot.Send(message.Sender, "What Do You Want To Do?", newSendOption)
 		if err != nil {
 			log.Println(err)
-			return
+			return false
 		}
+		return true
 	}
+	return false
 }
 
-func (service *BotService) AddAnonMessageToChannel(app *config.App, bot *tb.Bot, message *tb.Message, request *events.Event) {
+func (service *BotService) AddAnonMessageToChannel(app *config.App, bot *tb.Bot, message *tb.Message, request *events.Event) bool{
 	db := app.DB()
 	defer db.Close()
 	if message.Sender != nil {
 		SaveUserLastState(db, app, bot, message.Text, message.Sender.ID, request.UserState)
 	}
 	bot.Send(message.Sender, "For anonymous message add the bot to your group and start messaging")
+	return true
 }

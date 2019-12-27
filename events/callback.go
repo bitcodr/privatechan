@@ -8,11 +8,16 @@ import (
 
 func callbackEvents(app *config.App, bot *tb.Bot) {
 
-	eventsHandler(app, bot, &Event{
+	if eventsHandler(app, bot, &Event{
 		Event:      tb.OnText,
 		UserState:  "home",
 		Command:    "Home",
 		Command1:   "/start",
 		Controller: "StartBot",
-	})
+	}) {
+		return
+	}
+
+
+	
 }
