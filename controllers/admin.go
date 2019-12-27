@@ -1,9 +1,9 @@
-package controller
+package controllers
 
 import (
 	"database/sql"
 	"github.com/amiraliio/tgbp/config"
-	"github.com/amiraliio/tgbp/model"
+	"github.com/amiraliio/tgbp/models"
 	"github.com/spf13/viper"
 	tb "gopkg.in/tucnak/telebot.v2"
 	"log"
@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-func SetUpCompanyByAdmin(bot *tb.Bot, m *tb.Message, lastState *model.UserLastState, text string, userID int) {
+func (service *BotService) SetUpCompanyByAdmin(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, lastState *models.UserLastState, text string, userID int) {
 	if lastState.Data != "" && lastState.State == "setup_verified_company_account" {
 		questions := viper.GetStringMap("SUPERADMIN.COMPANY.SETUP.QUESTIONS")
 		numberOfQuestion := strings.Split(lastState.Data, "_")
@@ -23,33 +23,27 @@ func SetUpCompanyByAdmin(bot *tb.Bot, m *tb.Message, lastState *model.UserLastSt
 			if err == nil {
 				tableName := viper.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N" + questioNumber + ".TABLE_NAME")
 				columnName := viper.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N" + questioNumber + ".COLUMN_NAME")
-				db, err := config.DB()
-				if err != nil {
-					log.Println(err)
-					return
-				}
-				defer db.Close()
 				_, err = db.Query("INSERT INTO `temp_setup_flow` (`tableName`,`columnName`,`data`,`userID`,`relation`,`createdAt`) VALUES ('" + tableName + "','" + columnName + "','" + strings.TrimSpace(text) + "','" + strconv.Itoa(userID) + "','setup_verified_company_account_" + strconv.Itoa(userID) + "_" + relationDate + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
 				if err != nil {
 					log.Println(err)
 					return
 				}
 				if prevQuestionNo+1 > len(questions) {
-					finalStage(bot, relationDate, db, text, userID)
+					service.finalStage(app, bot, relationDate, db, text, userID)
 					return
 				}
-				nextQuestion(bot, m, lastState, relationDate, prevQuestionNo, text, userID)
+				service.nextQuestion(db, app, bot, m, lastState, relationDate, prevQuestionNo, text, userID)
 			}
 		}
 		return
 	}
 	initQuestion := viper.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N1.QUESTION")
-	sendMessageUserWithActionOnKeyboards(bot, userID, initQuestion, true)
-	SaveUserLastState(bot, "1_"+strconv.FormatInt(time.Now().Unix(), 10), userID, "setup_verified_company_account")
+	service.sendMessageUserWithActionOnKeyboards(db, app, bot, userID, initQuestion, true)
+	SaveUserLastState(db, app, bot, "1_"+strconv.FormatInt(time.Now().Unix(), 10), userID, "setup_verified_company_account")
 }
 
 //next question
-func nextQuestion(bot *tb.Bot, m *tb.Message, lastState *model.UserLastState, relationDate string, prevQuestionNo int, text string, userID int) {
+func (service *BotService) nextQuestion(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, lastState *models.UserLastState, relationDate string, prevQuestionNo int, text string, userID int) {
 	questionText := viper.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N" + strconv.Itoa(prevQuestionNo+1) + ".QUESTION")
 	answers := viper.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N" + strconv.Itoa(prevQuestionNo+1) + ".ANSWERS")
 	if answers != "" && strings.Contains(strings.TrimSpace(answers), ",") {
@@ -90,10 +84,10 @@ func nextQuestion(bot *tb.Bot, m *tb.Message, lastState *model.UserLastState, re
 		options.ReplyMarkup = replyMarkupModel
 		_, _ = bot.Send(userModel, questionText, options)
 	}
-	SaveUserLastState(bot, strconv.Itoa(prevQuestionNo+1)+"_"+relationDate, userID, "setup_verified_company_account")
+	SaveUserLastState(db, app, bot, strconv.Itoa(prevQuestionNo+1)+"_"+relationDate, userID, "setup_verified_company_account")
 }
 
-func sendMessageUserWithActionOnKeyboards(bot *tb.Bot, userID int, message string, showKeyboard bool) {
+func (service *BotService) sendMessageUserWithActionOnKeyboards(db *sql.DB, app *config.App, bot *tb.Bot, userID int, message string, showKeyboard bool) {
 	userModel := new(tb.User)
 	userModel.ID = userID
 	options := new(tb.SendOptions)
@@ -110,7 +104,7 @@ func sendMessageUserWithActionOnKeyboards(bot *tb.Bot, userID int, message strin
 	_, _ = bot.Send(userModel, message, options)
 }
 
-func finalStage(bot *tb.Bot, relationDate string, db *sql.DB, text string, userID int) {
+func (service *BotService) finalStage(app *config.App, bot *tb.Bot, relationDate string, db *sql.DB, text string, userID int) {
 	tempData, err := db.Prepare("SELECT id,tableName,columnName,data,relation,status,userID,createdAt from `temp_setup_flow` where status='ACTIVE' and relation=? and userID=?")
 	if err != nil {
 		log.Println(err)
@@ -119,12 +113,12 @@ func finalStage(bot *tb.Bot, relationDate string, db *sql.DB, text string, userI
 	defer tempData.Close()
 	results, err := tempData.Query("setup_verified_company_account_"+strconv.Itoa(userID)+"_"+relationDate, userID)
 	if err == nil {
-		var channelTableData []*model.TempSetupFlow
-		var companyTableData []*model.TempSetupFlow
-		var channelsEmailSuffixes []*model.TempSetupFlow
-		var channelsSettings []*model.TempSetupFlow
+		var channelTableData []*models.TempSetupFlow
+		var companyTableData []*models.TempSetupFlow
+		var channelsEmailSuffixes []*models.TempSetupFlow
+		var channelsSettings []*models.TempSetupFlow
 		for results.Next() {
-			tempSetupFlow := new(model.TempSetupFlow)
+			tempSetupFlow := new(models.TempSetupFlow)
 			err := results.Scan(&tempSetupFlow.ID, &tempSetupFlow.TableName, &tempSetupFlow.ColumnName, &tempSetupFlow.Data, &tempSetupFlow.Relation, &tempSetupFlow.Status, &tempSetupFlow.UserID, &tempSetupFlow.CreatedAt)
 			if err != nil {
 				log.Println(err)
@@ -147,7 +141,7 @@ func finalStage(bot *tb.Bot, relationDate string, db *sql.DB, text string, userI
 			return
 		}
 		//insert company
-		insertFinalStateData(bot, userID, transaction, channelTableData, companyTableData, channelsEmailSuffixes, channelsSettings, db)
+		service.insertFinalStateData(app, bot, userID, transaction, channelTableData, companyTableData, channelsEmailSuffixes, channelsSettings, db)
 		//update state of temp setup data
 		_, err = transaction.Exec("update `temp_setup_flow` set `status`='INACTIVE' where status='ACTIVE' and relation=? and `userID`=?", "setup_verified_company_account_"+strconv.Itoa(userID)+"_"+relationDate, userID)
 		if err != nil {
@@ -160,12 +154,12 @@ func finalStage(bot *tb.Bot, relationDate string, db *sql.DB, text string, userI
 			log.Println(err)
 			return
 		}
-		sendMessageUserWithActionOnKeyboards(bot, userID, "The company registered successfully", false)
-		SaveUserLastState(bot, text, userID, "done_setup_verified_company_account")
+		service.sendMessageUserWithActionOnKeyboards(db, app, bot, userID, "The company registered successfully", false)
+		SaveUserLastState(db, app, bot, text, userID, "done_setup_verified_company_account")
 	}
 }
 
-func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelTableData, companyTableData, channelsEmailSuffixes, channelsSettings []*model.TempSetupFlow, db *sql.DB) {
+func (service *BotService) insertFinalStateData(app *config.App, bot *tb.Bot, userID int, transaction *sql.Tx, channelTableData, companyTableData, channelsEmailSuffixes, channelsSettings []*models.TempSetupFlow, db *sql.DB) {
 	if companyTableData == nil || channelsEmailSuffixes == nil || len(channelsEmailSuffixes) != 1 || channelTableData == nil || channelsSettings == nil {
 		transaction.Rollback()
 		log.Println("final data must not be null")
@@ -189,7 +183,7 @@ func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelT
 		return
 	}
 	defer companyResultsStatement.Close()
-	companyNewModel := new(model.Company)
+	companyNewModel := new(models.Company)
 	var companyID int64
 	if err := companyResultsStatement.QueryRow(companyName).Scan(&companyNewModel.ID, &companyNewModel.CompanyName); err != nil {
 		insertCompany, err := transaction.Exec("INSERT INTO `companies` (`companyName`,`companyType`,`createdAt`) VALUES('" + companyName + "','" + companyType + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
@@ -231,7 +225,7 @@ func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelT
 		return
 	}
 	defer resultsStatement.Close()
-	channelModel := new(model.Channel)
+	channelModel := new(models.Channel)
 	_ = resultsStatement.QueryRow(uniqueID).Scan(&channelModel.ChannelID, &channelModel.ID)
 	_, err = transaction.Exec("update `channels` set `manualChannelName`='" + manualChannelName + "', `channelType`='" + channelType + "', `channelURL`='" + channelURL + "' where `uniqueID`='" + uniqueID + "'")
 	if err != nil {
@@ -284,7 +278,7 @@ func insertFinalStateData(bot *tb.Bot, userID int, transaction *sql.Tx, channelT
 			return
 		}
 	}
-	
+
 	//insert channel settings
 	var joinVerify, newMessageVerify, replyVerify, directVerify string
 	for _, v := range channelsSettings {

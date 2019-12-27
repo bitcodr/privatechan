@@ -1,7 +1,9 @@
-//Package controller ...
-package controller
+//Package controllers ...
+package controllers
 
 import (
+	"database/sql"
+	"github.com/amiraliio/tgbp/events"
 	"github.com/amiraliio/tgbp/lang"
 	"github.com/google/uuid"
 	"log"
@@ -10,7 +12,7 @@ import (
 	"time"
 
 	"github.com/amiraliio/tgbp/config"
-	"github.com/amiraliio/tgbp/model"
+	"github.com/amiraliio/tgbp/models"
 	"github.com/spf13/viper"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
@@ -18,163 +20,160 @@ import (
 //TODO change query to queryRow
 //TODO change value of queries to ?
 
+type BotService struct{}
+
 //RegisterChannel
-func RegisterChannel(bot *tb.Bot, m *tb.Message) {
-	//channel private url
-	inviteLink, err := bot.GetInviteLink(m.Chat)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	channelURL := inviteLink
-	channelID := strconv.FormatInt(m.Chat.ID, 10)
-	db, err := config.DB()
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	defer db.Close()
-	statement, err := db.Prepare("SELECT id FROM `channels` where channelID=?")
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	defer statement.Close()
-	results, err := statement.Query(channelID)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	if !results.Next() {
-		//start transaction
-		transaction, err := db.Begin()
+func (service *BotService) RegisterChannel(app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event) {
+	if strings.TrimSpace(m.Text) == request.Command {
+		db := app.DB()
+		defer db.Close()
+		if m.Sender != nil {
+			SaveUserLastState(db, app, bot, m.Text, m.Sender.ID, request.UserState)
+		}
+		//channel private url
+		inviteLink, err := bot.GetInviteLink(m.Chat)
 		if err != nil {
 			log.Println(err)
 			return
 		}
-		uniqueID := uuid.New().String()
-		//insert channel
-		channelInserted, err := transaction.Exec("INSERT INTO `channels` (`channelType`,`channelURL`,`channelID`,`channelName`,`uniqueID`,`createdAt`,`updatedAt`) VALUES('channel','" + channelURL + "','" + channelID + "','" + m.Chat.Title + "','" + uniqueID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+		channelURL := inviteLink
+		channelID := strconv.FormatInt(m.Chat.ID, 10)
+		statement, err := db.Prepare("SELECT id FROM `channels` where channelID=?")
 		if err != nil {
-			transaction.Rollback()
 			log.Println(err)
 			return
 		}
-		insertedChannelID, err := channelInserted.LastInsertId()
-		if err == nil {
-			//company name
-			companyFlag := channelID
-			//check if company is not exist
-			companyStatement, err := db.Prepare("SELECT id FROM `companies` where `companyName`=?")
+		defer statement.Close()
+		results, err := statement.Query(channelID)
+		if err != nil {
+			log.Println(err)
+			return
+		}
+		if !results.Next() {
+			//start transaction
+			transaction, err := db.Begin()
+			if err != nil {
+				log.Println(err)
+				return
+			}
+			uniqueID := uuid.New().String()
+			//insert channel
+			channelInserted, err := transaction.Exec("INSERT INTO `channels` (`channelType`,`channelURL`,`channelID`,`channelName`,`uniqueID`,`createdAt`,`updatedAt`) VALUES('channel','" + channelURL + "','" + channelID + "','" + m.Chat.Title + "','" + uniqueID + "','" + app.CurrentTime + "','" + app.CurrentTime + "')")
 			if err != nil {
 				transaction.Rollback()
 				log.Println(err)
 				return
 			}
-			defer companyStatement.Close()
-			companyExists, err := companyStatement.Query(companyFlag)
-			if err != nil {
-				transaction.Rollback()
-				log.Println(err)
-				return
-			}
-			if !companyExists.Next() {
-				//insert company
-				companyInserted, err := transaction.Exec("INSERT INTO `companies` (`companyName`,`createdAt`,`updatedAt`) VALUES('" + companyFlag + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+			insertedChannelID, err := channelInserted.LastInsertId()
+			if err == nil {
+				//company name
+				companyFlag := channelID
+				//check if company is not exist
+				companyStatement, err := db.Prepare("SELECT id FROM `companies` where `companyName`=?")
 				if err != nil {
 					transaction.Rollback()
 					log.Println(err)
 					return
 				}
-				insertedCompanyID, err := companyInserted.LastInsertId()
-				if err == nil {
-					companyModelID := strconv.FormatInt(insertedCompanyID, 10)
+				defer companyStatement.Close()
+				companyExists, err := companyStatement.Query(companyFlag)
+				if err != nil {
+					transaction.Rollback()
+					log.Println(err)
+					return
+				}
+				if !companyExists.Next() {
+					//insert company
+					companyInserted, err := transaction.Exec("INSERT INTO `companies` (`companyName`,`createdAt`,`updatedAt`) VALUES('" + companyFlag + "','" + app.CurrentTime + "','" + app.CurrentTime + "')")
+					if err != nil {
+						transaction.Rollback()
+						log.Println(err)
+						return
+					}
+					insertedCompanyID, err := companyInserted.LastInsertId()
+					if err == nil {
+						companyModelID := strconv.FormatInt(insertedCompanyID, 10)
+						channelModelID := strconv.FormatInt(insertedChannelID, 10)
+						//insert company channel pivot
+						_, err := transaction.Exec("INSERT INTO `companies_channels` (`companyID`,`channelID`,`createdAt`) VALUES('" + companyModelID + "','" + channelModelID + "','" + app.CurrentTime + "')")
+						if err != nil {
+							transaction.Rollback()
+							log.Println(err)
+							return
+						}
+					}
+				} else {
+					companyModel := new(models.Company)
+					if err := companyExists.Scan(&companyModel.ID); err != nil {
+						transaction.Rollback()
+						log.Println(err)
+						return
+					}
+					companyModelID := strconv.FormatInt(companyModel.ID, 10)
 					channelModelID := strconv.FormatInt(insertedChannelID, 10)
 					//insert company channel pivot
-					_, err := transaction.Exec("INSERT INTO `companies_channels` (`companyID`,`channelID`,`createdAt`) VALUES('" + companyModelID + "','" + channelModelID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+					_, err := transaction.Exec("INSERT INTO `companies_channels` (`companyID`,`channelID`,`createdAt`) VALUES('" + companyModelID + "','" + channelModelID + "','" + app.CurrentTime + "')")
 					if err != nil {
 						transaction.Rollback()
 						log.Println(err)
 						return
 					}
 				}
-			} else {
-				companyModel := new(model.Company)
-				if err := companyExists.Scan(&companyModel.ID); err != nil {
-					transaction.Rollback()
+				transaction.Commit()
+				successMessage, _ := bot.Send(m.Chat, "You're channel registered successfully")
+				time.Sleep(2 * time.Second)
+				if err := bot.Delete(successMessage); err != nil {
 					log.Println(err)
 					return
 				}
-				companyModelID := strconv.FormatInt(companyModel.ID, 10)
-				channelModelID := strconv.FormatInt(insertedChannelID, 10)
-				//insert company channel pivot
-				_, err := transaction.Exec("INSERT INTO `companies_channels` (`companyID`,`channelID`,`createdAt`) VALUES('" + companyModelID + "','" + channelModelID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+				sendOptionModel := new(tb.SendOptions)
+				sendOptionModel.ParseMode = tb.ModeHTML
+				_, err = bot.Send(m.Chat, "This is your channel unique ID, you can save it and remove this message: <code> "+uniqueID+" </code>", sendOptionModel)
 				if err != nil {
-					transaction.Rollback()
 					log.Println(err)
 					return
 				}
-			}
-			transaction.Commit()
-			successMessage, _ := bot.Send(m.Chat, "You're channel registered successfully")
-			time.Sleep(2 * time.Second)
-			if err := bot.Delete(successMessage); err != nil {
-				log.Println(err)
-				return
-			}
-			sendOptionModel := new(tb.SendOptions)
-			sendOptionModel.ParseMode = tb.ModeHTML
-			_, err = bot.Send(m.Chat, "This is your channel unique ID, you can save it and remove this message: <code> "+uniqueID+" </code>", sendOptionModel)
-			if err != nil {
-				log.Println(err)
-				return
-			}
-			time.Sleep(2 * time.Second)
-			compose := tb.InlineButton{
-				Unique: "compose_message_in_group_" + channelID,
-				Text:   "📝 New Anonymous Message 👻",
-				URL:    "https://t.me/" + viper.GetString("APP.BOTUSERNAME") + "?start=compose_message_in_group_" + channelID,
-			}
-			groupKeys := [][]tb.InlineButton{
-				[]tb.InlineButton{compose},
-			}
-			newReplyModel := new(tb.ReplyMarkup)
-			newReplyModel.InlineKeyboard = groupKeys
-			newSendOption := new(tb.SendOptions)
-			newSendOption.ReplyMarkup = newReplyModel
-			newSendOption.ParseMode = tb.ModeMarkdown
-			pinMessage, err := bot.Send(m.Chat, lang.StartGroup, newSendOption)
-			if err != nil {
-				log.Println(err)
-				return
-			}
-			if err := bot.Pin(pinMessage); err != nil {
-				log.Println(err)
-				return
-			}
-			if err := bot.Delete(m); err != nil {
-				log.Println(err)
-				return
+				time.Sleep(2 * time.Second)
+				compose := tb.InlineButton{
+					Unique: "compose_message_in_group_" + channelID,
+					Text:   "📝 New Anonymous Message 👻",
+					URL:    "https://t.me/" + app.BotUsername + "?start=compose_message_in_group_" + channelID,
+				}
+				groupKeys := [][]tb.InlineButton{
+					[]tb.InlineButton{compose},
+				}
+				newReplyModel := new(tb.ReplyMarkup)
+				newReplyModel.InlineKeyboard = groupKeys
+				newSendOption := new(tb.SendOptions)
+				newSendOption.ReplyMarkup = newReplyModel
+				newSendOption.ParseMode = tb.ModeMarkdown
+				pinMessage, err := bot.Send(m.Chat, lang.StartGroup, newSendOption)
+				if err != nil {
+					log.Println(err)
+					return
+				}
+				if err := bot.Pin(pinMessage); err != nil {
+					log.Println(err)
+					return
+				}
+				if err := bot.Delete(m); err != nil {
+					log.Println(err)
+					return
+				}
 			}
 		}
 	}
 }
 
-func SendReply(bot *tb.Bot, m *tb.User, channelID, messageID string) {
-	db, err := config.DB()
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	defer db.Close()
+func (service *BotService) SendReply(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.User, channelID, messageID string) {
 	resultsStatement, err := db.Prepare("SELECT ch.channelName,me.message FROM `channels` as ch inner join messages as me on ch.id=me.channelID and me.botMessageID=? where ch.channelID=?")
 	if err != nil {
 		log.Println(err)
 		return
 	}
 	defer resultsStatement.Close()
-	channelModel := new(model.Channel)
-	messageModel := new(model.Message)
+	channelModel := new(models.Channel)
+	messageModel := new(models.Message)
 	if err := resultsStatement.QueryRow(messageID, channelID).Scan(&channelModel.ChannelName, &messageModel.Message); err != nil {
 		log.Println(err)
 		return
@@ -196,7 +195,7 @@ func SendReply(bot *tb.Bot, m *tb.User, channelID, messageID string) {
 	}
 }
 
-func SanedDM(bot *tb.Bot, m *tb.User, directSenderID int, channelID string) {
+func (service *BotService) SanedDM(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.User, directSenderID int, channelID string) {
 	options := new(tb.SendOptions)
 	markup := new(tb.ReplyMarkup)
 	homeBTN := tb.ReplyButton{
@@ -208,16 +207,16 @@ func SanedDM(bot *tb.Bot, m *tb.User, directSenderID int, channelID string) {
 	markup.ReplyKeyboard = replyKeys
 	options.ReplyMarkup = markup
 	options.ParseMode = tb.ModeHTML
-	user := GetUserByTelegramID(directSenderID)
-	channel := GetChannelByTelegramID(channelID)
+	user := service.GetUserByTelegramID(db, app, directSenderID)
+	channel := service.GetChannelByTelegramID(db, app, channelID)
 	_, err := bot.Send(m, "<code>Please send your direct message to the user:</code><b>"+strconv.FormatInt(user.ID, 10)+user.UserID+"</b> <code>From:</code> <b>"+channel.ChannelName+"</b>", options)
-	if err !=nil{
+	if err != nil {
 		log.Println(err)
 		return
 	}
 }
 
-func SanedAnswerDM(bot *tb.Bot, m *tb.User) {
+func (service *BotService) SanedAnswerDM(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.User) {
 	options := new(tb.SendOptions)
 	markup := new(tb.ReplyMarkup)
 	homeBTN := tb.ReplyButton{
@@ -231,10 +230,10 @@ func SanedAnswerDM(bot *tb.Bot, m *tb.User) {
 	bot.Send(m, "Please send your direct message to the user:", options)
 }
 
-func SaveAndSendMessage(bot *tb.Bot, m *tb.Message) {
+func (service *BotService) SaveAndSendMessage(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message) {
 	//TODO inactive user last state
 	//TODO restart the bot and show keyboards again
-	activeChannel := GetUserCurrentActiveChannel(bot, m)
+	activeChannel := service.GetUserCurrentActiveChannel(db, app, bot, m)
 	if activeChannel != nil {
 		senderID := strconv.Itoa(m.Sender.ID)
 		botMessageID := strconv.Itoa(m.ID)
@@ -269,13 +268,7 @@ func SaveAndSendMessage(bot *tb.Bot, m *tb.Message) {
 			if err == nil {
 				channelMessageID := strconv.Itoa(message.ID)
 				channelID := strconv.FormatInt(activeChannel.ID, 10)
-				db, err := config.DB()
-				if err != nil {
-					log.Println(err)
-					return
-				}
-				defer db.Close()
-				insertedMessage, err := db.Query("INSERT INTO `messages` (`message`,`userID`,`channelID`,`channelMessageID`,`botMessageID`,`createdAt`) VALUES('" + m.Text + "','" + senderID + "','" + channelID + "','" + channelMessageID + "','" + botMessageID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+				insertedMessage, err := db.Query("INSERT INTO `messages` (`message`,`userID`,`channelID`,`channelMessageID`,`botMessageID`,`createdAt`) VALUES('" + m.Text + "','" + senderID + "','" + channelID + "','" + channelMessageID + "','" + botMessageID + "','" + app.CurrentTime + "')")
 				if err != nil {
 					log.Println(err)
 					return
@@ -292,13 +285,13 @@ func SaveAndSendMessage(bot *tb.Bot, m *tb.Message) {
 				markup.ReplyKeyboard = replyKeys
 				options.ReplyMarkup = markup
 				bot.Send(m.Sender, "Your message has been sent anonymously to the group / channel "+activeChannel.ChannelName, options)
-				SaveUserLastState(bot, "", m.Sender.ID, "message_sent")
+				SaveUserLastState(db, app, bot, "", m.Sender.ID, "message_sent")
 			}
 		}
 	}
 }
 
-func SendAndSaveReplyMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserLastState) {
+func (service *BotService) SendAndSaveReplyMessage(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, lastState *models.UserLastState) {
 	if lastState.Data != "" {
 		ids := strings.TrimPrefix(lastState.Data, "/start reply_to_message_on_group_")
 		if ids != "" {
@@ -309,12 +302,6 @@ func SendAndSaveReplyMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserLa
 				botMessageID := strings.TrimSpace(data[2])
 				senderID := strconv.Itoa(m.Sender.ID)
 				newBotMessageID := strconv.Itoa(m.ID)
-				db, err := config.DB()
-				if err != nil {
-					log.Println(err)
-					return
-				}
-				defer db.Close()
 				messageStatement, err := db.Prepare("SELECT me.id,me.channelMessageID from `messages` as me inner join `channels` as ch on me.channelID=ch.id and ch.channelID=? where me.`botMessageID`=? and me.`userID`=?")
 				if err != nil {
 					log.Println(err)
@@ -322,7 +309,7 @@ func SendAndSaveReplyMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserLa
 				}
 				defer messageStatement.Close()
 				message := messageStatement.QueryRow(channelID, botMessageID, userID)
-				messageModel := new(model.Message)
+				messageModel := new(models.Message)
 				if err := message.Scan(&messageModel.ID, &messageModel.ChannelMessageID); err == nil {
 					channelIntValue, err := strconv.Atoi(channelID)
 					if err == nil {
@@ -346,7 +333,7 @@ func SendAndSaveReplyMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserLa
 						}
 						ChannelMessageDataID, err := strconv.Atoi(messageModel.ChannelMessageID)
 						if err == nil {
-							activeChannel := GetUserCurrentActiveChannel(bot, m)
+							activeChannel := service.GetUserCurrentActiveChannel(db, app, bot, m)
 							sendMessageModel := new(tb.Message)
 							sendMessageModel.ID = ChannelMessageDataID
 							newReplyModel := new(tb.ReplyMarkup)
@@ -368,10 +355,10 @@ func SendAndSaveReplyMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserLa
 								}
 								defer currentChannelStatement.Close()
 								currentChannel := currentChannelStatement.QueryRow(channelID)
-								newChannelModel := new(model.Channel)
+								newChannelModel := new(models.Channel)
 								if err := currentChannel.Scan(&newChannelModel.ID, &newChannelModel.ChannelName); err == nil {
 									newChannelModelID := strconv.FormatInt(newChannelModel.ID, 10)
-									insertedMessage, err := db.Query("INSERT INTO `messages` (`message`,`userID`,`channelID`,`channelMessageID`,`botMessageID`,`parentID`,`createdAt`) VALUES('" + m.Text + "','" + senderID + "','" + newChannelModelID + "','" + newChannelMessageID + "','" + newBotMessageID + "','" + parentID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+									insertedMessage, err := db.Query("INSERT INTO `messages` (`message`,`userID`,`channelID`,`channelMessageID`,`botMessageID`,`parentID`,`createdAt`) VALUES('" + m.Text + "','" + senderID + "','" + newChannelModelID + "','" + newChannelMessageID + "','" + newBotMessageID + "','" + parentID + "','" + app.CurrentTime + "')")
 									if err != nil {
 										log.Println(err)
 										return
@@ -388,7 +375,7 @@ func SendAndSaveReplyMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserLa
 									markup.ReplyKeyboard = replyKeys
 									options.ReplyMarkup = markup
 									bot.Send(m.Sender, "Your reply message has been sent anonymously to the group / channel "+newChannelModel.ChannelName, options)
-									SaveUserLastState(bot, "", m.Sender.ID, "reply_message_sent")
+									SaveUserLastState(db, app, bot, "", m.Sender.ID, "reply_message_sent")
 								}
 							}
 						}
@@ -399,7 +386,7 @@ func SendAndSaveReplyMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserLa
 	}
 }
 
-func SendAndSaveDirectMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserLastState) {
+func (service *BotService) SendAndSaveDirectMessage(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, lastState *models.UserLastState) {
 	if lastState.Data != "" {
 		ids := strings.TrimPrefix(lastState.Data, "/start reply_by_dm_to_user_on_group_")
 		if ids != "" {
@@ -412,12 +399,6 @@ func SendAndSaveDirectMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserL
 				newBotMessageID := strconv.Itoa(m.ID)
 				userIDInInt, err := strconv.Atoi(userID)
 				if err == nil {
-					db, err := config.DB()
-					if err != nil {
-						log.Println(err)
-						return
-					}
-					defer db.Close()
 					messageStatement, err := db.Prepare("SELECT me.id,me.channelMessageID from `messages` as me inner join `channels` as ch on me.channelID=ch.id and ch.channelID=? where me.`botMessageID`=? and me.`userID`=?")
 					if err != nil {
 						log.Println(err)
@@ -425,7 +406,7 @@ func SendAndSaveDirectMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserL
 					}
 					defer messageStatement.Close()
 					message := messageStatement.QueryRow(channelID, botMessageID, userID)
-					messageModel := new(model.Message)
+					messageModel := new(models.Message)
 					if err := message.Scan(&messageModel.ID, &messageModel.ChannelMessageID); err == nil {
 						newReply := tb.InlineButton{
 							Unique: "answer_to_dm_" + channelID + "_" + senderID + "_" + newBotMessageID,
@@ -467,16 +448,16 @@ func SendAndSaveDirectMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserL
 								}
 								defer currentChannelStatement.Close()
 								currentChannel := currentChannelStatement.QueryRow(channelID)
-								newChannelModel := new(model.Channel)
+								newChannelModel := new(models.Channel)
 								if err := currentChannel.Scan(&newChannelModel.ID); err == nil {
 									newChannelModelID := strconv.FormatInt(newChannelModel.ID, 10)
-									insertedMessage, err := db.Query("INSERT INTO `messages` (`userID`,`channelID`,`channelMessageID`,`botMessageID`,`parentID`,`createdAt`) VALUES('" + senderID + "','" + newChannelModelID + "','" + newChannelMessageID + "','" + newBotMessageID + "','" + parentID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+									insertedMessage, err := db.Query("INSERT INTO `messages` (`userID`,`channelID`,`channelMessageID`,`botMessageID`,`parentID`,`createdAt`) VALUES('" + senderID + "','" + newChannelModelID + "','" + newChannelMessageID + "','" + newBotMessageID + "','" + parentID + "','" + app.CurrentTime + "')")
 									if err != nil {
 										log.Println(err)
 										return
 									}
 									defer insertedMessage.Close()
-									SaveUserLastState(bot, "", m.Sender.ID, "direct_message_sent")
+									SaveUserLastState(db, app, bot, "", m.Sender.ID, "direct_message_sent")
 								}
 							}
 						}
@@ -487,7 +468,7 @@ func SendAndSaveDirectMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserL
 	}
 }
 
-func SendAnswerAndSaveDirectMessage(bot *tb.Bot, m *tb.Message, lastState *model.UserLastState) {
+func (service *BotService) SendAnswerAndSaveDirectMessage(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, lastState *models.UserLastState) {
 	if lastState.Data != "" {
 		ids := strings.ReplaceAll(lastState.Data, "answer_to_dm_", "")
 		if ids != "" {
@@ -525,12 +506,6 @@ func SendAnswerAndSaveDirectMessage(bot *tb.Bot, m *tb.Message, lastState *model
 					user.ID = userIDInInt
 					sendMessage, err := bot.Send(user, m.Text, newSendOption)
 					if err == nil {
-						db, err := config.DB()
-						if err != nil {
-							log.Println(err)
-							return
-						}
-						defer db.Close()
 						newChannelMessageID := strconv.Itoa(sendMessage.ID)
 						currentChannelStatement, err := db.Prepare("SELECT id from `channels` where `channelID`=?")
 						if err != nil {
@@ -544,16 +519,16 @@ func SendAnswerAndSaveDirectMessage(bot *tb.Bot, m *tb.Message, lastState *model
 							return
 						}
 						if currentChannel.Next() {
-							newChannelModel := new(model.Channel)
+							newChannelModel := new(models.Channel)
 							if err := currentChannel.Scan(&newChannelModel.ID); err == nil {
 								newChannelModelID := strconv.FormatInt(newChannelModel.ID, 10)
-								insertedMessage, err := db.Query("INSERT INTO `messages` (`userID`,`channelID`,`channelMessageID`,`botMessageID`,`createdAt`) VALUES('" + senderID + "','" + newChannelModelID + "','" + newChannelMessageID + "','" + newBotMessageID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+								insertedMessage, err := db.Query("INSERT INTO `messages` (`userID`,`channelID`,`channelMessageID`,`botMessageID`,`createdAt`) VALUES('" + senderID + "','" + newChannelModelID + "','" + newChannelMessageID + "','" + newBotMessageID + "','" + app.CurrentTime + "')")
 								if err != nil {
 									log.Println(err)
 									return
 								}
 								defer insertedMessage.Close()
-								SaveUserLastState(bot, "", m.Sender.ID, "direct_message_sent")
+								SaveUserLastState(db, app, bot, "", m.Sender.ID, "direct_message_sent")
 							}
 						}
 					}
@@ -563,12 +538,7 @@ func SendAnswerAndSaveDirectMessage(bot *tb.Bot, m *tb.Message, lastState *model
 	}
 }
 
-func GetUserCurrentActiveChannel(bot *tb.Bot, m *tb.Message) *model.Channel {
-	db, err := config.DB()
-	if err != nil {
-		log.Println(err)
-	}
-	defer db.Close()
+func (service *BotService) GetUserCurrentActiveChannel(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message) *models.Channel {
 	userID := strconv.Itoa(m.Sender.ID)
 	userActiveStatement, err := db.Prepare("SELECT ch.id,ch.channelID,ch.channelName,us.id,us.userID from `channels` as ch inner join `users_current_active_channel` as uc on ch.id=uc.channelID and uc.status='ACTIVE' inner join `users` as us on uc.userID=us.id and us.userID=? and us.`status`='ACTIVE'")
 	if err != nil {
@@ -580,8 +550,8 @@ func GetUserCurrentActiveChannel(bot *tb.Bot, m *tb.Message) *model.Channel {
 		log.Println(err)
 	}
 	if userActiveChannel.Next() {
-		channelModel := new(model.Channel)
-		userModel := new(model.User)
+		channelModel := new(models.Channel)
+		userModel := new(models.User)
 		if err := userActiveChannel.Scan(&channelModel.ID, &channelModel.ChannelID, &channelModel.ChannelName, &userModel.ID, &userModel.UserID); err != nil {
 			log.Println(err)
 		}
@@ -591,12 +561,7 @@ func GetUserCurrentActiveChannel(bot *tb.Bot, m *tb.Message) *model.Channel {
 	return nil
 }
 
-func GetUserLastState(bot *tb.Bot, m *tb.Message, user int) *model.UserLastState {
-	db, err := config.DB()
-	if err != nil {
-		log.Println(err)
-	}
-	defer db.Close()
+func (service *BotService) GetUserLastState(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, user int) *models.UserLastState {
 	userLastStateQueryStatement, err := db.Prepare("SELECT `data`,`state`,`userID` from `users_last_state` where `userId`=? order by `createdAt` DESC limit 1")
 	if err != nil {
 		log.Println(err)
@@ -606,7 +571,7 @@ func GetUserLastState(bot *tb.Bot, m *tb.Message, user int) *model.UserLastState
 	if err != nil {
 		log.Println(err)
 	}
-	userLastState := new(model.UserLastState)
+	userLastState := new(models.UserLastState)
 	if userLastStateQuery.Next() {
 		if err := userLastStateQuery.Scan(&userLastState.Data, &userLastState.State, &userLastState.UserID); err != nil {
 			log.Println(err)
@@ -616,15 +581,9 @@ func GetUserLastState(bot *tb.Bot, m *tb.Message, user int) *model.UserLastState
 	return userLastState
 }
 
-func SaveUserLastState(bot *tb.Bot, data string, userDataID int, state string) {
-	db, err := config.DB()
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	defer db.Close()
+func SaveUserLastState(db *sql.DB, app *config.App, bot *tb.Bot, data string, userDataID int, state string) {
 	userID := strconv.Itoa(userDataID)
-	insertedState, err := db.Query("INSERT INTO `users_last_state` (`userID`,`state`,`data`,`createdAt`) VALUES('" + userID + "','" + state + "','" + strings.TrimSpace(data) + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+	insertedState, err := db.Query("INSERT INTO `users_last_state` (`userID`,`state`,`data`,`createdAt`) VALUES('" + userID + "','" + state + "','" + strings.TrimSpace(data) + "','" + app.CurrentTime + "')")
 	if err != nil {
 		log.Println(err)
 		return
@@ -632,12 +591,7 @@ func SaveUserLastState(bot *tb.Bot, data string, userDataID int, state string) {
 	defer insertedState.Close()
 }
 
-func GetChannelByTelegramID(channelID string) *model.Channel {
-	db, err := config.DB()
-	if err != nil {
-		log.Println(err)
-	}
-	defer db.Close()
+func (service *BotService) GetChannelByTelegramID(db *sql.DB, app *config.App, channelID string) *models.Channel {
 	userLastStateQueryStatement, err := db.Prepare("SELECT `channelName` from `channels` where `channelID`=? ")
 	if err != nil {
 		log.Println(err)
@@ -647,7 +601,7 @@ func GetChannelByTelegramID(channelID string) *model.Channel {
 	if err != nil {
 		log.Println(err)
 	}
-	channelModel := new(model.Channel)
+	channelModel := new(models.Channel)
 	if userLastStateQuery.Next() {
 		if err := userLastStateQuery.Scan(&channelModel.ChannelName); err != nil {
 			log.Println(err)

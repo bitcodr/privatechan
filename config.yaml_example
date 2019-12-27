@@ -17,7 +17,7 @@ DATABASES:
   MYSQL:
     HOST: 127.0.0.1
     PORT: 3306
-    DATABASE: 
+    DATABASE:
     USERNAME:
     PASSWORD:
 
@@ -69,7 +69,7 @@ SUPERADMIN:
           TABLE_NAME: channels_settings
           COLUMN_NAME: replyVerify
           QUESTION: "Users Should Be Verify To Send Reply Message?"
-          ANSWERS: "Yes,No"
+          ANSWERS: "Yes, No"
         N10:
           TABLE_NAME: channels_settings
           COLUMN_NAME: directVerify

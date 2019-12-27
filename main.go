@@ -1,194 +1,113 @@
 package main
 
 import (
-	"fmt"
-	"strconv"
+	"github.com/amiraliio/tgbp/controllers"
+	"github.com/amiraliio/tgbp/events"
+	"os"
 	"strings"
 
-	"github.com/amiraliio/tgbp/controller"
-	"github.com/spf13/viper"
+	"github.com/amiraliio/tgbp/config"
 	tb "gopkg.in/tucnak/telebot.v2"
 	"log"
-	"time"
 )
 
 func main() {
-	//config
-	viper.SetConfigName("config")
-	viper.AddConfigPath(".")
-	viper.AddConfigPath("/var/www/privatechan")
-	err := viper.ReadInConfig()
+
+	//get current directory
+	currentDir, err := os.Getwd()
 	if err != nil {
-		panic(fmt.Errorf("fatal error config file: %s", err))
+		log.Fatalln(err)
 	}
+
+	//initial app config
+	app := new(config.App)
+	app.ProjectDir = currentDir
+
+	//initial environment variables
+	app.Environment()
+
+	//set other configs
+	app = app.SetOtherConfigs()
+
 	//init bot
-	bot, err := tb.NewBot(tb.Settings{
-		Token:  viper.GetString("APP.TELEGRAM_APITOKEN"),
-		Poller: &tb.LongPoller{Timeout: 10 * time.Second},
-	})
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
+	bot := app.Bot()
 
-	//bot startup buttons
-	addAnonMessage := tb.ReplyButton{
-		Text: "Add Anonymous Message to a Channel/Group",
-	}
-	setupVerifiedCompany := tb.ReplyButton{
-		Text: "Setup Verified Company Account",
-	}
-	joinCompanyChannels := tb.ReplyButton{
-		Text: "Join To Company Anonymous Channel/Group",
-	}
-	startBotKeys := [][]tb.ReplyButton{
-		[]tb.ReplyButton{addAnonMessage},
-		[]tb.ReplyButton{setupVerifiedCompany},
-		[]tb.ReplyButton{joinCompanyChannels},
-	}
+	//handle bot events
+	events.Init(app, bot)
 
-	//register a channel with the company name directly from channel
-	bot.Handle(tb.OnChannelPost, func(m *tb.Message) {
-		if m.Text == strings.TrimSpace("/enable_anonymity_support") {
-			if m.Sender != nil {
-				controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "register_channel")
-			}
-			controller.RegisterChannel(bot, m)
-		}
-	})
-
-	//register a channel with the company name directly from channel
-	bot.Handle(tb.OnAddedToGroup, func(m *tb.Message) {
-		if m.Sender != nil {
-			controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "register_group")
-		}
-		controller.RegisterGroup(bot, m)
-	})
-
-	//add anonymous message
-	bot.Handle(&addAnonMessage, func(m *tb.Message) {
-		if m.Sender != nil {
-			controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "add_anon_message")
-		}
-		controller.AddAnonMessageToChannel(bot, m.Sender)
-	})
+	botService := new(controllers.BotService)
 
 	//on text handlers
 	bot.Handle(tb.OnText, func(m *tb.Message) {
-		lastState := controller.GetUserLastState(bot, m, m.Sender.ID)
-
-		if m.Text == "Home" || m.Text == "/start" {
-			if m.Sender != nil {
-				controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "home")
-			}
-			controller.StartBot(bot, m, startBotKeys)
-			return
-		}
-
-		if strings.Contains(m.Text, "reply_to_message_on_group_") {
-			if m.Sender != nil {
-				controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "reply_to_message_on_group")
-			}
-			ids := strings.TrimPrefix(m.Text, "/start reply_to_message_on_group_")
-			data := strings.Split(ids, "_")
-			channelID := strings.TrimSpace(data[0])
-			messageID := strings.TrimSpace(data[2])
-			controller.JoinFromGroup(bot, m, channelID)
-			controller.SendReply(bot, m.Sender, channelID, messageID)
-			return
-		}
-
-		if strings.Contains(m.Text, "reply_by_dm_to_user_on_group_") {
-			ids := strings.TrimPrefix(m.Text, "/start reply_by_dm_to_user_on_group_")
-			data := strings.Split(ids, "_")
-			directSenderID, err := strconv.Atoi(data[1])
-			if err != nil {
-				if err != nil {
-					log.Println(err)
-				}
-				return
-			}
-			if m.Sender.ID == directSenderID {
-				bot.Send(m.Sender, "You cannot send direct message to your self", controller.HomeKeyOption())
-				return
-			}
-			if m.Sender != nil {
-				controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "reply_by_dm_to_user_on_group")
-			}
-			channelID := strings.TrimSpace(data[0])
-			controller.JoinFromGroup(bot, m, channelID)
-			controller.SanedDM(bot, m.Sender, directSenderID, channelID)
-			return
-		}
+		lastState := botService.GetUserLastState(bot, m, m.Sender.ID)
 
 		if strings.Contains(m.Text, "compose_message_in_group_") {
-			controller.CheckUserRegisteredOrNot(bot, m, lastState, m.Text, m.Sender.ID)
+			botService.CheckUserRegisteredOrNot(bot, m, lastState, m.Text, m.Sender.ID)
 			if m.Sender != nil {
-				controller.SaveUserLastState(bot, m.Text, m.Sender.ID, "new_message_to_group")
+				controllers.SaveUserLastState(bot, m.Text, m.Sender.ID, "new_message_to_group")
 			}
 			channelID := strings.ReplaceAll(m.Text, "/start compose_message_in_group_", "")
-			controller.JoinFromGroup(bot, m, channelID)
-			controller.NewMessageGroupHandler(bot, m.Sender, channelID)
+			botService.JoinFromGroup(bot, m, channelID)
+			botService.NewMessageGroupHandler(bot, m.Sender, channelID)
 			return
 		}
 
 		switch {
 		case lastState.State == "new_message_to_group" && !strings.Contains(m.Text, "compose_message_in_group_"):
-			controller.SaveAndSendMessage(bot, m)
+			botService.SaveAndSendMessage(bot, m)
 			return
 		case lastState.State == "reply_to_message_on_group" && !strings.Contains(m.Text, "reply_to_message_on_group_"):
-			controller.SendAndSaveReplyMessage(bot, m, lastState)
+			botService.SendAndSaveReplyMessage(bot, m, lastState)
 			return
 		case lastState.State == "reply_by_dm_to_user_on_group" && !strings.Contains(m.Text, "reply_by_dm_to_user_on_group_"):
-			controller.SendAndSaveDirectMessage(bot, m, lastState)
+			botService.SendAndSaveDirectMessage(bot, m, lastState)
 			return
 		case lastState.State == "answer_to_dm" && !strings.Contains(m.Text, "answer_to_dm_"):
-			controller.SendAnswerAndSaveDirectMessage(bot, m, lastState)
+			botService.SendAnswerAndSaveDirectMessage(bot, m, lastState)
 			return
 		case lastState.State == "setup_verified_company_account" || strings.Contains(m.Text, setupVerifiedCompany.Text):
-			controller.SetUpCompanyByAdmin(bot, m, lastState, m.Text, m.Sender.ID)
+			botService.SetUpCompanyByAdmin(bot, m, lastState, m.Text, m.Sender.ID)
 			return
 		case lastState.State == "register_user_with_email" || strings.Contains(m.Text, joinCompanyChannels.Text):
-			controller.RegisterUserWithemail(bot, m, lastState, strings.TrimSpace(m.Text), m.Sender.ID)
+			botService.RegisterUserWithemail(bot, m, lastState, strings.TrimSpace(m.Text), m.Sender.ID)
 			return
 		case lastState.State == "confirm_register_company_email_address" && (strings.Contains(m.Text, "No") || strings.Contains(m.Text, "Yes")):
-			controller.ConfirmRegisterCompanyRequest(bot, m, lastState, strings.TrimSpace(m.Text), m.Sender.ID)
+			botService.ConfirmRegisterCompanyRequest(bot, m, lastState, strings.TrimSpace(m.Text), m.Sender.ID)
 			return
 		case lastState.State == "register_user_for_the_company" && (strings.Contains(m.Text, "No") || strings.Contains(m.Text, "Yes")):
-			controller.ConfirmRegisterUserForTheCompany(bot, m, lastState, strings.TrimSpace(m.Text), m.Sender.ID)
+			botService.ConfirmRegisterUserForTheCompany(bot, m, lastState, strings.TrimSpace(m.Text), m.Sender.ID)
 			return
 		case lastState.State == "email_for_user_registration":
-			controller.RegisterUserWithEmail(bot, m, lastState, strings.TrimSpace(m.Text), m.Sender.ID)
+			botService.RegisterUserWithEmail(bot, m, lastState, strings.TrimSpace(m.Text), m.Sender.ID)
 			return
 		}
-
+		return
 	})
 
 	//callback handlers
 	bot.Handle(tb.OnCallback, func(c *tb.Callback) {
 		if c.Data == "Home" || c.Data == "/start" {
 			if c.Sender != nil {
-				controller.SaveUserLastState(bot, c.Data, c.Sender.ID, "home")
+				controllers.SaveUserLastState(bot, c.Data, c.Sender.ID, "home")
 			}
-			controller.StartBot(bot, c.Message, startBotKeys)
+			controllers.StartBot(bot, c.Message, startBotKeys)
 			return
 		}
 		if strings.Contains(c.Data, "answer_to_dm_") {
 			if c.Sender != nil {
-				controller.SaveUserLastState(bot, c.Data, c.Sender.ID, "answer_to_dm")
+				controllers.SaveUserLastState(bot, c.Data, c.Sender.ID, "answer_to_dm")
 			}
-			controller.SanedAnswerDM(bot, c.Sender)
+			controllers.SanedAnswerDM(bot, c.Sender)
 			return
 		}
-		lastState := controller.GetUserLastState(bot, c.Message, c.Sender.ID)
+		lastState := controllers.GetUserLastState(bot, c.Message, c.Sender.ID)
 		switch {
 		case lastState.State == "setup_verified_company_account":
-			controller.SetUpCompanyByAdmin(bot, c.Message, lastState, c.Data, c.Sender.ID)
-			return
+			controllers.SetUpCompanyByAdmin(bot, c.Message, lastState, c.Data, c.Sender.ID)
 		case lastState.State == "register_user_with_email":
-			controller.RegisterUserWithemail(bot, c.Message, lastState, strings.TrimSpace(c.Data), c.Sender.ID)
-			return
+			controllers.RegisterUserWithemail(bot, c.Message, lastState, strings.TrimSpace(c.Data), c.Sender.ID)
 		}
+		return
 	})
 
 	bot.Start()
