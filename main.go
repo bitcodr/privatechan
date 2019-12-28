@@ -30,10 +30,8 @@ func main() {
 	bot := app.Bot()
 
 	//handle bot events
-	if controllers.Init(app, bot, nil) {
-		goto NextStep
-	}
-NextStep:
+	controllers.Init(app, bot, nil)
+
 	//start the bot
 	bot.Start()
 }

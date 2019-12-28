@@ -94,6 +94,12 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 			goto ConfirmRegisterUserForTheCompany
 		case lastState.State == "email_for_user_registration":
 			goto RegisterUserWithEmailAndCode
+		case lastState.State == "setup_verified_company_account":
+			goto SetUpCompanyByAdmin
+		case lastState.State == "register_user_with_email":
+			goto RegisterUserWithemail
+		default:
+			goto END
 		}
 
 	SetUpCompanyByAdmin:
@@ -104,6 +110,7 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 		}) {
 			Init(app, bot, true)
 		}
+		goto END
 
 	SaveAndSendMessage:
 		if inlineOnTextEventsHandler(app, bot, message, db, lastState, &Event{
@@ -113,6 +120,7 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 		}) {
 			Init(app, bot, true)
 		}
+		goto END
 
 	SendAndSaveReplyMessage:
 		if inlineOnTextEventsHandler(app, bot, message, db, lastState, &Event{
@@ -122,6 +130,7 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 		}) {
 			Init(app, bot, true)
 		}
+		goto END
 
 	SendAndSaveDirectMessage:
 		if inlineOnTextEventsHandler(app, bot, message, db, lastState, &Event{
@@ -131,6 +140,7 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 		}) {
 			Init(app, bot, true)
 		}
+		goto END
 
 	SendAnswerAndSaveDirectMessage:
 		if inlineOnTextEventsHandler(app, bot, message, db, lastState, &Event{
@@ -140,6 +150,7 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 		}) {
 			Init(app, bot, true)
 		}
+		goto END
 
 	RegisterUserWithemail:
 		if inlineOnTextEventsHandler(app, bot, message, db, lastState, &Event{
@@ -149,6 +160,7 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 		}) {
 			Init(app, bot, true)
 		}
+		goto END
 
 	ConfirmRegisterCompanyRequest:
 		if inlineOnTextEventsHandler(app, bot, message, db, lastState, &Event{
@@ -157,6 +169,7 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 		}) {
 			Init(app, bot, true)
 		}
+		goto END
 
 	ConfirmRegisterUserForTheCompany:
 		if inlineOnTextEventsHandler(app, bot, message, db, lastState, &Event{
@@ -165,6 +178,7 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 		}) {
 			Init(app, bot, true)
 		}
+		goto END
 
 	RegisterUserWithEmailAndCode:
 		if inlineOnTextEventsHandler(app, bot, message, db, lastState, &Event{
@@ -173,20 +187,18 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 		}) {
 			Init(app, bot, true)
 		}
+		goto END
 
+	END:
 	})
 }
 
 func inlineOnTextEventsHandler(app *config.App, bot *tb.Bot, message *tb.Message, db *sql.DB, lastState *models.UserLastState, request *Event) bool {
 	var result bool
 	switch {
-	case lastState.State == request.UserState && !strings.Contains(message.Text, request.Command):
-		helpers.Invoke(new(BotService), &result, request.Controller, db, app, bot, message, request, lastState)
-	case lastState.State == request.UserState || (request.Command != "" && strings.Contains(message.Text, request.Command)):
+	case request.Controller == "RegisterUserWithemail":
 		helpers.Invoke(new(BotService), &result, request.Controller, db, app, bot, message, request, lastState, strings.TrimSpace(message.Text), message.Sender.ID)
-	case lastState.State == request.UserState && (strings.Contains(message.Text, "No") || strings.Contains(message.Text, "Yes")):
-		helpers.Invoke(new(BotService), &result, request.Controller, db, app, bot, message, request, lastState)
-	case lastState.State == request.UserState:
+	default:
 		helpers.Invoke(new(BotService), &result, request.Controller, db, app, bot, message, request, lastState)
 	}
 	return result

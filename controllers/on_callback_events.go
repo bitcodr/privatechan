@@ -54,6 +54,8 @@ func onCallbackEvents(app *config.App, bot *tb.Bot) {
 			goto SetUpCompanyByAdmin
 		case "register_user_with_email":
 			goto RegisterUserWithemail
+		default:
+			goto END
 		}
 
 	SetUpCompanyByAdmin:
@@ -63,6 +65,7 @@ func onCallbackEvents(app *config.App, bot *tb.Bot) {
 		}) {
 			Init(app, bot, true)
 		}
+		goto END
 
 	RegisterUserWithemail:
 		if inlineOnCallbackEventsHandler(app, bot, c, db, lastState, &Event{
@@ -71,6 +74,9 @@ func onCallbackEvents(app *config.App, bot *tb.Bot) {
 		}) {
 			Init(app, bot, true)
 		}
+		goto END
+
+	END:
 	})
 }
 
@@ -83,10 +89,10 @@ func onCallbackEventsHandler(app *config.App, bot *tb.Bot, c *tb.Callback, reque
 func inlineOnCallbackEventsHandler(app *config.App, bot *tb.Bot, c *tb.Callback, db *sql.DB, lastState *models.UserLastState, request *Event) bool {
 	var result bool
 	switch {
-	case c.Data == request.Command || c.Data == request.Command1:
-		helpers.Invoke(new(BotService), &result, request.Controller, app, bot, c, request)
-	case lastState.State == request.UserState:
+	case request.Controller == "RegisterUserWithemail" || request.Controller == "SetUpCompanyByAdmin":
 		helpers.Invoke(new(BotService), &result, request.Controller, db, app, bot, c.Message, request, lastState, strings.TrimSpace(c.Data), c.Sender.ID)
+	default:
+		helpers.Invoke(new(BotService), &result, request.Controller, app, bot, c, request)
 	}
 	return result
 }

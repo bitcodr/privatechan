@@ -14,14 +14,13 @@ type Event struct {
 	Event                                    interface{}
 }
 
-func Init(app *config.App, bot *tb.Bot, state interface{}) bool {
+func Init(app *config.App, bot *tb.Bot, state interface{}) {
 	if state != nil {
-		return true
+		return
 	}
 	onActionEvents(app, bot)
 	onTextEvents(app, bot)
 	onCallbackEvents(app, bot)
-	return false
 }
 
 func generalEventsHandler(app *config.App, bot *tb.Bot, message *tb.Message, request *Event) bool {
