@@ -15,77 +15,23 @@ type Event struct {
 }
 
 func Init(app *config.App, bot *tb.Bot) {
-	triggersEvents(app, bot)
-	keyboardsEvents(app, bot)
-	onTextEvents(app, bot)
-	onCallbackEvents(app, bot)
-}
 
-func onCallbackEvents(app *config.App, bot *tb.Bot) {
-
-	if inlineOnCallbackEventsHandler(app, bot, &Event{
-		UserState:  "home",
-		Command:    "Home",
-		Command1:   "/start",
-		Controller: "StartBotCallback",
+	if triggersEventsHandler(app, bot, &Event{
+		Event:      tb.OnChannelPost,
+		UserState:  "register_channel",
+		Command:    "/enable_anonymity_support",
+		Controller: "RegisterChannel",
 	}) {
 		return
 	}
 
-	if inlineOnCallbackEventsHandler(app, bot, &Event{
-		UserState:  "setup_verified_company_account",
-		Controller: "SetUpCompanyByAdmin",
+	if triggersEventsHandler(app, bot, &Event{
+		Event:      tb.OnAddedToGroup,
+		UserState:  "register_group",
+		Controller: "RegisterGroup",
 	}) {
 		return
 	}
-
-	if inlineOnCallbackEventsHandler(app, bot, &Event{
-		UserState:  "register_user_with_email",
-		Controller: "RegisterUserWithemail",
-	}) {
-		return
-	}
-
-	if onCallbackEventsHandler(app, bot, &Event{
-		UserState:  "answer_to_dm",
-		Command:    "answer_to_dm_",
-		Controller: "SanedAnswerDM",
-	}) {
-		return
-	}
-
-}
-
-func onCallbackEventsHandler(app *config.App, bot *tb.Bot, request *Event) (result bool) {
-	result = false
-	bot.Handle(tb.OnCallback, func(c *tb.Callback) {
-		helpers.Invoke(new(BotService), request.Controller, app, bot, c, request)
-		result = true
-	})
-	return result
-}
-
-func inlineOnCallbackEventsHandler(app *config.App, bot *tb.Bot, request *Event) (result bool) {
-	result = false
-	bot.Handle(tb.OnCallback, func(c *tb.Callback) {
-		db := app.DB()
-		defer db.Close()
-		lastState := GetUserLastState(db, app, bot, c.Message, c.Sender.ID)
-		switch {
-		case c.Data == request.Command || c.Data == request.Command1:
-			helpers.Invoke(new(BotService), request.Controller, app, bot, c, request)
-			result = true
-		case lastState.State == request.UserState:
-			helpers.Invoke(new(BotService), request.Controller, db, app, bot, c.Message, request, lastState, strings.TrimSpace(c.Data), c.Sender.ID)
-			result = true
-		default:
-			result = false
-		}
-	})
-	return result
-}
-
-func keyboardsEvents(app *config.App, bot *tb.Bot) {
 
 	if keyboardsEventsHandler(app, bot, &Event{
 		Event:      &addAnonMessage,
@@ -95,48 +41,41 @@ func keyboardsEvents(app *config.App, bot *tb.Bot) {
 		return
 	}
 
-}
-
-func keyboardsEventsHandler(app *config.App, bot *tb.Bot, request *Event) (result bool) {
-	result = false
-	bot.Handle(request.Event, func(message *tb.Message) {
-		helpers.Invoke(new(BotService), request.Controller, app, bot, message, request)
-		result = true
-	})
-	return result
-}
-
-func onTextEvents(app *config.App, bot *tb.Bot) {
-
-	onTextEventsHandler(app, bot, &Event{
+	if onTextEventsHandler(app, bot, &Event{
 		UserState:  "home",
 		Command:    "Home",
 		Command1:   "/start",
 		Controller: "StartBot",
-	})
+	}) {
+		return
+	}
 
-	return
-
-	onTextEventsHandler(app, bot, &Event{
+	if onTextEventsHandler(app, bot, &Event{
 		UserState:  "reply_to_message_on_group",
 		Command:    "reply_to_message_on_group_",
 		Command1:   "/start reply_to_message_on_group_",
 		Controller: "SendReply",
-	})
+	}) {
+		return
+	}
 
-	onTextEventsHandler(app, bot, &Event{
+	if onTextEventsHandler(app, bot, &Event{
 		UserState:  "reply_by_dm_to_user_on_group",
 		Command:    "reply_by_dm_to_user_on_group_",
 		Command1:   "/start reply_by_dm_to_user_on_group_",
 		Controller: "SanedDM",
-	})
+	}) {
+		return
+	}
 
-	onTextEventsHandler(app, bot, &Event{
+	if onTextEventsHandler(app, bot, &Event{
 		UserState:  "new_message_to_group",
 		Command:    "compose_message_in_group_",
 		Command1:   "/start compose_message_in_group_",
 		Controller: "NewMessageGroupHandler",
-	})
+	}) {
+		return
+	}
 
 	if inlineOnTextEventsHandler(app, bot, &Event{
 		UserState:  "setup_verified_company_account",
@@ -206,34 +145,57 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 	}) {
 		return
 	}
+
+	if inlineOnCallbackEventsHandler(app, bot, &Event{
+		UserState:  "home",
+		Command:    "Home",
+		Command1:   "/start",
+		Controller: "StartBotCallback",
+	}) {
+		return
+	}
+
+	if inlineOnCallbackEventsHandler(app, bot, &Event{
+		UserState:  "setup_verified_company_account",
+		Controller: "SetUpCompanyByAdmin",
+	}) {
+		return
+	}
+
+	if inlineOnCallbackEventsHandler(app, bot, &Event{
+		UserState:  "register_user_with_email",
+		Controller: "RegisterUserWithemail",
+	}) {
+		return
+	}
+
+	if onCallbackEventsHandler(app, bot, &Event{
+		UserState:  "answer_to_dm",
+		Command:    "answer_to_dm_",
+		Controller: "SanedAnswerDM",
+	}) {
+		return
+	}
+
 }
 
-
-func onTextEventsHandler(app *config.App, bot *tb.Bot, request *Event) {
-	bot.Handle(tb.OnText, func(message *tb.Message) {
-		helpers.Invoke(new(BotService), request.Controller, app, bot, message, request)
+func onCallbackEventsHandler(app *config.App, bot *tb.Bot, request *Event) (result bool) {
+	bot.Handle(tb.OnCallback, func(c *tb.Callback) {
+		result = helpers.Invoke(new(BotService), request.Controller, app, bot, c, request)
 	})
+	return result
 }
 
-func inlineOnTextEventsHandler(app *config.App, bot *tb.Bot, request *Event) (result bool) {
-	result = false
-	bot.Handle(tb.OnText, func(message *tb.Message) {
+func inlineOnCallbackEventsHandler(app *config.App, bot *tb.Bot, request *Event) (result bool) {
+	bot.Handle(tb.OnCallback, func(c *tb.Callback) {
 		db := app.DB()
 		defer db.Close()
-		lastState := GetUserLastState(db, app, bot, message, message.Sender.ID)
+		lastState := GetUserLastState(db, app, bot, c.Message, c.Sender.ID)
 		switch {
-		case lastState.State == request.UserState && !strings.Contains(message.Text, request.Command):
-			helpers.Invoke(new(BotService), request.Controller, db, app, bot, message, request, lastState)
-			result = true
-		case lastState.State == request.UserState || (request.Command != "" && strings.Contains(message.Text, request.Command)):
-			helpers.Invoke(new(BotService), request.Controller, db, app, bot, message, request, lastState, strings.TrimSpace(message.Text), message.Sender.ID)
-			result = true
-		case lastState.State == request.UserState && (strings.Contains(message.Text, "No") || strings.Contains(message.Text, "Yes")):
-			helpers.Invoke(new(BotService), request.Controller, db, app, bot, message, request, lastState)
-			result = true
+		case c.Data == request.Command || c.Data == request.Command1:
+			result = helpers.Invoke(new(BotService), request.Controller, app, bot, c, request)
 		case lastState.State == request.UserState:
-			helpers.Invoke(new(BotService), request.Controller, db, app, bot, message, request, lastState)
-			result = true
+			result = helpers.Invoke(new(BotService), request.Controller, db, app, bot, c.Message, request, lastState, strings.TrimSpace(c.Data), c.Sender.ID)
 		default:
 			result = false
 		}
@@ -241,31 +203,44 @@ func inlineOnTextEventsHandler(app *config.App, bot *tb.Bot, request *Event) (re
 	return result
 }
 
-func triggersEvents(app *config.App, bot *tb.Bot) {
+func keyboardsEventsHandler(app *config.App, bot *tb.Bot, request *Event) (result bool) {
+	bot.Handle(request.Event, func(message *tb.Message) {
+		result = helpers.Invoke(new(BotService), request.Controller, app, bot, message, request)
+	})
+	return result
+}
 
-	if triggersEventsHandler(app, bot, &Event{
-		Event:      tb.OnChannelPost,
-		UserState:  "register_channel",
-		Command:    "/enable_anonymity_support",
-		Controller: "RegisterChannel",
-	}) {
-		return
-	}
+func onTextEventsHandler(app *config.App, bot *tb.Bot, request *Event) (result bool) {
+	bot.Handle(tb.OnText, func(message *tb.Message) {
+		result = helpers.Invoke(new(BotService), request.Controller, app, bot, message, request)
+	})
+	return result
+}
 
-	if triggersEventsHandler(app, bot, &Event{
-		Event:      tb.OnAddedToGroup,
-		UserState:  "register_group",
-		Controller: "RegisterGroup",
-	}) {
-		return
-	}
+func inlineOnTextEventsHandler(app *config.App, bot *tb.Bot, request *Event) (result bool) {
+	bot.Handle(tb.OnText, func(message *tb.Message) {
+		db := app.DB()
+		defer db.Close()
+		lastState := GetUserLastState(db, app, bot, message, message.Sender.ID)
+		switch {
+		case lastState.State == request.UserState && !strings.Contains(message.Text, request.Command):
+			result = helpers.Invoke(new(BotService), request.Controller, db, app, bot, message, request, lastState)
+		case lastState.State == request.UserState || (request.Command != "" && strings.Contains(message.Text, request.Command)):
+			result = helpers.Invoke(new(BotService), request.Controller, db, app, bot, message, request, lastState, strings.TrimSpace(message.Text), message.Sender.ID)
+		case lastState.State == request.UserState && (strings.Contains(message.Text, "No") || strings.Contains(message.Text, "Yes")):
+			result = helpers.Invoke(new(BotService), request.Controller, db, app, bot, message, request, lastState)
+		case lastState.State == request.UserState:
+			result = helpers.Invoke(new(BotService), request.Controller, db, app, bot, message, request, lastState)
+		default:
+			result = false
+		}
+	})
+	return result
 }
 
 func triggersEventsHandler(app *config.App, bot *tb.Bot, request *Event) (result bool) {
-	result = false
 	bot.Handle(request.Event, func(message *tb.Message) {
-		helpers.Invoke(new(BotService), request.Controller, app, bot, message, request)
-		result = true
+		result = helpers.Invoke(new(BotService), request.Controller, app, bot, message, request)
 	})
 	return result
 }
