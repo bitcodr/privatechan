@@ -3,16 +3,16 @@ package controllers
 
 import (
 	"database/sql"
-	"github.com/amiraliio/tgbp/lang"
-	"github.com/google/uuid"
 	"log"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/amiraliio/tgbp/lang"
+	"github.com/google/uuid"
+
 	"github.com/amiraliio/tgbp/config"
 	"github.com/amiraliio/tgbp/models"
-	"github.com/spf13/viper"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
@@ -282,17 +282,17 @@ func (service *BotService) SaveAndSendMessage(db *sql.DB, app *config.App, bot *
 		newReply := tb.InlineButton{
 			Unique: "reply_to_message_on_group_" + activeChannel.ChannelID + "_" + senderID + "_" + botMessageID,
 			Text:   "👻Reply",
-			URL:    "https://t.me/" + viper.GetString("APP.BOTUSERNAME") + "?start=reply_to_message_on_group_" + activeChannel.ChannelID + "_" + senderID + "_" + botMessageID,
+			URL:    "https://t.me/" + app.BotUsername + "?start=reply_to_message_on_group_" + activeChannel.ChannelID + "_" + senderID + "_" + botMessageID,
 		}
 		newM := tb.InlineButton{
 			Unique: "compose_message_in_group_" + activeChannel.ChannelID,
 			Text:   "📝New",
-			URL:    "https://t.me/" + viper.GetString("APP.BOTUSERNAME") + "?start=compose_message_in_group_" + activeChannel.ChannelID,
+			URL:    "https://t.me/" + app.BotUsername + "?start=compose_message_in_group_" + activeChannel.ChannelID,
 		}
 		newDM := tb.InlineButton{
 			Unique: "reply_by_dm_to_user_on_group_" + activeChannel.ChannelID + "_" + senderID + "_" + botMessageID,
 			Text:   "📲Direct",
-			URL:    "https://t.me/" + viper.GetString("APP.BOTUSERNAME") + "?start=reply_by_dm_to_user_on_group_" + activeChannel.ChannelID + "_" + senderID + "_" + botMessageID,
+			URL:    "https://t.me/" + app.BotUsername + "?start=reply_by_dm_to_user_on_group_" + activeChannel.ChannelID + "_" + senderID + "_" + botMessageID,
 		}
 		inlineKeys := [][]tb.InlineButton{
 			[]tb.InlineButton{newReply, newM, newDM},
@@ -359,17 +359,17 @@ func (service *BotService) SendAndSaveReplyMessage(db *sql.DB, app *config.App, 
 						newReply := tb.InlineButton{
 							Unique: "reply_to_message_on_group_" + channelID + "_" + senderID + "_" + botMessageID,
 							Text:   "👻Reply",
-							URL:    "https://t.me/" + viper.GetString("APP.BOTUSERNAME") + "?start=reply_to_message_on_group_" + channelID + "_" + senderID + "_" + botMessageID,
+							URL:    "https://t.me/" + app.BotUsername + "?start=reply_to_message_on_group_" + channelID + "_" + senderID + "_" + botMessageID,
 						}
 						newM := tb.InlineButton{
 							Unique: "compose_message_in_group_" + channelID,
 							Text:   "📝New",
-							URL:    "https://t.me/" + viper.GetString("APP.BOTUSERNAME") + "?start=compose_message_in_group_" + channelID,
+							URL:    "https://t.me/" + app.BotUsername + "?start=compose_message_in_group_" + channelID,
 						}
 						newDM := tb.InlineButton{
 							Unique: "reply_by_dm_to_user_on_group_" + channelID + "_" + senderID + "_" + botMessageID,
 							Text:   "📲Direct",
-							URL:    "https://t.me/" + viper.GetString("APP.BOTUSERNAME") + "?start=reply_by_dm_to_user_on_group_" + channelID + "_" + senderID + "_" + botMessageID,
+							URL:    "https://t.me/" + app.BotUsername + "?start=reply_by_dm_to_user_on_group_" + channelID + "_" + senderID + "_" + botMessageID,
 						}
 						inlineKeys := [][]tb.InlineButton{
 							[]tb.InlineButton{newReply, newM, newDM},

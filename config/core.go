@@ -24,6 +24,6 @@ func (app *App) SetAppConfig() *App {
 	app.DBUserName = viper.GetString("DATABASES.MYSQL.USERNAME")
 	app.DBPass = viper.GetString("DATABASES.MYSQL.PASSWORD")
 	app.CurrentTime = time.Now().UTC().Format("2006-01-02 03:04:05")
-	app.BotUsername = viper.GetString("APP.APP.BOT_USERNAME")
+	app.BotUsername = viper.GetString("APP.BOT_USERNAME")
 	return app
 }

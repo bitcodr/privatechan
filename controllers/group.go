@@ -2,16 +2,16 @@ package controllers
 
 import (
 	"database/sql"
-	"github.com/amiraliio/tgbp/lang"
-	"github.com/google/uuid"
 	"log"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/amiraliio/tgbp/lang"
+	"github.com/google/uuid"
+
 	"github.com/amiraliio/tgbp/config"
 	"github.com/amiraliio/tgbp/models"
-	"github.com/spf13/viper"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
@@ -125,7 +125,7 @@ func (service *BotService) RegisterGroup(app *config.App, bot *tb.Bot, m *tb.Mes
 			compose := tb.InlineButton{
 				Unique: "compose_message_in_group_" + channelID,
 				Text:   "📝 New Anonymous Message 👻",
-				URL:    "https://t.me/" + viper.GetString("APP.BOTUSERNAME") + "?start=compose_message_in_group_" + channelID,
+				URL:    "https://t.me/" + app.BotUsername + "?start=compose_message_in_group_" + channelID,
 			}
 			groupKeys := [][]tb.InlineButton{
 				[]tb.InlineButton{compose},
@@ -145,7 +145,7 @@ func (service *BotService) RegisterGroup(app *config.App, bot *tb.Bot, m *tb.Mes
 		compose := tb.InlineButton{
 			Unique: "compose_message_in_group_" + channelID,
 			Text:   "📝 New Anonymous Message 👻",
-			URL:    "https://t.me/" + viper.GetString("APP.BOTUSERNAME") + "?start=compose_message_in_group_" + channelID,
+			URL:    "https://t.me/" + app.BotUsername + "?start=compose_message_in_group_" + channelID,
 		}
 		groupKeys := [][]tb.InlineButton{
 			[]tb.InlineButton{compose},
