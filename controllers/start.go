@@ -2,15 +2,14 @@ package controllers
 
 import (
 	"github.com/amiraliio/tgbp/config"
-	"github.com/amiraliio/tgbp/events"
 	tb "gopkg.in/tucnak/telebot.v2"
 	"log"
 	"strings"
 )
 
-type event events.BotService
 
-func (service event) StartBot(app *config.App, bot *tb.Bot, message *tb.Message, request *events.Event) bool {
+
+func (service *BotService) StartBot(app *config.App, bot *tb.Bot, message *tb.Message, request *Event) bool {
 	if strings.TrimSpace(message.Text) == request.Command || strings.TrimSpace(message.Text) == request.Command1 {
 		db := app.DB()
 		defer db.Close()
@@ -18,7 +17,7 @@ func (service event) StartBot(app *config.App, bot *tb.Bot, message *tb.Message,
 			SaveUserLastState(db, app, bot, message.Text, message.Sender.ID, request.UserState)
 		}
 		newReplyModel := new(tb.ReplyMarkup)
-		newReplyModel.ReplyKeyboard = events.StartBotKeys
+		newReplyModel.ReplyKeyboard = StartBotKeys
 		newSendOption := new(tb.SendOptions)
 		newSendOption.ReplyMarkup = newReplyModel
 		_ = bot.Delete(message)
@@ -32,14 +31,14 @@ func (service event) StartBot(app *config.App, bot *tb.Bot, message *tb.Message,
 	return false
 }
 
-func (service event) StartBotCallback(app *config.App, bot *tb.Bot, callback *tb.Callback, request *events.Event) bool {
+func (service *BotService) StartBotCallback(app *config.App, bot *tb.Bot, callback *tb.Callback, request *Event) bool {
 	db := app.DB()
 	defer db.Close()
 	if callback.Sender != nil {
 		SaveUserLastState(db, app, bot, callback.Data, callback.Sender.ID, request.UserState)
 	}
 	newReplyModel := new(tb.ReplyMarkup)
-	newReplyModel.ReplyKeyboard = events.StartBotKeys
+	newReplyModel.ReplyKeyboard = StartBotKeys
 	newSendOption := new(tb.SendOptions)
 	newSendOption.ReplyMarkup = newReplyModel
 	_ = bot.Delete(callback.Message)
@@ -51,7 +50,7 @@ func (service event) StartBotCallback(app *config.App, bot *tb.Bot, callback *tb
 	return true
 }
 
-func (service event) AddAnonMessageToChannel(app *config.App, bot *tb.Bot, message *tb.Message, request *events.Event) bool {
+func (service *BotService) AddAnonMessageToChannel(app *config.App, bot *tb.Bot, message *tb.Message, request *Event) bool {
 	db := app.DB()
 	defer db.Close()
 	if message.Sender != nil {

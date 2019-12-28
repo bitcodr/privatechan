@@ -3,7 +3,6 @@ package controllers
 
 import (
 	"database/sql"
-	"github.com/amiraliio/tgbp/events"
 	"github.com/amiraliio/tgbp/lang"
 	"github.com/google/uuid"
 	"log"
@@ -21,7 +20,7 @@ import (
 //TODO change value of queries to ?
 
 //RegisterChannel
-func (service event) RegisterChannel(app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event) bool {
+func (service *BotService) RegisterChannel(app *config.App, bot *tb.Bot, m *tb.Message, request *Event) bool {
 	if strings.TrimSpace(m.Text) == request.Command {
 		db := app.DB()
 		defer db.Close()
@@ -165,7 +164,7 @@ func (service event) RegisterChannel(app *config.App, bot *tb.Bot, m *tb.Message
 	return false
 }
 
-func (service event) SendReply(app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event) bool {
+func (service *BotService) SendReply(app *config.App, bot *tb.Bot, m *tb.Message, request *Event) bool {
 	if strings.Contains(m.Text, request.Command) {
 		db := app.DB()
 		defer db.Close()
@@ -209,7 +208,7 @@ func (service event) SendReply(app *config.App, bot *tb.Bot, m *tb.Message, requ
 	return false
 }
 
-func (service event) SanedDM(app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event) bool {
+func (service *BotService) SanedDM(app *config.App, bot *tb.Bot, m *tb.Message, request *Event) bool {
 	if strings.Contains(m.Text, request.Command) {
 		db := app.DB()
 		defer db.Close()
@@ -252,7 +251,7 @@ func (service event) SanedDM(app *config.App, bot *tb.Bot, m *tb.Message, reques
 	return false
 }
 
-func (service event) SanedAnswerDM(app *config.App, bot *tb.Bot, m *tb.Callback, request *events.Event) bool {
+func (service *BotService) SanedAnswerDM(app *config.App, bot *tb.Bot, m *tb.Callback, request *Event) bool {
 	if strings.Contains(m.Data, request.Command) {
 		db := app.DB()
 		defer db.Close()
@@ -275,7 +274,7 @@ func (service event) SanedAnswerDM(app *config.App, bot *tb.Bot, m *tb.Callback,
 	return false
 }
 
-func (service event) SaveAndSendMessage(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event, lastState *models.UserLastState) bool {
+func (service *BotService) SaveAndSendMessage(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *Event, lastState *models.UserLastState) bool {
 	activeChannel := service.GetUserCurrentActiveChannel(db, app, bot, m)
 	if activeChannel != nil {
 		senderID := strconv.Itoa(m.Sender.ID)
@@ -335,7 +334,7 @@ func (service event) SaveAndSendMessage(db *sql.DB, app *config.App, bot *tb.Bot
 	return true
 }
 
-func (service event) SendAndSaveReplyMessage(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event, lastState *models.UserLastState) bool {
+func (service *BotService) SendAndSaveReplyMessage(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *Event, lastState *models.UserLastState) bool {
 	if lastState.Data != "" {
 		ids := strings.TrimPrefix(lastState.Data, "/start reply_to_message_on_group_")
 		if ids != "" {
@@ -431,7 +430,7 @@ func (service event) SendAndSaveReplyMessage(db *sql.DB, app *config.App, bot *t
 	return true
 }
 
-func (service event) SendAndSaveDirectMessage(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event, lastState *models.UserLastState) bool {
+func (service *BotService) SendAndSaveDirectMessage(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *Event, lastState *models.UserLastState) bool {
 	if lastState.Data != "" {
 		ids := strings.TrimPrefix(lastState.Data, "/start reply_by_dm_to_user_on_group_")
 		if ids != "" {
@@ -514,7 +513,7 @@ func (service event) SendAndSaveDirectMessage(db *sql.DB, app *config.App, bot *
 	return true
 }
 
-func (service event) SendAnswerAndSaveDirectMessage(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *events.Event, lastState *models.UserLastState) bool {
+func (service *BotService) SendAnswerAndSaveDirectMessage(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *Event, lastState *models.UserLastState) bool {
 	if lastState.Data != "" {
 		ids := strings.ReplaceAll(lastState.Data, "answer_to_dm_", "")
 		if ids != "" {
@@ -585,7 +584,7 @@ func (service event) SendAnswerAndSaveDirectMessage(db *sql.DB, app *config.App,
 	return true
 }
 
-func (service event) GetUserCurrentActiveChannel(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message) *models.Channel {
+func (service *BotService) GetUserCurrentActiveChannel(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message) *models.Channel {
 	userID := strconv.Itoa(m.Sender.ID)
 	userActiveStatement, err := db.Prepare("SELECT ch.id,ch.channelID,ch.channelName,us.id,us.userID from `channels` as ch inner join `users_current_active_channel` as uc on ch.id=uc.channelID and uc.status='ACTIVE' inner join `users` as us on uc.userID=us.id and us.userID=? and us.`status`='ACTIVE'")
 	if err != nil {
@@ -618,7 +617,7 @@ func SaveUserLastState(db *sql.DB, app *config.App, bot *tb.Bot, data string, us
 	defer insertedState.Close()
 }
 
-func (service event) GetChannelByTelegramID(db *sql.DB, app *config.App, channelID string) *models.Channel {
+func (service *BotService) GetChannelByTelegramID(db *sql.DB, app *config.App, channelID string) *models.Channel {
 	userLastStateQueryStatement, err := db.Prepare("SELECT `channelName` from `channels` where `channelID`=? ")
 	if err != nil {
 		log.Println(err)

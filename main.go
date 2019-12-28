@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/amiraliio/tgbp/config"
-	"github.com/amiraliio/tgbp/events"
+	"github.com/amiraliio/tgbp/controllers"
 )
 
 func main() {
@@ -30,7 +30,7 @@ func main() {
 	bot := app.Bot()
 
 	//handle bot events
-	events.Init(app, bot)
+	controllers.Init(app, bot)
 
 	//start the bot
 	bot.Start()
