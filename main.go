@@ -30,7 +30,7 @@ func main() {
 	bot := app.Bot()
 
 	//handle bot events
-	controllers.Init(app, bot)
+	controllers.Init(app, bot, nil)
 
 	//start the bot
 	bot.Start()
