@@ -1,5 +1,5 @@
 //Package events ...
-package events
+package controllers
 
 import (
 	"github.com/amiraliio/tgbp/config"
@@ -10,41 +10,35 @@ import (
 
 func onTextEvents(app *config.App, bot *tb.Bot) {
 
-	if onTextEventsHandler(app, bot, &Event{
+	onTextEventsHandler(app, bot, &Event{
 		UserState:  "home",
 		Command:    "Home",
 		Command1:   "/start",
 		Controller: "StartBot",
-	}) {
-		return
-	}
+	})
 
-	if onTextEventsHandler(app, bot, &Event{
+	return
+
+	onTextEventsHandler(app, bot, &Event{
 		UserState:  "reply_to_message_on_group",
 		Command:    "reply_to_message_on_group_",
 		Command1:   "/start reply_to_message_on_group_",
 		Controller: "SendReply",
-	}) {
-		return
-	}
+	})
 
-	if onTextEventsHandler(app, bot, &Event{
+	onTextEventsHandler(app, bot, &Event{
 		UserState:  "reply_by_dm_to_user_on_group",
 		Command:    "reply_by_dm_to_user_on_group_",
 		Command1:   "/start reply_by_dm_to_user_on_group_",
 		Controller: "SanedDM",
-	}) {
-		return
-	}
+	})
 
-	if onTextEventsHandler(app, bot, &Event{
+	onTextEventsHandler(app, bot, &Event{
 		UserState:  "new_message_to_group",
 		Command:    "compose_message_in_group_",
 		Command1:   "/start compose_message_in_group_",
 		Controller: "NewMessageGroupHandler",
-	}) {
-		return
-	}
+	})
 
 	if inlineOnTextEventsHandler(app, bot, &Event{
 		UserState:  "setup_verified_company_account",
@@ -115,14 +109,12 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 		return
 	}
 }
+type event BotService
 
-func onTextEventsHandler(app *config.App, bot *tb.Bot, request *Event) (result bool) {
-	result = false
+func onTextEventsHandler(app *config.App, bot *tb.Bot, request *Event) {
 	bot.Handle(tb.OnText, func(message *tb.Message) {
-		helpers.Invoke(BotService{}, request.Controller, app, bot, message, request)
-		result = true
+		helpers.Invoke(event{}, request.Controller, app, bot, message, request)
 	})
-	return result
 }
 
 func inlineOnTextEventsHandler(app *config.App, bot *tb.Bot, request *Event) (result bool) {

@@ -1,5 +1,4 @@
-//Package events ...
-package events
+package controllers
 
 import (
 	"github.com/amiraliio/tgbp/config"

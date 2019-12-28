@@ -1,4 +1,4 @@
-package events
+package controllers
 
 import (
 	"database/sql"
