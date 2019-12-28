@@ -12,6 +12,10 @@ import (
 func onCallbackEvents(app *config.App, bot *tb.Bot) {
 	bot.Handle(tb.OnCallback, func(c *tb.Callback) {
 
+		db := app.DB()
+		defer db.Close()
+		lastState := GetUserLastState(db, app, bot, c.Message, c.Sender.ID)
+
 		//check incoming text
 		incomingMessage := c.Data
 		switch {
@@ -31,6 +35,7 @@ func onCallbackEvents(app *config.App, bot *tb.Bot) {
 		}) {
 			Init(app, bot, true)
 		}
+		goto END
 
 	StartBotCallback:
 		if onCallbackEventsHandler(app, bot, c, &Event{
@@ -41,14 +46,12 @@ func onCallbackEvents(app *config.App, bot *tb.Bot) {
 		}) {
 			Init(app, bot, true)
 		}
+		goto END
 
 		/////////////////////////////////////////////
 		////////check the user state////////////////
 		///////////////////////////////////////////
 	CheckState:
-		db := app.DB()
-		defer db.Close()
-		lastState := GetUserLastState(db, app, bot, c.Message, c.Sender.ID)
 		switch lastState.State {
 		case "setup_verified_company_account":
 			goto SetUpCompanyByAdmin

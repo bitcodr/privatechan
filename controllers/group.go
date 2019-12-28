@@ -173,7 +173,7 @@ func (service *BotService) NewMessageGroupHandler(app *config.App, bot *tb.Bot, 
 		service.CheckUserRegisteredOrNot(db, app, bot, m, lastState, m.Text, m.Sender.ID)
 		if m.Sender != nil {
 			SaveUserLastState(db, app, bot, m.Text, m.Sender.ID, request.UserState)
-		}
+		} 
 		channelID := strings.ReplaceAll(m.Text, request.Command1, "")
 		service.JoinFromGroup(db, app, bot, m, channelID)
 		resultsStatement, err := db.Prepare("SELECT `channelName` FROM `channels` where `channelID`=?")

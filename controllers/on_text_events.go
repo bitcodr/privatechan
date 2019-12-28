@@ -13,6 +13,10 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 
 	bot.Handle(tb.OnText, func(message *tb.Message) {
 
+		db := app.DB()
+		defer db.Close()
+		lastState := GetUserLastState(db, app, bot, message, message.Sender.ID)
+
 		//check incoming text
 		incomingMessage := message.Text
 		switch {
@@ -37,6 +41,7 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 		}) {
 			Init(app, bot, true)
 		}
+		goto END
 
 	SendReply:
 		if generalEventsHandler(app, bot, message, &Event{
@@ -47,6 +52,7 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 		}) {
 			Init(app, bot, true)
 		}
+		goto END
 
 	SanedDM:
 		if generalEventsHandler(app, bot, message, &Event{
@@ -57,6 +63,7 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 		}) {
 			Init(app, bot, true)
 		}
+		goto END
 
 	NewMessageGroupHandler:
 		if generalEventsHandler(app, bot, message, &Event{
@@ -67,14 +74,12 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 		}) {
 			Init(app, bot, true)
 		}
+		goto END
 
 		/////////////////////////////////////////////
 		////////check the user state////////////////
 		///////////////////////////////////////////
 	CheckState:
-		db := app.DB()
-		defer db.Close()
-		lastState := GetUserLastState(db, app, bot, message, message.Sender.ID)
 		switch {
 		case incomingMessage == setupVerifiedCompany.Text:
 			goto SetUpCompanyByAdmin
