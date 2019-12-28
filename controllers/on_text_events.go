@@ -196,7 +196,7 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 func inlineOnTextEventsHandler(app *config.App, bot *tb.Bot, message *tb.Message, db *sql.DB, lastState *models.UserLastState, request *Event) bool {
 	var result bool
 	switch {
-	case request.Controller == "RegisterUserWithemail":
+	case request.Controller == "RegisterUserWithemail" || request.Controller == "SetUpCompanyByAdmin":
 		helpers.Invoke(new(BotService), &result, request.Controller, db, app, bot, message, request, lastState, strings.TrimSpace(message.Text), message.Sender.ID)
 	default:
 		helpers.Invoke(new(BotService), &result, request.Controller, db, app, bot, message, request, lastState)
