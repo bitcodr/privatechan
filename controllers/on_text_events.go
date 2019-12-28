@@ -81,17 +81,17 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 		///////////////////////////////////////////
 	CheckState:
 		switch {
-		case incomingMessage == setupVerifiedCompany.Text:
+		case lastState.State == "setup_verified_company_account" || incomingMessage == setupVerifiedCompany.Text:
 			goto SetUpCompanyByAdmin
-		case strings.Contains(incomingMessage, "compose_message_in_group_"):
+		case lastState.State == "new_message_to_group" || strings.Contains(incomingMessage, "compose_message_in_group_"):
 			goto SaveAndSendMessage
-		case strings.Contains(incomingMessage, "reply_to_message_on_group_"):
+		case lastState.State == "reply_to_message_on_group" || strings.Contains(incomingMessage, "reply_to_message_on_group_"):
 			goto SendAndSaveReplyMessage
-		case strings.Contains(incomingMessage, "reply_by_dm_to_user_on_group_"):
+		case lastState.State == "reply_by_dm_to_user_on_group" || strings.Contains(incomingMessage, "reply_by_dm_to_user_on_group_"):
 			goto SendAndSaveDirectMessage
-		case strings.Contains(incomingMessage, "answer_to_dm_"):
+		case lastState.State == "answer_to_dm" || strings.Contains(incomingMessage, "answer_to_dm_"):
 			goto SendAnswerAndSaveDirectMessage
-		case incomingMessage == joinCompanyChannels.Text:
+		case lastState.State == "register_user_with_email" || incomingMessage == joinCompanyChannels.Text:
 			goto RegisterUserWithemail
 		case lastState.State == "confirm_register_company_email_address":
 			goto ConfirmRegisterCompanyRequest
@@ -99,10 +99,6 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 			goto ConfirmRegisterUserForTheCompany
 		case lastState.State == "email_for_user_registration":
 			goto RegisterUserWithEmailAndCode
-		case lastState.State == "setup_verified_company_account":
-			goto SetUpCompanyByAdmin
-		case lastState.State == "register_user_with_email":
-			goto RegisterUserWithemail
 		default:
 			goto END
 		}
