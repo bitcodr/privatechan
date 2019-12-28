@@ -7,8 +7,6 @@ import (
 	"strings"
 )
 
-
-
 func (service *BotService) StartBot(app *config.App, bot *tb.Bot, message *tb.Message, request *Event) bool {
 	if strings.TrimSpace(message.Text) == request.Command || strings.TrimSpace(message.Text) == request.Command1 {
 		db := app.DB()
@@ -32,22 +30,25 @@ func (service *BotService) StartBot(app *config.App, bot *tb.Bot, message *tb.Me
 }
 
 func (service *BotService) StartBotCallback(app *config.App, bot *tb.Bot, callback *tb.Callback, request *Event) bool {
-	db := app.DB()
-	defer db.Close()
-	if callback.Sender != nil {
-		SaveUserLastState(db, app, bot, callback.Data, callback.Sender.ID, request.UserState)
+	if strings.TrimSpace(callback.Data) == request.Command || strings.TrimSpace(callback.Data) == request.Command1 {
+		db := app.DB()
+		defer db.Close()
+		if callback.Sender != nil {
+			SaveUserLastState(db, app, bot, callback.Data, callback.Sender.ID, request.UserState)
+		}
+		newReplyModel := new(tb.ReplyMarkup)
+		newReplyModel.ReplyKeyboard = StartBotKeys
+		newSendOption := new(tb.SendOptions)
+		newSendOption.ReplyMarkup = newReplyModel
+		_ = bot.Delete(callback.Message)
+		_, err := bot.Send(callback.Sender, "What Do You Want To Do?", newSendOption)
+		if err != nil {
+			log.Println(err)
+			return false
+		}
+		return true
 	}
-	newReplyModel := new(tb.ReplyMarkup)
-	newReplyModel.ReplyKeyboard = StartBotKeys
-	newSendOption := new(tb.SendOptions)
-	newSendOption.ReplyMarkup = newReplyModel
-	_ = bot.Delete(callback.Message)
-	_, err := bot.Send(callback.Sender, "What Do You Want To Do?", newSendOption)
-	if err != nil {
-		log.Println(err)
-		return false
-	}
-	return true
+	return false
 }
 
 func (service *BotService) AddAnonMessageToChannel(app *config.App, bot *tb.Bot, message *tb.Message, request *Event) bool {

@@ -155,7 +155,7 @@ func (service *BotService) ConfirmRegisterUserForTheCompany(db *sql.DB, app *con
 func (service *BotService) RegisterUserWithEmailAndCode(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *Event, lastState *models.UserLastState) bool {
 	userModel := new(tb.User)
 	userModel.ID = m.Sender.ID
-	userActiveKey, err := db.Prepare("SELECT `activeKey`,`createdAt` FROM `users_activation_key` where userID=? order by `createdAt` DESC limit 1")
+	userActiveKey, err := db.Prepare("SELECT `activeKey`,`createdAt` FROM `users_activation_key` where userID=? order by `id` DESC limit 1")
 	if err != nil {
 		log.Println(err)
 		return true
@@ -246,7 +246,7 @@ func (service *BotService) GetUserByTelegramID(db *sql.DB, app *config.App, user
 }
 
 func GetUserLastState(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, user int) *models.UserLastState {
-	userLastStateQueryStatement, err := db.Prepare("SELECT `data`,`state`,`userID` from `users_last_state` where `userId`=? order by `createdAt` DESC limit 1")
+	userLastStateQueryStatement, err := db.Prepare("SELECT `data`,`state`,`userID` from `users_last_state` where `userId`=? order by `id` DESC limit 1")
 	if err != nil {
 		log.Println(err)
 	}

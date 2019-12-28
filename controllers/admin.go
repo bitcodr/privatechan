@@ -16,7 +16,7 @@ import (
 
 
 func (service *BotService) SetUpCompanyByAdmin(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *Event, lastState *models.UserLastState, text string, userID int) bool {
-	if lastState.Data != "" && lastState.State == "setup_verified_company_account" {
+	if lastState.Data != "" && lastState.State == request.UserState { 
 		questions := viper.GetStringMap("SUPERADMIN.COMPANY.SETUP.QUESTIONS")
 		numberOfQuestion := strings.Split(lastState.Data, "_")
 		if len(numberOfQuestion) == 2 {
