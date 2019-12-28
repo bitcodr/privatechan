@@ -20,7 +20,7 @@ func Init(app *config.App, bot *tb.Bot, state interface{}) {
 	}
 
 	bot.Handle(tb.OnChannelPost, func(message *tb.Message) {
-		triggersEventsHandler(app, bot, message, &Event{
+		generalEventsHandler(app, bot, message, &Event{
 			Event:      tb.OnChannelPost,
 			UserState:  "register_channel",
 			Command:    "/enable_anonymity_support",
@@ -30,7 +30,7 @@ func Init(app *config.App, bot *tb.Bot, state interface{}) {
 	})
 
 	bot.Handle(tb.OnAddedToGroup, func(message *tb.Message) {
-		triggersEventsHandler(app, bot, message, &Event{
+		generalEventsHandler(app, bot, message, &Event{
 			Event:      tb.OnAddedToGroup,
 			UserState:  "register_group",
 			Controller: "RegisterGroup",
@@ -38,7 +38,7 @@ func Init(app *config.App, bot *tb.Bot, state interface{}) {
 	})
 
 	bot.Handle(&addAnonMessage, func(message *tb.Message) {
-		keyboardsEventsHandler(app, bot, message, &Event{
+		generalEventsHandler(app, bot, message, &Event{
 			Event:      &addAnonMessage,
 			UserState:  "add_anon_message",
 			Controller: "AddAnonMessageToChannel",
@@ -49,28 +49,28 @@ func Init(app *config.App, bot *tb.Bot, state interface{}) {
 	//on Text handler
 	//////////////////////////////////////////////////
 	bot.Handle(tb.OnText, func(message *tb.Message) {
-		onTextEventsHandler(app, bot, message, &Event{
+		generalEventsHandler(app, bot, message, &Event{
 			UserState:  "home",
 			Command:    "Home",
 			Command1:   "/start",
 			Controller: "StartBot",
 		})
 
-		onTextEventsHandler(app, bot, message, &Event{
+		generalEventsHandler(app, bot, message, &Event{
 			UserState:  "reply_to_message_on_group",
 			Command:    "reply_to_message_on_group_",
 			Command1:   "/start reply_to_message_on_group_",
 			Controller: "SendReply",
 		})
 
-		onTextEventsHandler(app, bot, message, &Event{
+		generalEventsHandler(app, bot, message, &Event{
 			UserState:  "reply_by_dm_to_user_on_group",
 			Command:    "reply_by_dm_to_user_on_group_",
 			Command1:   "/start reply_by_dm_to_user_on_group_",
 			Controller: "SanedDM",
 		})
 
-		onTextEventsHandler(app, bot, message, &Event{
+		generalEventsHandler(app, bot, message, &Event{
 			UserState:  "new_message_to_group",
 			Command:    "compose_message_in_group_",
 			Command1:   "/start compose_message_in_group_",
@@ -158,6 +158,14 @@ func Init(app *config.App, bot *tb.Bot, state interface{}) {
 
 }
 
+func generalEventsHandler(app *config.App, bot *tb.Bot, message *tb.Message, request *Event) {
+	var result bool
+	helpers.Invoke(new(BotService), &result, request.Controller, app, bot, message, request)
+	if result {
+		Init(app, bot, true)
+	}
+}
+
 func onCallbackEventsHandler(app *config.App, bot *tb.Bot, c *tb.Callback, request *Event) {
 	var result bool
 	helpers.Invoke(new(BotService), &result, request.Controller, app, bot, c, request)
@@ -182,22 +190,6 @@ func inlineOnCallbackEventsHandler(app *config.App, bot *tb.Bot, c *tb.Callback,
 	}
 }
 
-func keyboardsEventsHandler(app *config.App, bot *tb.Bot, message *tb.Message, request *Event) {
-	var result bool
-	helpers.Invoke(new(BotService), &result, request.Controller, app, bot, message, request)
-	if result {
-		Init(app, bot, true)
-	}
-}
-
-func onTextEventsHandler(app *config.App, bot *tb.Bot, message *tb.Message, request *Event) {
-	var result bool
-	helpers.Invoke(new(BotService), &result, request.Controller, app, bot, message, request)
-	if result {
-		Init(app, bot, true)
-	}
-}
-
 func inlineOnTextEventsHandler(app *config.App, bot *tb.Bot, message *tb.Message, request *Event) {
 	var result bool
 	db := app.DB()
@@ -213,14 +205,6 @@ func inlineOnTextEventsHandler(app *config.App, bot *tb.Bot, message *tb.Message
 	case lastState.State == request.UserState:
 		helpers.Invoke(new(BotService), &result, request.Controller, db, app, bot, message, request, lastState)
 	}
-	if result {
-		Init(app, bot, true)
-	}
-}
-
-func triggersEventsHandler(app *config.App, bot *tb.Bot, message *tb.Message, request *Event) {
-	var result bool
-	helpers.Invoke(new(BotService), &result, request.Controller, app, bot, message, request)
 	if result {
 		Init(app, bot, true)
 	}
