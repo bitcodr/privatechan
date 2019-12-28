@@ -19,7 +19,7 @@ type App struct {
 }
 
 
-func (app *App) SetOtherConfigs() *App{
+func (app *App) SetAppConfig() *App{
 	app.BotToken = viper.GetString("APP.TELEGRAM_API_TOKEN")
 	app.DBName = viper.GetString("DATABASES.MYSQL.DATABASE")
 	app.DBUserName = viper.GetString("DATABASES.MYSQL.USERNAME")

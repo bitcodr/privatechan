@@ -23,8 +23,8 @@ func main() {
 	//initial environment variables
 	app.Environment()
 
-	//set other configs
-	app = app.SetOtherConfigs()
+	//set app configs
+	app = app.SetAppConfig()
 
 	//init bot
 	bot := app.Bot()
