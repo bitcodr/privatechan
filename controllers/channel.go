@@ -221,6 +221,9 @@ func (service *BotService) SanedDM(app *config.App, bot *tb.Bot, m *tb.Message, 
 		}
 		if m.Sender.ID == directSenderID {
 			bot.Send(m.Sender, "You cannot send direct message to your self", HomeKeyOption(db, app))
+			if m.Sender != nil {
+				SaveUserLastState(db, app, bot, "not_access_to_dm", m.Sender.ID, "not_access_to_dm")
+			}
 			return true
 		}
 		if m.Sender != nil {
@@ -241,7 +244,7 @@ func (service *BotService) SanedDM(app *config.App, bot *tb.Bot, m *tb.Message, 
 		options.ParseMode = tb.ModeHTML
 		user := service.GetUserByTelegramID(db, app, directSenderID)
 		channel := service.GetChannelByTelegramID(db, app, channelID)
-		_, err = bot.Send(m.Sender, "<code>Please send your direct message to the user:</code><b>"+strconv.FormatInt(user.ID, 10)+user.UserID+"</b> <code>From:</code> <b>"+channel.ChannelName+"</b>", options)
+		_, err = bot.Send(m.Sender, "<code>Please send your direct message to the user:</code><b>"+user.UserID+channelID+"</b> <code>From:</code> <b>"+channel.ChannelName+"</b>", options)
 		if err != nil {
 			log.Println(err)
 			return true
@@ -255,6 +258,21 @@ func (service *BotService) SanedAnswerDM(app *config.App, bot *tb.Bot, m *tb.Cal
 	if strings.Contains(m.Data, request.Command) {
 		db := app.DB()
 		defer db.Close()
+		text := strings.TrimPrefix(m.Data, request.Command1)
+		ids := strings.ReplaceAll(text, request.Command, "")
+		data := strings.Split(ids, "_")
+		directSenderID, err := strconv.Atoi(data[1])
+		if err != nil {
+			log.Println(err)
+			return true
+		}
+		if m.Sender.ID == directSenderID {
+			bot.Send(m.Sender, "You cannot send direct message to your self", HomeKeyOption(db, app))
+			if m.Sender != nil {
+				SaveUserLastState(db, app, bot, "not_access_to_dm", m.Sender.ID, "not_access_to_dm")
+			}
+			return true
+		}
 		if m.Sender != nil {
 			SaveUserLastState(db, app, bot, m.Data, m.Sender.ID, request.UserState)
 		}
@@ -268,7 +286,15 @@ func (service *BotService) SanedAnswerDM(app *config.App, bot *tb.Bot, m *tb.Cal
 		}
 		markup.ReplyKeyboard = replyKeys
 		options.ReplyMarkup = markup
-		bot.Send(m.Sender, "Please send your direct message to the user:", options)
+		options.ParseMode = tb.ModeHTML
+		channelID := strings.TrimSpace(data[0])
+		user := service.GetUserByTelegramID(db, app, directSenderID)
+		channel := service.GetChannelByTelegramID(db, app, channelID)
+		_, err = bot.Send(m.Sender, "<code>Please send your direct message to the user:</code><b>"+user.UserID+channelID+"</b> <code>From:</code> <b>"+channel.ChannelName+"</b>", options)
+		if err != nil {
+			log.Println(err)
+			return true
+		}
 		return true
 	}
 	return false
@@ -306,7 +332,8 @@ func (service *BotService) SaveAndSendMessage(db *sql.DB, app *config.App, bot *
 			replyModel.InlineKeyboard = inlineKeys
 			options.ReplyMarkup = replyModel
 			options.ParseMode = tb.ModeHTML
-			message, err := bot.Send(user, "From: <b>"+strconv.FormatInt(activeChannel.User.ID, 10)+activeChannel.User.UserID+"</b> <pre>\n"+m.Text+"</pre>", options)
+			message, err := bot.Send(user, m.Text, options)
+			// message, err := bot.Send(user, "From: <b>"+strconv.FormatInt(activeChannel.User.ID, 10)+activeChannel.User.UserID+"</b> <pre>\n"+m.Text+"</pre>", options)
 			if err == nil {
 				channelMessageID := strconv.Itoa(message.ID)
 				channelID := strconv.FormatInt(activeChannel.ID, 10)
@@ -376,7 +403,7 @@ func (service *BotService) SendAndSaveReplyMessage(db *sql.DB, app *config.App, 
 						}
 						ChannelMessageDataID, err := strconv.Atoi(messageModel.ChannelMessageID)
 						if err == nil {
-							activeChannel := service.GetUserCurrentActiveChannel(db, app, bot, m)
+							// activeChannel := service.GetUserCurrentActiveChannel(db, app, bot, m)
 							sendMessageModel := new(tb.Message)
 							sendMessageModel.ID = ChannelMessageDataID
 							newReplyModel := new(tb.ReplyMarkup)
@@ -387,7 +414,8 @@ func (service *BotService) SendAndSaveReplyMessage(db *sql.DB, app *config.App, 
 							newSendOption.ParseMode = tb.ModeHTML
 							user := new(tb.User)
 							user.ID = channelIntValue
-							sendMessage, err := bot.Send(user, "From: <b>"+strconv.FormatInt(activeChannel.User.ID, 10)+activeChannel.User.UserID+"</b> <pre>\n"+m.Text+"</pre>", newSendOption)
+							sendMessage, err := bot.Send(user, m.Text, newSendOption)
+							// sendMessage, err := bot.Send(user, "From: <b>"+strconv.FormatInt(activeChannel.User.ID, 10)+activeChannel.User.UserID+"</b> <pre>\n"+m.Text+"</pre>", newSendOption)
 							if err == nil {
 								newChannelMessageID := strconv.Itoa(sendMessage.ID)
 								parentID := strconv.FormatInt(messageModel.ID, 10)
@@ -471,7 +499,7 @@ func (service *BotService) SendAndSaveDirectMessage(db *sql.DB, app *config.App,
 							}
 							markup.ReplyKeyboard = replyKeys
 							options.ReplyMarkup = markup
-							bot.Send(m.Sender, "Your Direct Message Has Been Sent To The User", options)
+							bot.Send(m.Sender, "Your Direct Message Has Been Sent To The User: "+userID+channelID, options)
 							// sendMessageModel := new(tb.Message)
 							// sendMessageModel.ID = ChannelMessageDataID
 							newReplyModel := new(tb.ReplyMarkup)
@@ -542,7 +570,7 @@ func (service *BotService) SendAnswerAndSaveDirectMessage(db *sql.DB, app *confi
 					}
 					markup.ReplyKeyboard = replyKeys
 					options.ReplyMarkup = markup
-					bot.Send(m.Sender, "Your Direct Message Has Been Sent To The User", options)
+					bot.Send(m.Sender, "Your Direct Message Has Been Sent To The User: "+userID+channelID, options)
 					newReplyModel := new(tb.ReplyMarkup)
 					newReplyModel.InlineKeyboard = inlineKeys
 					newSendOption := new(tb.SendOptions)
