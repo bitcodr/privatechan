@@ -221,7 +221,7 @@ func (service *BotService) SanedDM(app *config.App, bot *tb.Bot, m *tb.Message, 
 			return true
 		}
 		if m.Sender.ID == directSenderID {
-			bot.Send(m.Sender, "You cannot send direct message to your self", HomeKeyOption(db, app))
+			bot.Send(m.Sender, "You are attempting to Direct Message 📲 yourself. You cannot 🚫 do this. No message has been sent.", HomeKeyOption(db, app))
 			if m.Sender != nil {
 				SaveUserLastState(db, app, bot, "not_access_to_dm", m.Sender.ID, "not_access_to_dm")
 			}
@@ -268,7 +268,7 @@ func (service *BotService) SanedAnswerDM(app *config.App, bot *tb.Bot, m *tb.Cal
 			return true
 		}
 		if m.Sender.ID == directSenderID {
-			bot.Send(m.Sender, "You cannot send direct message to your self", HomeKeyOption(db, app))
+			bot.Send(m.Sender, "You are attempting to Direct Message 📲 yourself. You cannot 🚫 do this. No message has been sent.", HomeKeyOption(db, app))
 			if m.Sender != nil {
 				SaveUserLastState(db, app, bot, "not_access_to_dm", m.Sender.ID, "not_access_to_dm")
 			}
