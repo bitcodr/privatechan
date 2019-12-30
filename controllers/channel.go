@@ -3,6 +3,7 @@ package controllers
 
 import (
 	"database/sql"
+	"github.com/amiraliio/tgbp/helpers"
 	"log"
 	"strconv"
 	"strings"
@@ -244,7 +245,7 @@ func (service *BotService) SanedDM(app *config.App, bot *tb.Bot, m *tb.Message, 
 		options.ParseMode = tb.ModeHTML
 		user := service.GetUserByTelegramID(db, app, directSenderID)
 		channel := service.GetChannelByTelegramID(db, app, channelID)
-		_, err = bot.Send(m.Sender, "<code>Please send your direct message to the user:</code><b>"+user.UserID+channelID+"</b> <code>From:</code> <b>"+channel.ChannelName+"</b>", options)
+		_, err = bot.Send(m.Sender, "<code>Please send your direct message to the user:</code><b>"+helpers.Hash(user.UserID+channelID)+"</b> <code>From:</code> <b>"+channel.ChannelName+"</b>", options)
 		if err != nil {
 			log.Println(err)
 			return true
@@ -290,7 +291,7 @@ func (service *BotService) SanedAnswerDM(app *config.App, bot *tb.Bot, m *tb.Cal
 		channelID := strings.TrimSpace(data[0])
 		user := service.GetUserByTelegramID(db, app, directSenderID)
 		channel := service.GetChannelByTelegramID(db, app, channelID)
-		_, err = bot.Send(m.Sender, "<code>Please send your direct message to the user:</code><b>"+user.UserID+channelID+"</b> <code>From:</code> <b>"+channel.ChannelName+"</b>", options)
+		_, err = bot.Send(m.Sender, "<code>Please send your direct message to the user:</code><b>"+helpers.Hash(user.UserID+channelID)+"</b> <code>From:</code> <b>"+channel.ChannelName+"</b>", options)
 		if err != nil {
 			log.Println(err)
 			return true
@@ -471,7 +472,7 @@ func (service *BotService) SendAndSaveDirectMessage(db *sql.DB, app *config.App,
 				newBotMessageID := strconv.Itoa(m.ID)
 				userIDInInt, err := strconv.Atoi(userID)
 				if err == nil {
-					messageStatement, err := db.Prepare("SELECT me.id,me.channelMessageID from `messages` as me inner join `channels` as ch on me.channelID=ch.id and ch.channelID=? where me.`botMessageID`=? and me.`userID`=?")
+					messageStatement, err := db.Prepare("SELECT me.id,me.channelMessageID,ch.channelName from `messages` as me inner join `channels` as ch on me.channelID=ch.id and ch.channelID=? where me.`botMessageID`=? and me.`userID`=?")
 					if err != nil {
 						log.Println(err)
 						return true
@@ -479,7 +480,8 @@ func (service *BotService) SendAndSaveDirectMessage(db *sql.DB, app *config.App,
 					defer messageStatement.Close()
 					message := messageStatement.QueryRow(channelID, botMessageID, userID)
 					messageModel := new(models.Message)
-					if err := message.Scan(&messageModel.ID, &messageModel.ChannelMessageID); err == nil {
+					channelModel := new(models.Channel)
+					if err := message.Scan(&messageModel.ID, &messageModel.ChannelMessageID, &channelModel.ChannelName); err == nil {
 						newReply := tb.InlineButton{
 							Unique: "answer_to_dm_" + channelID + "_" + senderID + "_" + newBotMessageID,
 							Text:   "Direct Reply",
@@ -499,7 +501,8 @@ func (service *BotService) SendAndSaveDirectMessage(db *sql.DB, app *config.App,
 							}
 							markup.ReplyKeyboard = replyKeys
 							options.ReplyMarkup = markup
-							bot.Send(m.Sender, "Your Direct Message Has Been Sent To The User: "+userID+channelID, options)
+							options.ParseMode = tb.ModeHTML
+							bot.Send(m.Sender, "Your Direct Message Has Been Sent To The User: <b>"+helpers.Hash(userID+channelID)+"</b>", options)
 							// sendMessageModel := new(tb.Message)
 							// sendMessageModel.ID = ChannelMessageDataID
 							newReplyModel := new(tb.ReplyMarkup)
@@ -507,9 +510,10 @@ func (service *BotService) SendAndSaveDirectMessage(db *sql.DB, app *config.App,
 							newSendOption := new(tb.SendOptions)
 							// newSendOption.ReplyTo = sendMessageModel
 							newSendOption.ReplyMarkup = newReplyModel
+							newSendOption.ParseMode = tb.ModeHTML
 							user := new(tb.User)
 							user.ID = userIDInInt
-							sendMessage, err := bot.Send(user, m.Text, newSendOption)
+							sendMessage, err := bot.Send(user, "<b>Message:</b> "+m.Text+" <b>From:</b> "+helpers.Hash(senderID+channelID)+"<b> On channel/group: </b> "+channelModel.ChannelName, newSendOption)
 							if err == nil {
 								newChannelMessageID := strconv.Itoa(sendMessage.ID)
 								parentID := strconv.FormatInt(messageModel.ID, 10)
@@ -570,30 +574,32 @@ func (service *BotService) SendAnswerAndSaveDirectMessage(db *sql.DB, app *confi
 					}
 					markup.ReplyKeyboard = replyKeys
 					options.ReplyMarkup = markup
-					bot.Send(m.Sender, "Your Direct Message Has Been Sent To The User: "+userID+channelID, options)
-					newReplyModel := new(tb.ReplyMarkup)
-					newReplyModel.InlineKeyboard = inlineKeys
-					newSendOption := new(tb.SendOptions)
-					newSendOption.ReplyMarkup = newReplyModel
-					user := new(tb.User)
-					user.ID = userIDInInt
-					sendMessage, err := bot.Send(user, m.Text, newSendOption)
-					if err == nil {
-						newChannelMessageID := strconv.Itoa(sendMessage.ID)
-						currentChannelStatement, err := db.Prepare("SELECT id from `channels` where `channelID`=?")
-						if err != nil {
-							log.Println(err)
-							return true
-						}
-						defer currentChannelStatement.Close()
-						currentChannel, err := currentChannelStatement.Query(channelID)
-						if err != nil {
-							log.Println(err)
-							return true
-						}
-						if currentChannel.Next() {
-							newChannelModel := new(models.Channel)
-							if err := currentChannel.Scan(&newChannelModel.ID); err == nil {
+					options.ParseMode = tb.ModeHTML
+					bot.Send(m.Sender, "Your Direct Message Has Been Sent To The User: <b>"+helpers.Hash(userID+channelID)+"</b>", options)
+					currentChannelStatement, err := db.Prepare("SELECT id,channelName from `channels` where `channelID`=?")
+					if err != nil {
+						log.Println(err)
+						return true
+					}
+					defer currentChannelStatement.Close()
+					currentChannel, err := currentChannelStatement.Query(channelID)
+					if err != nil {
+						log.Println(err)
+						return true
+					}
+					if currentChannel.Next() {
+						newChannelModel := new(models.Channel)
+						if err := currentChannel.Scan(&newChannelModel.ID, &newChannelModel.ChannelName); err == nil {
+							newReplyModel := new(tb.ReplyMarkup)
+							newReplyModel.InlineKeyboard = inlineKeys
+							newSendOption := new(tb.SendOptions)
+							newSendOption.ReplyMarkup = newReplyModel
+							newSendOption.ParseMode = tb.ModeHTML
+							user := new(tb.User)
+							user.ID = userIDInInt
+							sendMessage, err := bot.Send(user, "<b>Message:</b> "+m.Text+" <b>From:</b> "+helpers.Hash(senderID+channelID)+"<b> On channel/group: </b> "+newChannelModel.ChannelName, newSendOption)
+							if err == nil {
+								newChannelMessageID := strconv.Itoa(sendMessage.ID)
 								newChannelModelID := strconv.FormatInt(newChannelModel.ID, 10)
 								insertedMessage, err := db.Query("INSERT INTO `messages` (`userID`,`channelID`,`channelMessageID`,`botMessageID`,`createdAt`) VALUES('" + senderID + "','" + newChannelModelID + "','" + newChannelMessageID + "','" + newBotMessageID + "','" + app.CurrentTime + "')")
 								if err != nil {

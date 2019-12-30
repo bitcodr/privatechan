@@ -2,6 +2,8 @@ package helpers
 
 import (
 	"golang.org/x/crypto/bcrypt"
+	"hash/fnv"
+	"strconv"
 )
 
 //HashPassword helper
@@ -19,4 +21,10 @@ func CheckPasswordHash(password, hash string) bool {
 		return false
 	}
 	return true
+}
+
+func Hash(data string) string {
+	hash := fnv.New32a()
+	hash.Write([]byte(data))
+	return strconv.FormatInt(int64(hash.Sum32()), 10)
 }
