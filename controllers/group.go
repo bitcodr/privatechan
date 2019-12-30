@@ -173,7 +173,7 @@ func (service *BotService) NewMessageGroupHandler(app *config.App, bot *tb.Bot, 
 		service.CheckUserRegisteredOrNot(db, app, bot, m, lastState, m.Text, m.Sender.ID)
 		if m.Sender != nil {
 			SaveUserLastState(db, app, bot, m.Text, m.Sender.ID, request.UserState)
-		} 
+		}
 		channelID := strings.ReplaceAll(m.Text, request.Command1, "")
 		service.JoinFromGroup(db, app, bot, m, channelID)
 		resultsStatement, err := db.Prepare("SELECT `channelName` FROM `channels` where `channelID`=?")
@@ -326,4 +326,18 @@ func (service *BotService) checkAndInsertUserGroup(app *config.App, bot *tb.Bot,
 		}
 
 	}
+}
+
+func (service *BotService) UpdateGroupTitle(app *config.App, bot *tb.Bot, m *tb.Message, request *Event) bool {
+	db := app.DB()
+	defer db.Close()
+	if m.Sender != nil {
+		SaveUserLastState(db, app, bot, m.Text, m.Sender.ID, request.UserState)
+	}
+	_, err := db.Query("update channels set channelName=? where channelID=?", m.NewGroupTitle, m.Chat.ID)
+	if err != nil {
+		log.Println(err)
+		return true
+	}
+	return true
 }

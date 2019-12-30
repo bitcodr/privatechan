@@ -180,7 +180,7 @@ func (service *BotService) RegisterUserWithEmailAndCode(db *sql.DB, app *config.
 		log.Println("length of channel data must be 2")
 		return true
 	}
-	resultsStatement, err := db.Prepare("SELECT channelID,channelURL,manualChannelName FROM `channels` where id=?")
+	resultsStatement, err := db.Prepare("SELECT channelID,channelURL,manualChannelName,channelName FROM `channels` where id=?")
 	if err != nil {
 		log.Println(err)
 		return true
@@ -192,7 +192,7 @@ func (service *BotService) RegisterUserWithEmailAndCode(db *sql.DB, app *config.
 		log.Println(err)
 		return true
 	}
-	if err := resultsStatement.QueryRow(channelID).Scan(&channelModel.ChannelID, &channelModel.ChannelURL, &channelModel.ManualChannelName); err != nil {
+	if err := resultsStatement.QueryRow(channelID).Scan(&channelModel.ChannelID, &channelModel.ChannelURL, &channelModel.ManualChannelName, &channelModel.ChannelName); err != nil {
 		log.Println(err)
 		return true
 	}
@@ -221,7 +221,7 @@ func (service *BotService) RegisterUserWithEmailAndCode(db *sql.DB, app *config.
 	replyModel.ReplyKeyboard = replyBTN
 	replyModel.InlineKeyboard = replyKeys
 	options.ReplyMarkup = replyModel
-	bot.Send(userModel, "You are now member of channel/group "+channelModel.ManualChannelName, options)
+	bot.Send(userModel, "You are now member of channel/group "+channelModel.ChannelName, options)
 	return true
 }
 

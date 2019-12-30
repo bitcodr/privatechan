@@ -28,6 +28,16 @@ func onActionEvents(app *config.App, bot *tb.Bot) {
 		}
 	})
 
+	bot.Handle(tb.OnNewGroupTitle, func(message *tb.Message) {
+		if generalEventsHandler(app, bot, message, &Event{
+			Event:      tb.OnNewGroupTitle,
+			UserState:  "updateGrouptitle",
+			Controller: "UpdateGroupTitle",
+		}) {
+			Init(app, bot, true)
+		}
+	})
+
 	bot.Handle(&addAnonMessage, func(message *tb.Message) {
 		if generalEventsHandler(app, bot, message, &Event{
 			Event:      &addAnonMessage,
