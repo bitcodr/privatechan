@@ -628,7 +628,7 @@ func (service *BotService) SendAnswerAndSaveDirectMessage(db *sql.DB, app *confi
 
 func (service *BotService) GetUserCurrentActiveChannel(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message) *models.Channel {
 	userID := strconv.Itoa(m.Sender.ID)
-	userActiveStatement, err := db.Prepare("SELECT ch.id,ch.channelID,ch.channelName,ch.channelURL,us.id,us.userID,cs.joinVerify,cs.newMessageVerify,cs.newReplyVerify,cs.directVerify from `channels` as ch inner join `users_current_active_channel` as uc on ch.id=uc.channelID and uc.status='ACTIVE' inner join `users` as us on uc.userID=us.id and us.userID=? and us.`status`='ACTIVE' left join `channels_settings` as cs on ch.id=cs.channelID ")
+	userActiveStatement, err := db.Prepare("SELECT ch.id,ch.channelID,ch.channelName,ch.channelURL,us.id,us.userID from `channels` as ch inner join `users_current_active_channel` as uc on ch.id=uc.channelID and uc.status='ACTIVE' inner join `users` as us on uc.userID=us.id and us.userID=? and us.`status`='ACTIVE' ")
 	if err != nil {
 		log.Println(err)
 	}
@@ -640,12 +640,10 @@ func (service *BotService) GetUserCurrentActiveChannel(db *sql.DB, app *config.A
 	if userActiveChannel.Next() {
 		channelModel := new(models.Channel)
 		userModel := new(models.User)
-		channelSettingModel := new(models.ChannelSetting)
-		if err := userActiveChannel.Scan(&channelModel.ID, &channelModel.ChannelID, &channelModel.ChannelName, &channelModel.ChannelURL, &userModel.ID, &userModel.UserID, &channelSettingModel.JoinVerify, &channelSettingModel.NewMessageVerify, &channelSettingModel.NewMessageVerify, &channelSettingModel.DirectVerify); err != nil {
+		if err := userActiveChannel.Scan(&channelModel.ID, &channelModel.ChannelID, &channelModel.ChannelName, &channelModel.ChannelURL, &userModel.ID, &userModel.UserID); err != nil {
 			log.Println(err)
 		}
 		channelModel.User = userModel
-		channelModel.Setting = channelSettingModel
 		return channelModel
 	}
 	return nil
