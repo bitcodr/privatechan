@@ -3,7 +3,6 @@ package controllers
 
 import (
 	"database/sql"
-	"github.com/amiraliio/tgbp/helpers"
 	"log"
 	"strconv"
 	"strings"
@@ -13,6 +12,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/amiraliio/tgbp/config"
+	"github.com/amiraliio/tgbp/helpers"
 	"github.com/amiraliio/tgbp/models"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
@@ -352,7 +352,15 @@ func (service *BotService) SaveAndSendMessage(db *sql.DB, app *config.App, bot *
 				replyKeys := [][]tb.ReplyButton{
 					[]tb.ReplyButton{homeBTN},
 				}
+				// redirectBTN := tb.InlineButton{
+				// 	Text: "Back to " + activeChannel.ChannelName,
+				// 	URL:  activeChannel.ChannelURL,
+				// }
+				// inlineKeys := [][]tb.InlineButton{
+				// 	[]tb.InlineButton{redirectBTN},
+				// }
 				markup.ReplyKeyboard = replyKeys
+				// markup.InlineKeyboard = inlineKeys
 				options.ReplyMarkup = markup
 				bot.Send(m.Sender, "Your message has been sent anonymously to the group / channel "+activeChannel.ChannelName, options)
 				SaveUserLastState(db, app, bot, "", m.Sender.ID, "message_sent")
@@ -620,7 +628,7 @@ func (service *BotService) SendAnswerAndSaveDirectMessage(db *sql.DB, app *confi
 
 func (service *BotService) GetUserCurrentActiveChannel(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message) *models.Channel {
 	userID := strconv.Itoa(m.Sender.ID)
-	userActiveStatement, err := db.Prepare("SELECT ch.id,ch.channelID,ch.channelName,us.id,us.userID from `channels` as ch inner join `users_current_active_channel` as uc on ch.id=uc.channelID and uc.status='ACTIVE' inner join `users` as us on uc.userID=us.id and us.userID=? and us.`status`='ACTIVE'")
+	userActiveStatement, err := db.Prepare("SELECT ch.id,ch.channelID,ch.channelName,ch.channelURL,us.id,us.userID,cs.joinVerify,cs.newMessageVerify,cs.newReplyVerify,cs.directVerify from `channels` as ch inner join `users_current_active_channel` as uc on ch.id=uc.channelID and uc.status='ACTIVE' inner join `users` as us on uc.userID=us.id and us.userID=? and us.`status`='ACTIVE' left join `channels_settings` as cs on ch.id=cs.channelID ")
 	if err != nil {
 		log.Println(err)
 	}
@@ -632,23 +640,15 @@ func (service *BotService) GetUserCurrentActiveChannel(db *sql.DB, app *config.A
 	if userActiveChannel.Next() {
 		channelModel := new(models.Channel)
 		userModel := new(models.User)
-		if err := userActiveChannel.Scan(&channelModel.ID, &channelModel.ChannelID, &channelModel.ChannelName, &userModel.ID, &userModel.UserID); err != nil {
+		channelSettingModel := new(models.ChannelSetting)
+		if err := userActiveChannel.Scan(&channelModel.ID, &channelModel.ChannelID, &channelModel.ChannelName, &channelModel.ChannelURL, &userModel.ID, &userModel.UserID, &channelSettingModel.JoinVerify, &channelSettingModel.NewMessageVerify, &channelSettingModel.NewMessageVerify, &channelSettingModel.DirectVerify); err != nil {
 			log.Println(err)
 		}
 		channelModel.User = userModel
+		channelModel.Setting = channelSettingModel
 		return channelModel
 	}
 	return nil
-}
-
-func SaveUserLastState(db *sql.DB, app *config.App, bot *tb.Bot, data string, userDataID int, state string) {
-	userID := strconv.Itoa(userDataID)
-	insertedState, err := db.Query("INSERT INTO `users_last_state` (`userID`,`state`,`data`,`createdAt`) VALUES('" + userID + "','" + state + "','" + strings.TrimSpace(data) + "','" + app.CurrentTime + "')")
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	defer insertedState.Close()
 }
 
 func (service *BotService) GetChannelByTelegramID(db *sql.DB, app *config.App, channelID string) *models.Channel {
@@ -669,4 +669,14 @@ func (service *BotService) GetChannelByTelegramID(db *sql.DB, app *config.App, c
 		return channelModel
 	}
 	return channelModel
+}
+
+func SaveUserLastState(db *sql.DB, app *config.App, bot *tb.Bot, data string, userDataID int, state string) {
+	userID := strconv.Itoa(userDataID)
+	insertedState, err := db.Query("INSERT INTO `users_last_state` (`userID`,`state`,`data`,`createdAt`) VALUES('" + userID + "','" + state + "','" + strings.TrimSpace(data) + "','" + app.CurrentTime + "')")
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer insertedState.Close()
 }

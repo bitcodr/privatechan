@@ -265,10 +265,13 @@ func GetUserLastState(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, u
 	return userLastState
 }
 
-func (service *BotService) CheckUserRegisteredOrNot(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, lastState *models.UserLastState, text string, userID int) {
+func (service *BotService) CheckUserRegisteredOrNot(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *Event, lastState *models.UserLastState, text string, userID int) {
+	channel := service.GetUserCurrentActiveChannel(db, app, bot, m)
+	if channel.Setting != nil {
+
+	}
 	//TODO check the channel is registered or not
 	//TODO if the channel is one of the company that user is registered verification is not necessary
 	//TODO also check it according to event channel is required a action for instance reply is mandatory or not
 	//TODO check if user is registered to company or not
-
 }

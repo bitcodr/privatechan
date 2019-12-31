@@ -170,7 +170,7 @@ func (service *BotService) NewMessageGroupHandler(app *config.App, bot *tb.Bot, 
 		db := app.DB()
 		defer db.Close()
 		lastState := GetUserLastState(db, app, bot, m, m.Sender.ID)
-		service.CheckUserRegisteredOrNot(db, app, bot, m, lastState, m.Text, m.Sender.ID)
+		service.CheckUserRegisteredOrNot(db, app, bot, m, request, lastState, m.Text, m.Sender.ID)
 		if m.Sender != nil {
 			SaveUserLastState(db, app, bot, m.Text, m.Sender.ID, request.UserState)
 		}
