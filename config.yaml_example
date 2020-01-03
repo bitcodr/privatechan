@@ -1,5 +1,5 @@
 APP:
-  TELEGRAM_API_TOKEN: 
+  TELEGRAM_API_TOKEN:
   TELEGRAM_BOT_ID:
   BOT_USERNAME:
 
@@ -21,57 +21,3 @@ DATABASES:
     USERNAME:
     PASSWORD:
 
-SUPERADMIN:
-  COMPANY:
-    SETUP:
-      QUESTIONS:
-        N1:
-          TABLE_NAME: companies
-          COLUMN_NAME: companyName
-          QUESTION: "Enter Company Name:"
-          ANSWERS: ""
-        N2:
-          TABLE_NAME: channels_email_suffixes
-          COLUMN_NAME: suffix
-          QUESTION: "Enter Email Address Suffixes:"
-          ANSWERS: ""
-        N3:
-          TABLE_NAME: companies
-          COLUMN_NAME: companyType
-          QUESTION: "Select Type Of Channel/Group To Add:"
-          ANSWERS: "Global,Country,City"
-        N4:
-          TABLE_NAME: channels
-          COLUMN_NAME: manualChannelName
-          QUESTION: "Enter Channel/Group Name:"
-          ANSWERS: ""
-        N5:
-          TABLE_NAME: channels
-          COLUMN_NAME: uniqueID
-          QUESTION: "Add Channel/Group Unique ID:"
-          ANSWERS: ""
-        N6:
-          TABLE_NAME: channels
-          COLUMN_NAME: channelURL
-          QUESTION: "Add Channel/Group channel URL:"
-          ANSWERS: ""
-        N7:
-          TABLE_NAME: channels_settings
-          COLUMN_NAME: joinVerify
-          QUESTION: "Users Should Be Verify To Join?"
-          ANSWERS: "Yes,No"
-        N8:
-          TABLE_NAME: channels_settings
-          COLUMN_NAME: newMessageVerify
-          QUESTION: "Users Should Be Verify To Send New Message?"
-          ANSWERS: "Yes,No"
-        N9:
-          TABLE_NAME: channels_settings
-          COLUMN_NAME: replyVerify
-          QUESTION: "Users Should Be Verify To Send Reply Message?"
-          ANSWERS: "Yes, No"
-        N10:
-          TABLE_NAME: channels_settings
-          COLUMN_NAME: directVerify
-          QUESTION: "Users Should Be Verify To Send Direct Message?"
-          ANSWERS: "Yes,No"

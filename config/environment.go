@@ -18,7 +18,7 @@ func (app *App) Environment() {
 }
 
 func (app *App) appConfig() {
-	AppConfig := viper.New()
+	AppConfig = viper.New()
 	AppConfig.SetConfigType("yaml")
 	AppConfig.SetConfigName("config")
 	AppConfig.AddConfigPath(app.ProjectDir)
@@ -30,7 +30,7 @@ func (app *App) appConfig() {
 }
 
 func (app *App) langConfig() {
-	LangConfig := viper.New()
+	LangConfig = viper.New()
 	LangConfig.SetConfigType("yaml")
 	LangConfig.SetConfigName("lang")
 	LangConfig.AddConfigPath(app.ProjectDir + "/lang")
@@ -42,7 +42,7 @@ func (app *App) langConfig() {
 }
 
 func (app *App) questionConfig() {
-	QConfig := viper.New()
+	QConfig = viper.New()
 	QConfig.SetConfigType("yaml")
 	QConfig.SetConfigName("question")
 	QConfig.AddConfigPath(app.ProjectDir + "/lang")
