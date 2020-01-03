@@ -1,0 +1,28 @@
+GENERAL:
+  HOME: Home
+  COMPANIES: companies
+  CHANNELS: channels
+  CHANNELS_SETTINGS: channels_settings
+  CHANNEL_EMAIL_SUFFIXES: channels_email_suffixes
+  DATA_MUST_NOT_BE_NULL: "final data must not be null"
+  COMPANY_NAME: companyName
+  COMPANY_TYPE: companyType
+  CHANNEL_TYPE: channelType
+  MANUAL_CHANNEL_NAME : manualChannelName
+  UNIQUE_ID : uniqueID
+  CHANNEL_URL: channelURL
+  YES_TEXT: "Yes"
+  NO_TEXT: "No"
+  JOIN_VERIFY : joinVerify
+  NEW_MESSAGE_VERIFY: newMessageVerify
+  REPLY_VERIFY : replyVerify
+
+
+ADMIN:
+  COMMANDS:
+    SETUP_VERIFIED_COMPANY: setup_verified_company_account_
+  STATE:
+    SETUP_VERIFIED_COMPANY: setup_verified_company_account
+    DONE_SETUP_VERIFIED_COMPANY : done_setup_verified_company_account
+  TEXTS:
+    COMPANY_REGISTERED_SUCCESSFULLY: "The company registered successfully"

@@ -190,7 +190,7 @@ func (service *BotService) NewMessageGroupHandler(app *config.App, bot *tb.Bot, 
 		options := new(tb.SendOptions)
 		markup := new(tb.ReplyMarkup)
 		homeBTN := tb.ReplyButton{
-			Text: "Home",
+			Text: config.LangConfig.GetString("GENERAL.HOME"),
 		}
 		replyKeys := [][]tb.ReplyButton{
 			[]tb.ReplyButton{homeBTN},
@@ -282,7 +282,7 @@ func (service *BotService) checkAndInsertUserGroup(app *config.App, bot *tb.Bot,
 				log.Println(err)
 			}
 			channelModelID := strconv.FormatInt(channelModel.ID, 10)
-			_, err := transaction.Exec("INSERT INTO `users_channels` (`status`,`userID`,`channelID`,`createdAt`,`updatedAt`) VALUES('ACTIVE','" + userModelID + "','" + channelModelID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+			_, err := transaction.Exec("INSERT INTO `users_channels` (`status`,`userID`,`channelID`,`createdAt`,`updatedAt`) VALUES('ACTIVE','" + userModelID + "','" + channelModelID + "','" + app.CurrentTime + "','" + app.CurrentTime + "')")
 			if err != nil {
 				transaction.Rollback()
 				log.Println(err)
@@ -314,7 +314,7 @@ func (service *BotService) checkAndInsertUserGroup(app *config.App, bot *tb.Bot,
 			log.Println(err)
 		}
 		//set user active channel
-		_, err = transaction.Exec("INSERT INTO `users_current_active_channel` (`userID`,`channelID`,`createdAt`,`updatedAt`) VALUES('" + userModelID + "','" + channelModelID + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+		_, err = transaction.Exec("INSERT INTO `users_current_active_channel` (`userID`,`channelID`,`createdAt`,`updatedAt`) VALUES('" + userModelID + "','" + channelModelID + "','" + app.CurrentTime + "','" + app.CurrentTime + "')")
 		if err != nil {
 			transaction.Rollback()
 			log.Println(err)

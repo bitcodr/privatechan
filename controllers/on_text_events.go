@@ -15,7 +15,7 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 		if !message.Private() {
 			return
 		}
-		
+
 		db := app.DB()
 		defer db.Close()
 		lastState := GetUserLastState(db, app, bot, message, message.Sender.ID)
@@ -23,7 +23,7 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 		//check incoming text
 		incomingMessage := message.Text
 		switch {
-		case incomingMessage == "Home" || incomingMessage == "/start":
+		case incomingMessage == config.LangConfig.GetString("GENERAL.HOME") || incomingMessage == "/start":
 			goto StartBot
 		case strings.Contains(incomingMessage, "reply_to_message_on_group_"):
 			goto SendReply
@@ -38,7 +38,7 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 	StartBot:
 		if generalEventsHandler(app, bot, message, &Event{
 			UserState:  "home",
-			Command:    "Home",
+			Command:    config.LangConfig.GetString("GENERAL.HOME"),
 			Command1:   "/start",
 			Controller: "StartBot",
 		}) {
@@ -84,7 +84,7 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 		///////////////////////////////////////////
 	CheckState:
 		switch {
-		case lastState.State == "setup_verified_company_account" || incomingMessage == setupVerifiedCompany.Text:
+		case lastState.State == config.LangConfig.GetString("ADMIN.STATE.SETUP_VERIFIED_COMPANY") || incomingMessage == setupVerifiedCompany.Text:
 			goto SetUpCompanyByAdmin
 		case lastState.State == "new_message_to_group" || strings.Contains(incomingMessage, "compose_message_in_group_"):
 			goto SaveAndSendMessage
@@ -108,7 +108,7 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 
 	SetUpCompanyByAdmin:
 		if inlineOnTextEventsHandler(app, bot, message, db, lastState, &Event{
-			UserState:  "setup_verified_company_account",
+			UserState:  config.LangConfig.GetString("ADMIN.STATE.SETUP_VERIFIED_COMPANY"),
 			Command:    setupVerifiedCompany.Text,
 			Controller: "SetUpCompanyByAdmin",
 		}) {

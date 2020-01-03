@@ -19,7 +19,7 @@ func onCallbackEvents(app *config.App, bot *tb.Bot) {
 		//check incoming text
 		incomingMessage := c.Data
 		switch {
-		case incomingMessage == "Home" || incomingMessage == "/start":
+		case incomingMessage == config.LangConfig.GetString("GENERAL.HOME") || incomingMessage == "/start":
 			goto StartBotCallback
 		case strings.Contains(incomingMessage, "answer_to_dm_"):
 			goto SanedAnswerDM
@@ -40,7 +40,7 @@ func onCallbackEvents(app *config.App, bot *tb.Bot) {
 	StartBotCallback:
 		if onCallbackEventsHandler(app, bot, c, &Event{
 			UserState:  "home",
-			Command:    "Home",
+			Command:    config.LangConfig.GetString("GENERAL.HOME"),
 			Command1:   "/start",
 			Controller: "StartBotCallback",
 		}) {
@@ -53,7 +53,7 @@ func onCallbackEvents(app *config.App, bot *tb.Bot) {
 		///////////////////////////////////////////
 	CheckState:
 		switch lastState.State {
-		case "setup_verified_company_account":
+		case config.LangConfig.GetString("ADMIN.STATE.SETUP_VERIFIED_COMPANY"):
 			goto SetUpCompanyByAdmin
 		case "register_user_with_email":
 			goto RegisterUserWithemail
@@ -63,7 +63,7 @@ func onCallbackEvents(app *config.App, bot *tb.Bot) {
 
 	SetUpCompanyByAdmin:
 		if inlineOnCallbackEventsHandler(app, bot, c, db, lastState, &Event{
-			UserState:  "setup_verified_company_account",
+			UserState:  config.LangConfig.GetString("ADMIN.STATE.SETUP_VERIFIED_COMPANY"),
 			Controller: "SetUpCompanyByAdmin",
 		}) {
 			Init(app, bot, true)

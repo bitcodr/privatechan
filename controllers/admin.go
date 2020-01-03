@@ -23,7 +23,7 @@ func (service *BotService) SetUpCompanyByAdmin(db *sql.DB, app *config.App, bot 
 			if err == nil {
 				tableName := config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N" + questioNumber + ".TABLE_NAME")
 				columnName := config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N" + questioNumber + ".COLUMN_NAME")
-				_, err = db.Query("INSERT INTO `temp_setup_flow` (`tableName`,`columnName`,`data`,`userID`,`relation`,`createdAt`) VALUES ('" + tableName + "','" + columnName + "','" + strings.TrimSpace(text) + "','" + strconv.Itoa(userID) + "','setup_verified_company_account_" + strconv.Itoa(userID) + "_" + relationDate + "','" + app.CurrentTime + "')")
+				_, err = db.Query("INSERT INTO `temp_setup_flow` (`tableName`,`columnName`,`data`,`userID`,`relation`,`createdAt`) VALUES ('" + tableName + "','" + columnName + "','" + strings.TrimSpace(text) + "','" + strconv.Itoa(userID) + "','" + config.LangConfig.GetString("ADMIN.COMMANDS.SETUP_VERIFIED_COMPANY") + strconv.Itoa(userID) + "_" + relationDate + "','" + app.CurrentTime + "')")
 				if err != nil {
 					log.Println(err)
 					return true
@@ -39,7 +39,7 @@ func (service *BotService) SetUpCompanyByAdmin(db *sql.DB, app *config.App, bot 
 	}
 	initQuestion := config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N1.QUESTION")
 	service.sendMessageUserWithActionOnKeyboards(db, app, bot, userID, initQuestion, true)
-	SaveUserLastState(db, app, bot, "1_"+strconv.FormatInt(time.Now().Unix(), 10), userID, "setup_verified_company_account")
+	SaveUserLastState(db, app, bot, "1_"+strconv.FormatInt(time.Now().Unix(), 10), userID, config.LangConfig.GetString("ADMIN.STATE.SETUP_VERIFIED_COMPANY"))
 	return true
 }
 
@@ -57,7 +57,7 @@ func (service *BotService) nextQuestion(db *sql.DB, app *config.App, bot *tb.Bot
 			replyKeysNested = append(replyKeysNested, replyBTN)
 		}
 		homeBTN := tb.ReplyButton{
-			Text: "Home",
+			Text: config.LangConfig.GetString("GENERAL.HOME"),
 		}
 		replyKeys := [][]tb.ReplyButton{
 			replyKeysNested,
@@ -74,7 +74,7 @@ func (service *BotService) nextQuestion(db *sql.DB, app *config.App, bot *tb.Bot
 		userModel := new(tb.User)
 		userModel.ID = userID
 		homeBTN := tb.ReplyButton{
-			Text: "Home",
+			Text: config.LangConfig.GetString("GENERAL.HOME"),
 		}
 		replyKeys := [][]tb.ReplyButton{
 			[]tb.ReplyButton{homeBTN},
@@ -85,7 +85,7 @@ func (service *BotService) nextQuestion(db *sql.DB, app *config.App, bot *tb.Bot
 		options.ReplyMarkup = replyMarkupModel
 		_, _ = bot.Send(userModel, questionText, options)
 	}
-	SaveUserLastState(db, app, bot, strconv.Itoa(prevQuestionNo+1)+"_"+relationDate, userID, "setup_verified_company_account")
+	SaveUserLastState(db, app, bot, strconv.Itoa(prevQuestionNo+1)+"_"+relationDate, userID, config.LangConfig.GetString("ADMIN.STATE.SETUP_VERIFIED_COMPANY"))
 }
 
 func (service *BotService) sendMessageUserWithActionOnKeyboards(db *sql.DB, app *config.App, bot *tb.Bot, userID int, message string, showKeyboard bool) {
@@ -93,7 +93,7 @@ func (service *BotService) sendMessageUserWithActionOnKeyboards(db *sql.DB, app 
 	userModel.ID = userID
 	options := new(tb.SendOptions)
 	homeBTN := tb.ReplyButton{
-		Text: "Home",
+		Text: config.LangConfig.GetString("GENERAL.HOME"),
 	}
 	replyKeys := [][]tb.ReplyButton{
 		[]tb.ReplyButton{homeBTN},
@@ -112,7 +112,7 @@ func (service *BotService) finalStage(app *config.App, bot *tb.Bot, relationDate
 		return
 	}
 	defer tempData.Close()
-	results, err := tempData.Query("setup_verified_company_account_"+strconv.Itoa(userID)+"_"+relationDate, userID)
+	results, err := tempData.Query(config.LangConfig.GetString("ADMIN.COMMANDS.SETUP_VERIFIED_COMPANY")+strconv.Itoa(userID)+"_"+relationDate, userID)
 	if err == nil {
 		var channelTableData []*models.TempSetupFlow
 		var companyTableData []*models.TempSetupFlow
@@ -126,13 +126,13 @@ func (service *BotService) finalStage(app *config.App, bot *tb.Bot, relationDate
 				return
 			}
 			switch tempSetupFlow.TableName {
-			case "companies":
+			case config.LangConfig.GetString("GENERAL.COMPANIES"):
 				companyTableData = append(companyTableData, tempSetupFlow)
-			case "channels":
+			case config.LangConfig.GetString("GENERAL.CHANNELS"):
 				channelTableData = append(channelTableData, tempSetupFlow)
-			case "channels_settings":
+			case config.LangConfig.GetString("GENERAL.CHANNELS_SETTINGS"):
 				channelsSettings = append(channelsSettings, tempSetupFlow)
-			case "channels_email_suffixes":
+			case config.LangConfig.GetString("GENERAL.CHANNEL_EMAIL_SUFFIXES"):
 				channelsEmailSuffixes = append(channelsEmailSuffixes, tempSetupFlow)
 			}
 		}
@@ -144,7 +144,7 @@ func (service *BotService) finalStage(app *config.App, bot *tb.Bot, relationDate
 		//insert company
 		service.insertFinalStateData(app, bot, userID, transaction, channelTableData, companyTableData, channelsEmailSuffixes, channelsSettings, db)
 		//update state of temp setup data
-		_, err = transaction.Exec("update `temp_setup_flow` set `status`='INACTIVE' where status='ACTIVE' and relation=? and `userID`=?", "setup_verified_company_account_"+strconv.Itoa(userID)+"_"+relationDate, userID)
+		_, err = transaction.Exec("update `temp_setup_flow` set `status`='INACTIVE' where status='ACTIVE' and relation=? and `userID`=?", config.LangConfig.GetString("ADMIN.COMMANDS.SETUP_VERIFIED_COMPANY")+strconv.Itoa(userID)+"_"+relationDate, userID)
 		if err != nil {
 			_ = transaction.Rollback()
 			log.Println(err)
@@ -155,25 +155,25 @@ func (service *BotService) finalStage(app *config.App, bot *tb.Bot, relationDate
 			log.Println(err)
 			return
 		}
-		service.sendMessageUserWithActionOnKeyboards(db, app, bot, userID, "The company registered successfully", false)
-		SaveUserLastState(db, app, bot, text, userID, "done_setup_verified_company_account")
+		service.sendMessageUserWithActionOnKeyboards(db, app, bot, userID, config.LangConfig.GetString("ADMIN.TEXTS.COMPANY_REGISTERED_SUCCESSFULLY"), false)
+		SaveUserLastState(db, app, bot, text, userID, config.LangConfig.GetString("ADMIN.STATE.DONE_SETUP_VERIFIED_COMPANY"))
 	}
 }
 
 func (service *BotService) insertFinalStateData(app *config.App, bot *tb.Bot, userID int, transaction *sql.Tx, channelTableData, companyTableData, channelsEmailSuffixes, channelsSettings []*models.TempSetupFlow, db *sql.DB) {
 	if companyTableData == nil || channelsEmailSuffixes == nil || len(channelsEmailSuffixes) != 1 || channelTableData == nil || channelsSettings == nil {
 		transaction.Rollback()
-		log.Println("final data must not be null")
+		log.Println(config.LangConfig.GetString("GENERAL.DATA_MUST_NOT_BE_NULL"))
 		return
 	}
 
 	//insert company
 	var companyName, companyType string
 	for _, v := range companyTableData {
-		if v.ColumnName == "companyName" {
+		if v.ColumnName == config.LangConfig.GetString("GENERAL.COMPANY_NAME") {
 			companyName = v.Data
 		}
-		if v.ColumnName == "companyType" {
+		if v.ColumnName == config.LangConfig.GetString("GENERAL.COMPANY_TYPE") {
 			companyType = v.Data
 		}
 	}
@@ -187,7 +187,7 @@ func (service *BotService) insertFinalStateData(app *config.App, bot *tb.Bot, us
 	companyNewModel := new(models.Company)
 	var companyID int64
 	if err := companyResultsStatement.QueryRow(companyName).Scan(&companyNewModel.ID, &companyNewModel.CompanyName); err != nil {
-		insertCompany, err := transaction.Exec("INSERT INTO `companies` (`companyName`,`companyType`,`createdAt`) VALUES('" + companyName + "','" + companyType + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+		insertCompany, err := transaction.Exec("INSERT INTO `companies` (`companyName`,`companyType`,`createdAt`) VALUES('" + companyName + "','" + companyType + "','" + app.CurrentTime + "')")
 		if err != nil {
 			_ = transaction.Rollback()
 			log.Println(err)
@@ -206,16 +206,16 @@ func (service *BotService) insertFinalStateData(app *config.App, bot *tb.Bot, us
 	//insert channel
 	var channelType, manualChannelName, uniqueID, channelURL string
 	for _, v := range channelTableData {
-		if v.ColumnName == "channelType" {
+		if v.ColumnName == config.LangConfig.GetString("GENERAL.CHANNEL_TYPE") {
 			channelType = v.Data
 		}
-		if v.ColumnName == "manualChannelName" {
+		if v.ColumnName == config.LangConfig.GetString("GENERAL.MANUAL_CHANNEL_NAME") {
 			manualChannelName = v.Data
 		}
-		if v.ColumnName == "uniqueID" {
+		if v.ColumnName == config.LangConfig.GetString("GENERAL.UNIQUE_ID") {
 			uniqueID = v.Data
 		}
-		if v.ColumnName == "channelURL" {
+		if v.ColumnName == config.LangConfig.GetString("GENERAL.CHANNEL_URL") {
 			channelURL = v.Data
 		}
 	}
@@ -244,7 +244,7 @@ func (service *BotService) insertFinalStateData(app *config.App, bot *tb.Bot, us
 	}
 
 	//insert company channel
-	_, err = transaction.Exec("INSERT INTO `companies_channels` (`companyID`,`channelID`,`createdAt`) VALUES('" + strconv.FormatInt(companyID, 10) + "','" + strconv.FormatInt(channelModel.ID, 10) + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+	_, err = transaction.Exec("INSERT INTO `companies_channels` (`companyID`,`channelID`,`createdAt`) VALUES('" + strconv.FormatInt(companyID, 10) + "','" + strconv.FormatInt(channelModel.ID, 10) + "','" + app.CurrentTime + "')")
 	if err != nil {
 		transaction.Rollback()
 		log.Println(err)
@@ -264,7 +264,7 @@ func (service *BotService) insertFinalStateData(app *config.App, bot *tb.Bot, us
 	if strings.Contains(emailSuffixed.Data, ",") {
 		suffixes := strings.Split(emailSuffixed.Data, ",")
 		for _, suffix := range suffixes {
-			_, err := transaction.Exec("INSERT INTO `channels_email_suffixes` (`suffix`,`channelID`,`createdAt`) VALUES('" + suffix + "','" + strconv.FormatInt(channelModel.ID, 10) + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+			_, err := transaction.Exec("INSERT INTO `channels_email_suffixes` (`suffix`,`channelID`,`createdAt`) VALUES('" + suffix + "','" + strconv.FormatInt(channelModel.ID, 10) + "','" + app.CurrentTime + "')")
 			if err != nil {
 				transaction.Rollback()
 				log.Println(err)
@@ -272,7 +272,7 @@ func (service *BotService) insertFinalStateData(app *config.App, bot *tb.Bot, us
 			}
 		}
 	} else {
-		_, err := transaction.Exec("INSERT INTO `channels_email_suffixes` (`suffix`,`channelID`,`createdAt`) VALUES('" + emailSuffixed.Data + "','" + strconv.FormatInt(channelModel.ID, 10) + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+		_, err := transaction.Exec("INSERT INTO `channels_email_suffixes` (`suffix`,`channelID`,`createdAt`) VALUES('" + emailSuffixed.Data + "','" + strconv.FormatInt(channelModel.ID, 10) + "','" + app.CurrentTime + "')")
 		if err != nil {
 			_ = transaction.Rollback()
 			log.Println(err)
@@ -283,40 +283,40 @@ func (service *BotService) insertFinalStateData(app *config.App, bot *tb.Bot, us
 	//insert channel settings
 	var joinVerify, newMessageVerify, replyVerify, directVerify string
 	for _, v := range channelsSettings {
-		if v.ColumnName == "joinVerify" {
+		if v.ColumnName == config.LangConfig.GetString("GENERAL.JOIN_VERIFY") {
 			switch v.Data {
-			case "Yes":
+			case config.LangConfig.GetString("GENERAL.YES_TEXT"):
 				joinVerify = "1"
-			case "No":
+			case config.LangConfig.GetString("GENERAL.NO_TEXT"):
 				joinVerify = "0"
 			}
 		}
-		if v.ColumnName == "newMessageVerify" {
+		if v.ColumnName == config.LangConfig.GetString("GENERAL.NEW_MESSAGE_VERIFY") {
 			switch v.Data {
-			case "Yes":
+			case config.LangConfig.GetString("GENERAL.YES_TEXT"):
 				newMessageVerify = "1"
-			case "No":
+			case config.LangConfig.GetString("GENERAL.NO_TEXT"):
 				newMessageVerify = "0"
 			}
 		}
-		if v.ColumnName == "replyVerify" {
+		if v.ColumnName == config.LangConfig.GetString("GENERAL.REPLY_VERIFY") {
 			switch v.Data {
-			case "Yes":
+			case config.LangConfig.GetString("GENERAL.YES_TEXT"):
 				replyVerify = "1"
-			case "No":
+			case config.LangConfig.GetString("GENERAL.NO_TEXT"):
 				replyVerify = "0"
 			}
 		}
 		if v.ColumnName == "directVerify" {
 			switch v.Data {
-			case "Yes":
+			case config.LangConfig.GetString("GENERAL.YES_TEXT"):
 				directVerify = "1"
-			case "No":
+			case config.LangConfig.GetString("GENERAL.NO_TEXT"):
 				directVerify = "0"
 			}
 		}
 	}
-	_, err = transaction.Exec("INSERT INTO `channels_settings` (`joinVerify`,`newMessageVerify`,`replyVerify`,`directVerify`,`channelID`,`createdAt`) VALUES('" + joinVerify + "','" + newMessageVerify + "','" + replyVerify + "','" + directVerify + "','" + strconv.FormatInt(channelModel.ID, 10) + "','" + time.Now().UTC().Format("2006-01-02 03:04:05") + "')")
+	_, err = transaction.Exec("INSERT INTO `channels_settings` (`joinVerify`,`newMessageVerify`,`replyVerify`,`directVerify`,`channelID`,`createdAt`) VALUES('" + joinVerify + "','" + newMessageVerify + "','" + replyVerify + "','" + directVerify + "','" + strconv.FormatInt(channelModel.ID, 10) + "','" + app.CurrentTime + "')")
 	if err != nil {
 		transaction.Rollback()
 		log.Println(err)

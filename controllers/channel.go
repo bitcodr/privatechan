@@ -192,7 +192,7 @@ func (service *BotService) SendReply(app *config.App, bot *tb.Bot, m *tb.Message
 		options := new(tb.SendOptions)
 		markup := new(tb.ReplyMarkup)
 		homeBTN := tb.ReplyButton{
-			Text: "Home",
+			Text: config.LangConfig.GetString("GENERAL.HOME"),
 		}
 		replyKeys := [][]tb.ReplyButton{
 			[]tb.ReplyButton{homeBTN},
@@ -235,7 +235,7 @@ func (service *BotService) SanedDM(app *config.App, bot *tb.Bot, m *tb.Message, 
 		options := new(tb.SendOptions)
 		markup := new(tb.ReplyMarkup)
 		homeBTN := tb.ReplyButton{
-			Text: "Home",
+			Text: config.LangConfig.GetString("GENERAL.HOME"),
 		}
 		replyKeys := [][]tb.ReplyButton{
 			[]tb.ReplyButton{homeBTN},
@@ -280,7 +280,7 @@ func (service *BotService) SanedAnswerDM(app *config.App, bot *tb.Bot, m *tb.Cal
 		options := new(tb.SendOptions)
 		markup := new(tb.ReplyMarkup)
 		homeBTN := tb.ReplyButton{
-			Text: "Home",
+			Text: config.LangConfig.GetString("GENERAL.HOME"),
 		}
 		replyKeys := [][]tb.ReplyButton{
 			[]tb.ReplyButton{homeBTN},
@@ -347,7 +347,7 @@ func (service *BotService) SaveAndSendMessage(db *sql.DB, app *config.App, bot *
 				options := new(tb.SendOptions)
 				markup := new(tb.ReplyMarkup)
 				homeBTN := tb.ReplyButton{
-					Text: "Home",
+					Text: config.LangConfig.GetString("GENERAL.HOME"),
 				}
 				replyKeys := [][]tb.ReplyButton{
 					[]tb.ReplyButton{homeBTN},
@@ -447,7 +447,7 @@ func (service *BotService) SendAndSaveReplyMessage(db *sql.DB, app *config.App, 
 									options := new(tb.SendOptions)
 									markup := new(tb.ReplyMarkup)
 									homeBTN := tb.ReplyButton{
-										Text: "Home",
+										Text: config.LangConfig.GetString("GENERAL.HOME"),
 									}
 									replyKeys := [][]tb.ReplyButton{
 										[]tb.ReplyButton{homeBTN},
@@ -502,7 +502,7 @@ func (service *BotService) SendAndSaveDirectMessage(db *sql.DB, app *config.App,
 							options := new(tb.SendOptions)
 							markup := new(tb.ReplyMarkup)
 							homeBTN := tb.ReplyButton{
-								Text: "Home",
+								Text: config.LangConfig.GetString("GENERAL.HOME"),
 							}
 							replyKeys := [][]tb.ReplyButton{
 								[]tb.ReplyButton{homeBTN},
@@ -575,7 +575,7 @@ func (service *BotService) SendAnswerAndSaveDirectMessage(db *sql.DB, app *confi
 					options := new(tb.SendOptions)
 					markup := new(tb.ReplyMarkup)
 					homeBTN := tb.ReplyButton{
-						Text: "Home",
+						Text: config.LangConfig.GetString("GENERAL.HOME"),
 					}
 					replyKeys := [][]tb.ReplyButton{
 						[]tb.ReplyButton{homeBTN},

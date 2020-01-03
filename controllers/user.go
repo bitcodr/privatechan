@@ -46,13 +46,13 @@ func (service *BotService) checkTheCompanyEmailSuffixExist(app *config.App, bot 
 	channelModel := new(models.Channel)
 	options := new(tb.SendOptions)
 	yesBTN := tb.ReplyButton{
-		Text: "Yes",
+		Text: config.LangConfig.GetString("GENERAL.YES_TEXT"),
 	}
 	noBTN := tb.ReplyButton{
-		Text: "No",
+		Text: config.LangConfig.GetString("GENERAL.NO_TEXT"),
 	}
 	homeBTN := tb.ReplyButton{
-		Text: "Home",
+		Text: config.LangConfig.GetString("GENERAL.HOME"),
 	}
 	replyKeys := [][]tb.ReplyButton{
 		[]tb.ReplyButton{yesBTN, noBTN},
@@ -74,7 +74,7 @@ func (service *BotService) ConfirmRegisterCompanyRequest(db *sql.DB, app *config
 	userModel := new(tb.User)
 	userModel.ID = m.Sender.ID
 	switch m.Text {
-	case "Yes":
+	case config.LangConfig.GetString("GENERAL.YES_TEXT"):
 		insertCompanyRequest, err := db.Query("INSERT INTO `companies_join_request` (`userID`,`emailSuffix`,`createdAt`) VALUES('" + strconv.FormatInt(lastState.UserID, 10) + "','" + lastState.Data + "','" + app.CurrentTime + "')")
 		if err != nil {
 			log.Println(err)
@@ -83,7 +83,7 @@ func (service *BotService) ConfirmRegisterCompanyRequest(db *sql.DB, app *config
 		defer insertCompanyRequest.Close()
 		SaveUserLastState(db, app, bot, "", m.Sender.ID, "join_request_added")
 		bot.Send(userModel, "Your Request Sent To The Admin And Will be Active After Confirmation.", HomeKeyOption(db, app))
-	case "No":
+	case config.LangConfig.GetString("GENERAL.NO_TEXT"):
 		SaveUserLastState(db, app, bot, "", m.Sender.ID, "join_request_dismissed")
 		bot.Send(userModel, "You Can Continue in Bot by Pressing The Home Button", HomeKeyOption(db, app))
 	}
@@ -93,7 +93,7 @@ func (service *BotService) ConfirmRegisterCompanyRequest(db *sql.DB, app *config
 func HomeKeyOption(db *sql.DB, app *config.App) *tb.SendOptions {
 	options := new(tb.SendOptions)
 	homeBTN := tb.ReplyButton{
-		Text: "Home",
+		Text: config.LangConfig.GetString("GENERAL.HOME"),
 	}
 	replyKeys := [][]tb.ReplyButton{
 		[]tb.ReplyButton{homeBTN},
@@ -108,7 +108,7 @@ func (service *BotService) ConfirmRegisterUserForTheCompany(db *sql.DB, app *con
 	userModel := new(tb.User)
 	userModel.ID = m.Sender.ID
 	switch m.Text {
-	case "Yes":
+	case config.LangConfig.GetString("GENERAL.YES_TEXT"):
 		if !strings.Contains(lastState.Data, "_") {
 			log.Println("string must be two part, channelID and userEmail")
 			return true
@@ -145,7 +145,7 @@ func (service *BotService) ConfirmRegisterUserForTheCompany(db *sql.DB, app *con
 		go helpers.SendEmail(strconv.Itoa(randomeNumber), channelData[1])
 		SaveUserLastState(db, app, bot, lastState.Data, m.Sender.ID, "email_for_user_registration")
 		bot.Send(userModel, "Please Enter The Code That Sent To Your Email Address", HomeKeyOption(db, app))
-	case "No":
+	case config.LangConfig.GetString("GENERAL.NO_TEXT"):
 		SaveUserLastState(db, app, bot, "", m.Sender.ID, "cancel_user_registration_for_the_company")
 		bot.Send(userModel, "You Can Continue in Bot by Pressing The Home Button", HomeKeyOption(db, app))
 	}
@@ -205,7 +205,7 @@ func (service *BotService) RegisterUserWithEmailAndCode(db *sql.DB, app *config.
 	SaveUserLastState(db, app, bot, "", m.Sender.ID, "join_request_added")
 	options := new(tb.SendOptions)
 	homeBTN := tb.ReplyButton{
-		Text: "Home",
+		Text: config.LangConfig.GetString("GENERAL.HOME"),
 	}
 	replyBTN := [][]tb.ReplyButton{
 		[]tb.ReplyButton{homeBTN},
