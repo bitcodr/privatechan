@@ -83,7 +83,7 @@ func (service *BotService) nextQuestion(db *sql.DB, app *config.App, bot *tb.Bot
 		replyMarkupModel := new(tb.ReplyMarkup)
 		replyMarkupModel.ReplyKeyboard = replyKeys
 		options.ReplyMarkup = replyMarkupModel
-		_, _ = bot.Send(userModel, questionText, options)
+		bot.Send(userModel, questionText, options)
 	}
 	SaveUserLastState(db, app, bot, strconv.Itoa(prevQuestionNo+1)+"_"+relationDate, userID, config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY"))
 }
@@ -91,7 +91,6 @@ func (service *BotService) nextQuestion(db *sql.DB, app *config.App, bot *tb.Bot
 func (service *BotService) sendMessageUserWithActionOnKeyboards(db *sql.DB, app *config.App, bot *tb.Bot, userID int, message string, showKeyboard bool) {
 	userModel := new(tb.User)
 	userModel.ID = userID
-	options := new(tb.SendOptions)
 	homeBTN := tb.ReplyButton{
 		Text: config.LangConfig.GetString("GENERAL.HOME"),
 	}
@@ -101,8 +100,9 @@ func (service *BotService) sendMessageUserWithActionOnKeyboards(db *sql.DB, app 
 	replyModel := new(tb.ReplyMarkup)
 	replyModel.ReplyKeyboardRemove = showKeyboard
 	replyModel.ReplyKeyboard = replyKeys
+	options := new(tb.SendOptions)
 	options.ReplyMarkup = replyModel
-	_, _ = bot.Send(userModel, message, options)
+	bot.Send(userModel, message, options)
 }
 
 func (service *BotService) finalStage(app *config.App, bot *tb.Bot, relationDate string, db *sql.DB, text string, userID int) {
@@ -155,7 +155,7 @@ func (service *BotService) finalStage(app *config.App, bot *tb.Bot, relationDate
 			log.Println(err)
 			return
 		}
-		service.sendMessageUserWithActionOnKeyboards(db, app, bot, userID, config.LangConfig.GetString("ADMIN.TEXTS.COMPANY_REGISTERED_SUCCESSFULLY"), false)
+		service.sendMessageUserWithActionOnKeyboards(db, app, bot, userID, config.LangConfig.GetString("MESSAGES.COMPANY_REGISTERED_SUCCESSFULLY"), false)
 		SaveUserLastState(db, app, bot, text, userID, config.LangConfig.GetString("STATE.DONE_SETUP_VERIFIED_COMPANY"))
 	}
 }

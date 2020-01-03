@@ -118,7 +118,7 @@ func (service *BotService) ConfirmRegisterUserForTheCompany(db *sql.DB, app *con
 			log.Println(config.LangConfig.GetString("MESSAGES.LENGTH_OF_CHANNEL_DATA_MUST_BE_2"))
 			return true
 		}
-		userExistOrNot, err := db.Prepare("SELECT us.id FROM `users` as us inner join `users_channels` as uc on us.id=uc.userID and uc.channelID=? where us.userID=?")
+		userExistOrNot, err := db.Prepare("SELECT us.id FROM `users` as us inner join `users_channels` as uc on us.id=uc.userID and uc.channelID=? and uc.status='ACTIVE' where us.userID=?")
 		if err != nil {
 			log.Println(err)
 			return true
@@ -202,6 +202,7 @@ func (service *BotService) RegisterUserWithEmailAndCode(db *sql.DB, app *config.
 		log.Println(err)
 		return true
 	}
+	//TODO also update users channel state
 	SaveUserLastState(db, app, bot, "", m.Sender.ID, config.LangConfig.GetString("STATE.JOIN_REQUEST_ADDED"))
 	options := new(tb.SendOptions)
 	homeBTN := tb.ReplyButton{

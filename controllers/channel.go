@@ -435,7 +435,7 @@ func (service *BotService) SendAndSaveReplyMessage(db *sql.DB, app *config.App, 
 								newChannelModel := new(models.Channel)
 								if err := currentChannel.Scan(&newChannelModel.ID, &newChannelModel.ChannelName); err == nil {
 									newChannelModelID := strconv.FormatInt(newChannelModel.ID, 10)
-									insertedMessage, err := db.Query("INSERT INTO `messages` (`message`,`userID`,`channelID`,`channelMessageID`,`botMessageID`,`parentID`,`createdAt`) VALUES('" + m.Text + "','" + senderID + "','" + newChannelModelID + "','" + newChannelMessageID + "','" + newBotMessageID + "','" + parentID + "','" + app.CurrentTime + "')")
+									insertedMessage, err := db.Query("INSERT INTO `messages` (`message`,`userID`,`channelID`,`channelMessageID`,`botMessageID`,`parentID`,`createdAt`) VALUES('" + helpers.ClearString(m.Text) + "','" + senderID + "','" + newChannelModelID + "','" + newChannelMessageID + "','" + newBotMessageID + "','" + parentID + "','" + app.CurrentTime + "')")
 									if err != nil {
 										log.Println(err)
 										return true

@@ -21,7 +21,7 @@ func SendEmail(body, to string) {
 	d := gomail.NewDialer(serverAddress, serverPort, userName, pass)
 	d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 	if err := d.DialAndSend(m); err != nil {
-		log.Println(err)
+		log.Println(err.Error())
 		return
 	}
 }
