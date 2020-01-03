@@ -343,21 +343,21 @@ func (service *BotService) SaveAndSendMessage(db *sql.DB, app *config.App, bot *
 				defer insertedMessage.Close()
 				options := new(tb.SendOptions)
 				markup := new(tb.ReplyMarkup)
-				homeBTN := tb.ReplyButton{
-					Text: config.LangConfig.GetString("GENERAL.HOME"),
-				}
-				replyKeys := [][]tb.ReplyButton{
-					[]tb.ReplyButton{homeBTN},
-				}
-				// redirectBTN := tb.InlineButton{
-				// 	Text: "Back to " + activeChannel.ChannelName,
-				// 	URL:  activeChannel.ChannelURL,
+				// homeBTN := tb.ReplyButton{
+				// 	Text: config.LangConfig.GetString("GENERAL.HOME"),
 				// }
-				// inlineKeys := [][]tb.InlineButton{
-				// 	[]tb.InlineButton{redirectBTN},
+				// replyKeys := [][]tb.ReplyButton{
+				// 	[]tb.ReplyButton{homeBTN},
 				// }
-				markup.ReplyKeyboard = replyKeys
-				// markup.InlineKeyboard = inlineKeys
+				redirectBTN := tb.InlineButton{
+					Unique: config.LangConfig.GetString("STATE.COMPOSE_MESSAGE") + "_" + activeChannel.ChannelID,
+					Text:   config.LangConfig.GetString("MESSAGES.ANOTHER_NEW"),
+				}
+				inlineKeys := [][]tb.InlineButton{
+					[]tb.InlineButton{redirectBTN},
+				}
+				// markup.ReplyKeyboard = replyKeys
+				markup.InlineKeyboard = inlineKeys
 				options.ReplyMarkup = markup
 				bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.MESSAGE_HAS_BEEN_SENT")+activeChannel.ChannelName, options)
 				SaveUserLastState(db, app, bot, "", m.Sender.ID, "message_sent")

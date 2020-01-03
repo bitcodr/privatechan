@@ -203,6 +203,43 @@ func (service *BotService) NewMessageGroupHandler(app *config.App, bot *tb.Bot, 
 	return false
 }
 
+func (service *BotService) NewMessageGroupHandlerCallback(app *config.App, bot *tb.Bot, c *tb.Callback, request *Event) bool {
+	if strings.Contains(c.Data, request.Command) {
+		db := app.DB()
+		defer db.Close()
+		// lastState := GetUserLastState(db, app, bot, m, m.Sender.ID)
+		// service.CheckUserRegisteredOrNot(db, app, bot, m, request, lastState, m.Text, m.Sender.ID)
+		if c.Sender != nil {
+			SaveUserLastState(db, app, bot, c.Data, c.Sender.ID, request.UserState)
+		}
+		channelID := strings.ReplaceAll(c.Data, request.Command, "")
+		resultsStatement, err := db.Prepare("SELECT `channelName` FROM `channels` where `channelID`=?")
+		if err != nil {
+			log.Println(err)
+			return true
+		}
+		defer resultsStatement.Close()
+		channelModel := new(models.Channel)
+		if err := resultsStatement.QueryRow(strings.TrimLeft(channelID, "\f")).Scan(&channelModel.ChannelName); err != nil {
+			log.Println(err)
+			return true
+		}
+		options := new(tb.SendOptions)
+		markup := new(tb.ReplyMarkup)
+		homeBTN := tb.ReplyButton{
+			Text: config.LangConfig.GetString("GENERAL.HOME"),
+		}
+		replyKeys := [][]tb.ReplyButton{
+			[]tb.ReplyButton{homeBTN},
+		}
+		markup.ReplyKeyboard = replyKeys
+		options.ReplyMarkup = markup
+		bot.Send(c.Sender, config.LangConfig.GetString("MESSAGES.PLEASE_DRAFT_YOUR_MESSAGE")+channelModel.ChannelName, options)
+		return true
+	}
+	return false
+}
+
 func (service *BotService) JoinFromGroup(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, channelID string) {
 	userID := strconv.Itoa(m.Sender.ID)
 	//check if user is not created

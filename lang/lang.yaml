@@ -53,6 +53,7 @@ MESSAGES:
   PLEASE_SEND_YOUR_DIRECT: "Please send your direct message to the user:"
   REPLY: "👻Reply"
   NEW: "📝New"
+  ANOTHER_NEW: "📝Send another message"
   DIRECT: "📲Direct"
   MESSAGE_HAS_BEEN_SENT: "Your message has been sent anonymously to the group / channel "
   REPLY_MESSAGE_HAS_BEEN_SENT: "Your reply message has been sent anonymously to the group / channel "

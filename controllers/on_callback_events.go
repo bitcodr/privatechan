@@ -23,6 +23,8 @@ func onCallbackEvents(app *config.App, bot *tb.Bot) {
 			goto StartBotCallback
 		case strings.Contains(incomingMessage, config.LangConfig.GetString("STATE.ANSWER_TO_DM")+"_"):
 			goto SanedAnswerDM
+		case strings.Contains(incomingMessage, config.LangConfig.GetString("STATE.COMPOSE_MESSAGE")+"_"):
+			goto NewMessageGroupHandlerCallback
 		default:
 			goto CheckState
 		}
@@ -30,8 +32,18 @@ func onCallbackEvents(app *config.App, bot *tb.Bot) {
 	SanedAnswerDM:
 		if onCallbackEventsHandler(app, bot, c, &Event{
 			UserState:  config.LangConfig.GetString("STATE.ANSWER_TO_DM"),
-			Command:    config.LangConfig.GetString("STATE.ANSWER_TO_DM")+"_",
+			Command:    config.LangConfig.GetString("STATE.ANSWER_TO_DM") + "_",
 			Controller: "SanedAnswerDM",
+		}) {
+			Init(app, bot, true)
+		}
+		goto END
+
+	NewMessageGroupHandlerCallback:
+		if onCallbackEventsHandler(app, bot, c, &Event{
+			UserState:  config.LangConfig.GetString("STATE.NEW_MESSAGE_TO_GROUP"),
+			Command:    config.LangConfig.GetString("STATE.COMPOSE_MESSAGE") + "_",
+			Controller: "NewMessageGroupHandlerCallback",
 		}) {
 			Init(app, bot, true)
 		}

@@ -68,7 +68,7 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 		}
 		goto END
 
-	NewMessageGroupHandler:
+	NewMessageGroupHandler: 
 		if generalEventsHandler(app, bot, message, &Event{
 			UserState:  config.LangConfig.GetString("STATE.NEW_MESSAGE_TO_GROUP"),
 			Command:    config.LangConfig.GetString("STATE.COMPOSE_MESSAGE") + "_",
