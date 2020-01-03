@@ -57,7 +57,7 @@ MESSAGES:
   MESSAGE_HAS_BEEN_SENT: "Your message has been sent anonymously to the group / channel "
   REPLY_MESSAGE_HAS_BEEN_SENT: "Your reply message has been sent anonymously to the group / channel "
   DIRECT_REPLY: "Direct Reply"
-  DIRECT_HAS_BEEN_SENT: "Your Direct Message Has Been Sent To The User:"
+  DIRECT_HAS_BEEN_SENT: "Your Direct Message Has Been Sent To The User: "
   ON_CHANNEL_GROUP: "On channel/group"
   GROUP_REGISTERED_SUCCESSFULLY: "You're group registered successfully"
   GROUP_UNIQUE_ID_MESSAGE: "This is your group unique ID, you can save it and remove this message: "
@@ -86,6 +86,7 @@ MESSAGES:
   ACTIVE_KEY: " Bot Activation Key"
   YOU_ACTIVE_KEY: "Your activation key is: "
   ACTIVE_EXPIRE_PEROID: " this key will be expire about 10 minutes"
+  ANOTHER_DIRECT_REPLY: "Send another DM"
 
 COMMANDS:
   ENABLE_CHAT: "/enable_anonymity_support"

@@ -498,13 +498,21 @@ func (service *BotService) SendAndSaveDirectMessage(db *sql.DB, app *config.App,
 						if err == nil {
 							options := new(tb.SendOptions)
 							markup := new(tb.ReplyMarkup)
-							homeBTN := tb.ReplyButton{
-								Text: config.LangConfig.GetString("GENERAL.HOME"),
+							// homeBTN := tb.ReplyButton{
+							// 	Text: config.LangConfig.GetString("GENERAL.HOME"),
+							// }
+							// replyKeys := [][]tb.ReplyButton{
+							// 	[]tb.ReplyButton{homeBTN},
+							// }
+							SendAnotherDM := tb.InlineButton{
+								Unique: config.LangConfig.GetString("STATE.ANSWER_TO_DM") + "_" + channelID + "_" + userID + "_" + newBotMessageID,
+								Text:   config.LangConfig.GetString("MESSAGES.ANOTHER_DIRECT_REPLY"),
 							}
-							replyKeys := [][]tb.ReplyButton{
-								[]tb.ReplyButton{homeBTN},
+							AnotherDMKeys := [][]tb.InlineButton{
+								[]tb.InlineButton{SendAnotherDM},
 							}
-							markup.ReplyKeyboard = replyKeys
+							// markup.ReplyKeyboard = replyKeys
+							markup.InlineKeyboard = AnotherDMKeys
 							options.ReplyMarkup = markup
 							options.ParseMode = tb.ModeHTML
 							bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.DIRECT_HAS_BEEN_SENT")+"<b>"+helpers.Hash(userID+channelID)+"</b>", options)
@@ -562,22 +570,23 @@ func (service *BotService) SendAnswerAndSaveDirectMessage(db *sql.DB, app *confi
 				newBotMessageID := strconv.Itoa(m.ID)
 				userIDInInt, err := strconv.Atoi(userID)
 				if err == nil {
-					newReply := tb.InlineButton{
-						Unique: config.LangConfig.GetString("STATE.ANSWER_TO_DM") + "_" + channelID + "_" + senderID + "_" + newBotMessageID,
-						Text:   config.LangConfig.GetString("MESSAGES.DIRECT_REPLY"),
-					}
-					inlineKeys := [][]tb.InlineButton{
-						[]tb.InlineButton{newReply},
-					}
 					options := new(tb.SendOptions)
 					markup := new(tb.ReplyMarkup)
-					homeBTN := tb.ReplyButton{
-						Text: config.LangConfig.GetString("GENERAL.HOME"),
+					// homeBTN := tb.ReplyButton{
+					// 	Text: config.LangConfig.GetString("GENERAL.HOME"),
+					// }
+					// replyKeys := [][]tb.ReplyButton{
+					// 	[]tb.ReplyButton{homeBTN},
+					// }
+					SendAnotherDM := tb.InlineButton{
+						Unique: config.LangConfig.GetString("STATE.ANSWER_TO_DM") + "_" + channelID + "_" + userID + "_" + newBotMessageID,
+						Text:   config.LangConfig.GetString("MESSAGES.ANOTHER_DIRECT_REPLY"),
 					}
-					replyKeys := [][]tb.ReplyButton{
-						[]tb.ReplyButton{homeBTN},
+					AnotherDMKeys := [][]tb.InlineButton{
+						[]tb.InlineButton{SendAnotherDM},
 					}
-					markup.ReplyKeyboard = replyKeys
+					// markup.ReplyKeyboard = replyKeys
+					markup.InlineKeyboard = AnotherDMKeys
 					options.ReplyMarkup = markup
 					options.ParseMode = tb.ModeHTML
 					bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.DIRECT_HAS_BEEN_SENT")+" <b>"+helpers.Hash(userID+channelID)+"</b>", options)
@@ -595,6 +604,13 @@ func (service *BotService) SendAnswerAndSaveDirectMessage(db *sql.DB, app *confi
 					if currentChannel.Next() {
 						newChannelModel := new(models.Channel)
 						if err := currentChannel.Scan(&newChannelModel.ID, &newChannelModel.ChannelName); err == nil {
+							newReply := tb.InlineButton{
+								Unique: config.LangConfig.GetString("STATE.ANSWER_TO_DM") + "_" + channelID + "_" + senderID + "_" + newBotMessageID,
+								Text:   config.LangConfig.GetString("MESSAGES.DIRECT_REPLY"),
+							}
+							inlineKeys := [][]tb.InlineButton{
+								[]tb.InlineButton{newReply},
+							}
 							newReplyModel := new(tb.ReplyMarkup)
 							newReplyModel.InlineKeyboard = inlineKeys
 							newSendOption := new(tb.SendOptions)
