@@ -585,21 +585,19 @@ func (service *BotService) SendAnswerAndSaveDirectMessage(db *sql.DB, app *confi
 			if len(data) == 3 {
 				channelID := strings.TrimSpace(data[0])
 				userID := strings.TrimSpace(data[1])
-				botMessageID := strings.TrimSpace(data[2])
 				senderID := strconv.Itoa(m.Sender.ID)
 				newBotMessageID := strconv.Itoa(m.ID)
 				userIDInInt, err := strconv.Atoi(userID)
 				if err == nil {
-					messageStatement, err := db.Prepare("SELECT me.id,me.channelMessageID,ch.channelName,ch.channelURL,ch.channelType from `messages` as me inner join `channels` as ch on me.channelID=ch.id and ch.channelID=? where me.`botMessageID`=? and me.`userID`=?")
+					messageStatement, err := db.Prepare("SELECT channelURL,channelType from `channels` where channelID=?")
 					if err != nil {
 						log.Println(err)
 						return true
 					}
 					defer messageStatement.Close()
-					message := messageStatement.QueryRow(channelID, botMessageID, userID)
-					messageModel := new(models.Message)
+					message := messageStatement.QueryRow(channelID)
 					channelModel := new(models.Channel)
-					if err := message.Scan(&messageModel.ID, &messageModel.ChannelMessageID, &channelModel.ChannelName, &channelModel.ChannelURL, &channelModel.ChannelType); err == nil {
+					if err := message.Scan(&channelModel.ChannelURL, &channelModel.ChannelType); err == nil {
 						options := new(tb.SendOptions)
 						markup := new(tb.ReplyMarkup)
 						SendAnotherDM := tb.InlineButton{
