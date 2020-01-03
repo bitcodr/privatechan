@@ -53,7 +53,7 @@ func (service *BotService) RegisterChannel(app *config.App, bot *tb.Bot, m *tb.M
 			}
 			uniqueID := uuid.New().String()
 			//insert channel
-			channelInserted, err := transaction.Exec("INSERT INTO `channels` (`channelType`,`channelURL`,`channelID`,`channelName`,`uniqueID`,`channelType`,`createdAt`,`updatedAt`) VALUES('channel','" + channelURL + "','" + channelID + "','" + m.Chat.Title + "','" + uniqueID + "','channel','" + app.CurrentTime + "','" + app.CurrentTime + "')")
+			channelInserted, err := transaction.Exec("INSERT INTO `channels` (`channelType`,`channelURL`,`channelID`,`channelName`,`uniqueID`,`createdAt`,`updatedAt`) VALUES('channel','" + channelURL + "','" + channelID + "','" + m.Chat.Title + "','" + uniqueID + "','" + app.CurrentTime + "','" + app.CurrentTime + "')")
 			if err != nil {
 				transaction.Rollback()
 				log.Println(err)
