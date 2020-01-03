@@ -50,7 +50,7 @@ MESSAGES:
   COMPOSE_MESSAGE: "📝 New Anonymous Message 👻"
   PLEASE_REPLY: "Please send your reply to the message: "
   BAN_DIRECT: "You are attempting to Direct Message 📲 yourself. You cannot 🚫 do this. No message has been sent."
-  PLEASE_SEND_YOUR_DIRECT: "Please send your direct message to the user:"
+  PLEASE_SEND_YOUR_DIRECT: "Please send your direct message to the user: "
   REPLY: "👻Reply"
   NEW: "📝New"
   ANOTHER_NEW: "📝Send another message"

@@ -17,6 +17,9 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
+//TODO save user hashed id in db
+//TODO in channel registration from super admin add channel type from company type in channelModel
+
 //RegisterChannel
 func (service *BotService) RegisterChannel(app *config.App, bot *tb.Bot, m *tb.Message, request *Event) bool {
 	if strings.TrimSpace(m.Text) == request.Command {
@@ -242,7 +245,7 @@ func (service *BotService) SanedDM(app *config.App, bot *tb.Bot, m *tb.Message, 
 		options.ParseMode = tb.ModeHTML
 		user := service.GetUserByTelegramID(db, app, directSenderID)
 		channel := service.GetChannelByTelegramID(db, app, channelID)
-		_, err = bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.PLEASE_SEND_YOUR_DIRECT")+"<b>"+helpers.Hash(user.UserID+channelID)+"</b>"+config.LangConfig.GetString("GENERAL.FROM")+": <b>"+channel.ChannelName+"</b>", options)
+		_, err = bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.PLEASE_SEND_YOUR_DIRECT")+"<b>"+helpers.Hash(user.UserID+channelID)+"</b> "+config.LangConfig.GetString("GENERAL.FROM")+": <b>"+channel.ChannelName+"</b>", options)
 		if err != nil {
 			log.Println(err)
 			return true
