@@ -359,7 +359,7 @@ func (service *BotService) SaveAndSendMessage(db *sql.DB, app *config.App, bot *
 				markup.ReplyKeyboard = replyKeys
 				// markup.InlineKeyboard = inlineKeys
 				options.ReplyMarkup = markup
-				bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES..MESSAGE_HAS_BEEN_SENT")+activeChannel.ChannelName, options)
+				bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.MESSAGE_HAS_BEEN_SENT")+activeChannel.ChannelName, options)
 				SaveUserLastState(db, app, bot, "", m.Sender.ID, "message_sent")
 			}
 		}
