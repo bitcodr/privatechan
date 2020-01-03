@@ -2,17 +2,17 @@ package helpers
 
 import (
 	"crypto/tls"
-	"github.com/spf13/viper"
+	"github.com/amiraliio/tgbp/config"
 	"gopkg.in/gomail.v2"
 	"log"
 )
 
 func SendEmail(body, to string) {
-	from := viper.GetString("EMAIL.FROM")
-	pass := viper.GetString("EMAIL.PASSWORD")
-	userName := viper.GetString("EMAIL.USERNAME")
-	serverAddress := viper.GetString("EMAIL.PROVIDER")
-	serverPort := viper.GetInt("EMAIL.PORT")
+	from := config.AppConfig.GetString("EMAIL.FROM")
+	pass := config.AppConfig.GetString("EMAIL.PASSWORD")
+	userName := config.AppConfig.GetString("EMAIL.USERNAME")
+	serverAddress := config.AppConfig.GetString("EMAIL.PROVIDER")
+	serverPort := config.AppConfig.GetInt("EMAIL.PORT")
 	m := gomail.NewMessage()
 	m.SetHeader("From", from)
 	m.SetHeader("To", to)

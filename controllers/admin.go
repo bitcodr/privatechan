@@ -9,23 +9,20 @@ import (
 
 	"github.com/amiraliio/tgbp/config"
 	"github.com/amiraliio/tgbp/models"
-	"github.com/spf13/viper"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-
-
 func (service *BotService) SetUpCompanyByAdmin(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *Event, lastState *models.UserLastState, text string, userID int) bool {
-	if lastState.Data != "" && lastState.State == request.UserState { 
-		questions := viper.GetStringMap("SUPERADMIN.COMPANY.SETUP.QUESTIONS")
+	if lastState.Data != "" && lastState.State == request.UserState {
+		questions := config.QConfig.GetStringMap("SUPERADMIN.COMPANY.SETUP.QUESTIONS")
 		numberOfQuestion := strings.Split(lastState.Data, "_")
 		if len(numberOfQuestion) == 2 {
 			questioNumber := numberOfQuestion[0]
 			relationDate := numberOfQuestion[1]
 			prevQuestionNo, err := strconv.Atoi(questioNumber)
 			if err == nil {
-				tableName := viper.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N" + questioNumber + ".TABLE_NAME")
-				columnName := viper.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N" + questioNumber + ".COLUMN_NAME")
+				tableName := config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N" + questioNumber + ".TABLE_NAME")
+				columnName := config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N" + questioNumber + ".COLUMN_NAME")
 				_, err = db.Query("INSERT INTO `temp_setup_flow` (`tableName`,`columnName`,`data`,`userID`,`relation`,`createdAt`) VALUES ('" + tableName + "','" + columnName + "','" + strings.TrimSpace(text) + "','" + strconv.Itoa(userID) + "','setup_verified_company_account_" + strconv.Itoa(userID) + "_" + relationDate + "','" + app.CurrentTime + "')")
 				if err != nil {
 					log.Println(err)
@@ -40,7 +37,7 @@ func (service *BotService) SetUpCompanyByAdmin(db *sql.DB, app *config.App, bot 
 		}
 		return true
 	}
-	initQuestion := viper.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N1.QUESTION")
+	initQuestion := config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N1.QUESTION")
 	service.sendMessageUserWithActionOnKeyboards(db, app, bot, userID, initQuestion, true)
 	SaveUserLastState(db, app, bot, "1_"+strconv.FormatInt(time.Now().Unix(), 10), userID, "setup_verified_company_account")
 	return true
@@ -48,8 +45,8 @@ func (service *BotService) SetUpCompanyByAdmin(db *sql.DB, app *config.App, bot 
 
 //next question
 func (service *BotService) nextQuestion(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, lastState *models.UserLastState, relationDate string, prevQuestionNo int, text string, userID int) {
-	questionText := viper.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N" + strconv.Itoa(prevQuestionNo+1) + ".QUESTION")
-	answers := viper.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N" + strconv.Itoa(prevQuestionNo+1) + ".ANSWERS")
+	questionText := config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N" + strconv.Itoa(prevQuestionNo+1) + ".QUESTION")
+	answers := config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N" + strconv.Itoa(prevQuestionNo+1) + ".ANSWERS")
 	if answers != "" && strings.Contains(strings.TrimSpace(answers), ",") {
 		splittedAnswers := strings.Split(answers, ",")
 		replyKeysNested := []tb.ReplyButton{}

@@ -12,7 +12,10 @@ import (
 func onTextEvents(app *config.App, bot *tb.Bot) {
 
 	bot.Handle(tb.OnText, func(message *tb.Message) {
-
+		if !message.Private() {
+			return
+		}
+		
 		db := app.DB()
 		defer db.Close()
 		lastState := GetUserLastState(db, app, bot, message, message.Sender.ID)
