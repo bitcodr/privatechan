@@ -14,7 +14,7 @@ type AppInterface interface {
 }
 
 type App struct {
-	ProjectDir, BotToken, BotUsername, DBName, DBUserName, DBPass, CurrentTime string
+	ProjectDir, BotToken, BotUsername, DBName, DBUserName, DBPass, CurrentTime, TgDomain string
 }
 
 func (app *App) SetAppConfig() *App {
@@ -24,5 +24,6 @@ func (app *App) SetAppConfig() *App {
 	app.DBPass = AppConfig.GetString("DATABASES.MYSQL.PASSWORD")
 	app.CurrentTime = time.Now().UTC().Format("2006-01-02 03:04:05")
 	app.BotUsername = AppConfig.GetString("APP.BOT_USERNAME")
+	app.TgDomain = "https://t.me/"
 	return app
 }

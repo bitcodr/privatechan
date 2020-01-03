@@ -53,7 +53,7 @@ func onCallbackEvents(app *config.App, bot *tb.Bot) {
 		///////////////////////////////////////////
 	CheckState:
 		switch lastState.State {
-		case config.LangConfig.GetString("ADMIN.STATE.SETUP_VERIFIED_COMPANY"):
+		case config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY"):
 			goto SetUpCompanyByAdmin
 		case "register_user_with_email":
 			goto RegisterUserWithemail
@@ -63,7 +63,7 @@ func onCallbackEvents(app *config.App, bot *tb.Bot) {
 
 	SetUpCompanyByAdmin:
 		if inlineOnCallbackEventsHandler(app, bot, c, db, lastState, &Event{
-			UserState:  config.LangConfig.GetString("ADMIN.STATE.SETUP_VERIFIED_COMPANY"),
+			UserState:  config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY"),
 			Controller: "SetUpCompanyByAdmin",
 		}) {
 			Init(app, bot, true)

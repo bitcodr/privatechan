@@ -17,8 +17,6 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
-//TODO change query to queryRow
-//TODO change value of queries to ?
 
 //RegisterChannel
 func (service *BotService) RegisterChannel(app *config.App, bot *tb.Bot, m *tb.Message, request *Event) bool {
@@ -118,7 +116,7 @@ func (service *BotService) RegisterChannel(app *config.App, bot *tb.Bot, m *tb.M
 					}
 				}
 				transaction.Commit()
-				successMessage, _ := bot.Send(m.Chat, "You're channel registered successfully")
+				successMessage, _ := bot.Send(m.Chat, config.LangConfig.GetString("MESSAGES.CHANNEL_REGISTERED_SUCCESSFULLY"))
 				time.Sleep(2 * time.Second)
 				if err := bot.Delete(successMessage); err != nil {
 					log.Println(err)
@@ -126,16 +124,16 @@ func (service *BotService) RegisterChannel(app *config.App, bot *tb.Bot, m *tb.M
 				}
 				sendOptionModel := new(tb.SendOptions)
 				sendOptionModel.ParseMode = tb.ModeHTML
-				_, err = bot.Send(m.Chat, "This is your channel unique ID, you can save it and remove this message: <code> "+uniqueID+" </code>", sendOptionModel)
+				_, err = bot.Send(m.Chat, config.LangConfig.GetString("MESSAGES.CHANNEL_UNIQUE_ID_MESSAGE")+" <code> "+uniqueID+" </code>", sendOptionModel)
 				if err != nil {
 					log.Println(err)
 					return true
 				}
 				time.Sleep(2 * time.Second)
 				compose := tb.InlineButton{
-					Unique: "compose_message_in_group_" + channelID,
-					Text:   "📝 New Anonymous Message 👻",
-					URL:    "https://t.me/" + app.BotUsername + "?start=compose_message_in_group_" + channelID,
+					Unique: config.LangConfig.GetString("STATE.COMPOSE_MESSAGE") + "_" + channelID,
+					Text:   config.LangConfig.GetString("MESSAGES.COMPOSE_MESSAGE"),
+					URL:    app.TgDomain + app.BotUsername + "?start=" + config.LangConfig.GetString("STATE.COMPOSE_MESSAGE") + "_" + channelID,
 				}
 				groupKeys := [][]tb.InlineButton{
 					[]tb.InlineButton{compose},
@@ -309,17 +307,17 @@ func (service *BotService) SaveAndSendMessage(db *sql.DB, app *config.App, bot *
 		newReply := tb.InlineButton{
 			Unique: "reply_to_message_on_group_" + activeChannel.ChannelID + "_" + senderID + "_" + botMessageID,
 			Text:   "👻Reply",
-			URL:    "https://t.me/" + app.BotUsername + "?start=reply_to_message_on_group_" + activeChannel.ChannelID + "_" + senderID + "_" + botMessageID,
+			URL:    app.TgDomain + app.BotUsername + "?start=reply_to_message_on_group_" + activeChannel.ChannelID + "_" + senderID + "_" + botMessageID,
 		}
 		newM := tb.InlineButton{
 			Unique: "compose_message_in_group_" + activeChannel.ChannelID,
 			Text:   "📝New",
-			URL:    "https://t.me/" + app.BotUsername + "?start=compose_message_in_group_" + activeChannel.ChannelID,
+			URL:    app.TgDomain + app.BotUsername + "?start=compose_message_in_group_" + activeChannel.ChannelID,
 		}
 		newDM := tb.InlineButton{
 			Unique: "reply_by_dm_to_user_on_group_" + activeChannel.ChannelID + "_" + senderID + "_" + botMessageID,
 			Text:   "📲Direct",
-			URL:    "https://t.me/" + app.BotUsername + "?start=reply_by_dm_to_user_on_group_" + activeChannel.ChannelID + "_" + senderID + "_" + botMessageID,
+			URL:    app.TgDomain + app.BotUsername + "?start=reply_by_dm_to_user_on_group_" + activeChannel.ChannelID + "_" + senderID + "_" + botMessageID,
 		}
 		inlineKeys := [][]tb.InlineButton{
 			[]tb.InlineButton{newReply, newM, newDM},
@@ -395,17 +393,17 @@ func (service *BotService) SendAndSaveReplyMessage(db *sql.DB, app *config.App, 
 						newReply := tb.InlineButton{
 							Unique: "reply_to_message_on_group_" + channelID + "_" + senderID + "_" + botMessageID,
 							Text:   "👻Reply",
-							URL:    "https://t.me/" + app.BotUsername + "?start=reply_to_message_on_group_" + channelID + "_" + senderID + "_" + botMessageID,
+							URL:    app.TgDomain + app.BotUsername + "?start=reply_to_message_on_group_" + channelID + "_" + senderID + "_" + botMessageID,
 						}
 						newM := tb.InlineButton{
 							Unique: "compose_message_in_group_" + channelID,
 							Text:   "📝New",
-							URL:    "https://t.me/" + app.BotUsername + "?start=compose_message_in_group_" + channelID,
+							URL:    app.TgDomain + app.BotUsername + "?start=compose_message_in_group_" + channelID,
 						}
 						newDM := tb.InlineButton{
 							Unique: "reply_by_dm_to_user_on_group_" + channelID + "_" + senderID + "_" + botMessageID,
 							Text:   "📲Direct",
-							URL:    "https://t.me/" + app.BotUsername + "?start=reply_by_dm_to_user_on_group_" + channelID + "_" + senderID + "_" + botMessageID,
+							URL:    app.TgDomain + app.BotUsername + "?start=reply_by_dm_to_user_on_group_" + channelID + "_" + senderID + "_" + botMessageID,
 						}
 						inlineKeys := [][]tb.InlineButton{
 							[]tb.InlineButton{newReply, newM, newDM},

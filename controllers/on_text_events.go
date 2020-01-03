@@ -84,7 +84,7 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 		///////////////////////////////////////////
 	CheckState:
 		switch {
-		case lastState.State == config.LangConfig.GetString("ADMIN.STATE.SETUP_VERIFIED_COMPANY") || incomingMessage == setupVerifiedCompany.Text:
+		case lastState.State == config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY") || incomingMessage == setupVerifiedCompany.Text:
 			goto SetUpCompanyByAdmin
 		case lastState.State == "new_message_to_group" || strings.Contains(incomingMessage, "compose_message_in_group_"):
 			goto SaveAndSendMessage
@@ -108,7 +108,7 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 
 	SetUpCompanyByAdmin:
 		if inlineOnTextEventsHandler(app, bot, message, db, lastState, &Event{
-			UserState:  config.LangConfig.GetString("ADMIN.STATE.SETUP_VERIFIED_COMPANY"),
+			UserState:  config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY"),
 			Command:    setupVerifiedCompany.Text,
 			Controller: "SetUpCompanyByAdmin",
 		}) {

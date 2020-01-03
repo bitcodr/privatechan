@@ -23,7 +23,7 @@ func (service *BotService) SetUpCompanyByAdmin(db *sql.DB, app *config.App, bot 
 			if err == nil {
 				tableName := config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N" + questioNumber + ".TABLE_NAME")
 				columnName := config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N" + questioNumber + ".COLUMN_NAME")
-				_, err = db.Query("INSERT INTO `temp_setup_flow` (`tableName`,`columnName`,`data`,`userID`,`relation`,`createdAt`) VALUES ('" + tableName + "','" + columnName + "','" + strings.TrimSpace(text) + "','" + strconv.Itoa(userID) + "','" + config.LangConfig.GetString("ADMIN.COMMANDS.SETUP_VERIFIED_COMPANY") + strconv.Itoa(userID) + "_" + relationDate + "','" + app.CurrentTime + "')")
+				_, err = db.Query("INSERT INTO `temp_setup_flow` (`tableName`,`columnName`,`data`,`userID`,`relation`,`createdAt`) VALUES ('" + tableName + "','" + columnName + "','" + strings.TrimSpace(text) + "','" + strconv.Itoa(userID) + "','" + config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY") + "_" + strconv.Itoa(userID) + "_" + relationDate + "','" + app.CurrentTime + "')")
 				if err != nil {
 					log.Println(err)
 					return true
@@ -39,7 +39,7 @@ func (service *BotService) SetUpCompanyByAdmin(db *sql.DB, app *config.App, bot 
 	}
 	initQuestion := config.QConfig.GetString("SUPERADMIN.COMPANY.SETUP.QUESTIONS.N1.QUESTION")
 	service.sendMessageUserWithActionOnKeyboards(db, app, bot, userID, initQuestion, true)
-	SaveUserLastState(db, app, bot, "1_"+strconv.FormatInt(time.Now().Unix(), 10), userID, config.LangConfig.GetString("ADMIN.STATE.SETUP_VERIFIED_COMPANY"))
+	SaveUserLastState(db, app, bot, "1_"+strconv.FormatInt(time.Now().Unix(), 10), userID, config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY"))
 	return true
 }
 
@@ -85,7 +85,7 @@ func (service *BotService) nextQuestion(db *sql.DB, app *config.App, bot *tb.Bot
 		options.ReplyMarkup = replyMarkupModel
 		_, _ = bot.Send(userModel, questionText, options)
 	}
-	SaveUserLastState(db, app, bot, strconv.Itoa(prevQuestionNo+1)+"_"+relationDate, userID, config.LangConfig.GetString("ADMIN.STATE.SETUP_VERIFIED_COMPANY"))
+	SaveUserLastState(db, app, bot, strconv.Itoa(prevQuestionNo+1)+"_"+relationDate, userID, config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY"))
 }
 
 func (service *BotService) sendMessageUserWithActionOnKeyboards(db *sql.DB, app *config.App, bot *tb.Bot, userID int, message string, showKeyboard bool) {
@@ -112,7 +112,7 @@ func (service *BotService) finalStage(app *config.App, bot *tb.Bot, relationDate
 		return
 	}
 	defer tempData.Close()
-	results, err := tempData.Query(config.LangConfig.GetString("ADMIN.COMMANDS.SETUP_VERIFIED_COMPANY")+strconv.Itoa(userID)+"_"+relationDate, userID)
+	results, err := tempData.Query(config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY")+"_"+strconv.Itoa(userID)+"_"+relationDate, userID)
 	if err == nil {
 		var channelTableData []*models.TempSetupFlow
 		var companyTableData []*models.TempSetupFlow
@@ -144,7 +144,7 @@ func (service *BotService) finalStage(app *config.App, bot *tb.Bot, relationDate
 		//insert company
 		service.insertFinalStateData(app, bot, userID, transaction, channelTableData, companyTableData, channelsEmailSuffixes, channelsSettings, db)
 		//update state of temp setup data
-		_, err = transaction.Exec("update `temp_setup_flow` set `status`='INACTIVE' where status='ACTIVE' and relation=? and `userID`=?", config.LangConfig.GetString("ADMIN.COMMANDS.SETUP_VERIFIED_COMPANY")+strconv.Itoa(userID)+"_"+relationDate, userID)
+		_, err = transaction.Exec("update `temp_setup_flow` set `status`='INACTIVE' where status='ACTIVE' and relation=? and `userID`=?", config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY")+"_"+strconv.Itoa(userID)+"_"+relationDate, userID)
 		if err != nil {
 			_ = transaction.Rollback()
 			log.Println(err)
@@ -156,14 +156,14 @@ func (service *BotService) finalStage(app *config.App, bot *tb.Bot, relationDate
 			return
 		}
 		service.sendMessageUserWithActionOnKeyboards(db, app, bot, userID, config.LangConfig.GetString("ADMIN.TEXTS.COMPANY_REGISTERED_SUCCESSFULLY"), false)
-		SaveUserLastState(db, app, bot, text, userID, config.LangConfig.GetString("ADMIN.STATE.DONE_SETUP_VERIFIED_COMPANY"))
+		SaveUserLastState(db, app, bot, text, userID, config.LangConfig.GetString("STATE.DONE_SETUP_VERIFIED_COMPANY"))
 	}
 }
 
 func (service *BotService) insertFinalStateData(app *config.App, bot *tb.Bot, userID int, transaction *sql.Tx, channelTableData, companyTableData, channelsEmailSuffixes, channelsSettings []*models.TempSetupFlow, db *sql.DB) {
 	if companyTableData == nil || channelsEmailSuffixes == nil || len(channelsEmailSuffixes) != 1 || channelTableData == nil || channelsSettings == nil {
 		transaction.Rollback()
-		log.Println(config.LangConfig.GetString("GENERAL.DATA_MUST_NOT_BE_NULL"))
+		log.Println(config.LangConfig.GetString("MESSAGES.DATA_MUST_NOT_BE_NULL"))
 		return
 	}
 

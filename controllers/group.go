@@ -124,8 +124,8 @@ func (service *BotService) RegisterGroup(app *config.App, bot *tb.Bot, m *tb.Mes
 			time.Sleep(2 * time.Second)
 			compose := tb.InlineButton{
 				Unique: "compose_message_in_group_" + channelID,
-				Text:   "📝 New Anonymous Message 👻",
-				URL:    "https://t.me/" + app.BotUsername + "?start=compose_message_in_group_" + channelID,
+				Text:   config.LangConfig.GetString("MESSAGES.COMPOSE_MESSAGE"),
+				URL:    app.TgDomain + app.BotUsername + "?start=compose_message_in_group_" + channelID,
 			}
 			groupKeys := [][]tb.InlineButton{
 				[]tb.InlineButton{compose},
@@ -144,8 +144,8 @@ func (service *BotService) RegisterGroup(app *config.App, bot *tb.Bot, m *tb.Mes
 	} else {
 		compose := tb.InlineButton{
 			Unique: "compose_message_in_group_" + channelID,
-			Text:   "📝 New Anonymous Message 👻",
-			URL:    "https://t.me/" + app.BotUsername + "?start=compose_message_in_group_" + channelID,
+			Text:   config.LangConfig.GetString("MESSAGES.COMPOSE_MESSAGE"),
+			URL:    app.TgDomain + app.BotUsername + "?start=compose_message_in_group_" + channelID,
 		}
 		groupKeys := [][]tb.InlineButton{
 			[]tb.InlineButton{compose},
