@@ -10,8 +10,8 @@ func onActionEvents(app *config.App, bot *tb.Bot) {
 	bot.Handle(tb.OnChannelPost, func(message *tb.Message) {
 		if generalEventsHandler(app, bot, message, &Event{
 			Event:      tb.OnChannelPost,
-			UserState:  "register_channel",
-			Command:    "/enable_anonymity_support",
+			UserState:  config.LangConfig.GetString("STATE.REGISTER_CHANNEL"),
+			Command:    config.LangConfig.GetString("COMMANDS.ENABLE_CHAT"),
 			Controller: "RegisterChannel",
 		}) {
 			Init(app, bot, true)
@@ -21,7 +21,7 @@ func onActionEvents(app *config.App, bot *tb.Bot) {
 	bot.Handle(tb.OnAddedToGroup, func(message *tb.Message) {
 		if generalEventsHandler(app, bot, message, &Event{
 			Event:      tb.OnAddedToGroup,
-			UserState:  "register_group",
+			UserState:  config.LangConfig.GetString("STATE.REGISTER_GROUP"),
 			Controller: "RegisterGroup",
 		}) {
 			Init(app, bot, true)
@@ -31,7 +31,7 @@ func onActionEvents(app *config.App, bot *tb.Bot) {
 	bot.Handle(tb.OnNewGroupTitle, func(message *tb.Message) {
 		if generalEventsHandler(app, bot, message, &Event{
 			Event:      tb.OnNewGroupTitle,
-			UserState:  "updateGrouptitle",
+			UserState:  config.LangConfig.GetString("STATE.UPDATE_GROUP_TITLE"),
 			Controller: "UpdateGroupTitle",
 		}) {
 			Init(app, bot, true)
@@ -41,7 +41,7 @@ func onActionEvents(app *config.App, bot *tb.Bot) {
 	bot.Handle(&addAnonMessage, func(message *tb.Message) {
 		if generalEventsHandler(app, bot, message, &Event{
 			Event:      &addAnonMessage,
-			UserState:  "add_anon_message",
+			UserState:  config.LangConfig.GetString("STATE.ADD_ANON_MESSAGE"),
 			Controller: "AddAnonMessageToChannel",
 		}) {
 			Init(app, bot, true)

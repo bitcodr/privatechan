@@ -16,12 +16,12 @@ func SendEmail(body, to string) {
 	m := gomail.NewMessage()
 	m.SetHeader("From", from)
 	m.SetHeader("To", to)
-	m.SetHeader("Subject", "Candor Bot Activation Key")
-	m.SetBody("text/html", "Your activation key is:   <b>"+body+"</b> this key will be expire about 10 minutes")
+	m.SetHeader("Subject", config.AppConfig.GetString("APP.BOT_USERNAME")+config.LangConfig.GetString("MESSAGES.ACTIVE_KEY"))
+	m.SetBody("text/html", config.LangConfig.GetString("MESSAGES.YOU_ACTIVE_KEY")+"<b>"+body+"</b>"+config.LangConfig.GetString("MESSAGES.ACTIVE_EXPIRE_PEROID"))
 	d := gomail.NewDialer(serverAddress, serverPort, userName, pass)
 	d.TLSConfig = &tls.Config{InsecureSkipVerify: true}
 	if err := d.DialAndSend(m); err != nil {
-		log.Printf("smtp error: %s", err)
+		log.Println(err)
 		return
 	}
 }

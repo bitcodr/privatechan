@@ -23,9 +23,9 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 		//check incoming text
 		incomingMessage := message.Text
 		switch {
-		case incomingMessage == config.LangConfig.GetString("GENERAL.HOME") || incomingMessage == "/start":
+		case incomingMessage == config.LangConfig.GetString("GENERAL.HOME") || incomingMessage == config.LangConfig.GetString("COMMANDS.START"):
 			goto StartBot
-		case strings.Contains(incomingMessage, "reply_to_message_on_group_"):
+		case strings.Contains(incomingMessage, config.LangConfig.GetString("STATE.REPLY_TO_MESSAGE")+"_"):
 			goto SendReply
 		case strings.Contains(incomingMessage, config.LangConfig.GetString("STATE.REPLY_BY_DM")+"_"):
 			goto SanedDM
@@ -37,9 +37,9 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 
 	StartBot:
 		if generalEventsHandler(app, bot, message, &Event{
-			UserState:  "home",
+			UserState:  config.LangConfig.GetString("STATE.HOME"),
 			Command:    config.LangConfig.GetString("GENERAL.HOME"),
-			Command1:   "/start",
+			Command1:   config.LangConfig.GetString("COMMANDS.START"),
 			Controller: "StartBot",
 		}) {
 			Init(app, bot, true)
@@ -50,7 +50,7 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 		if generalEventsHandler(app, bot, message, &Event{
 			UserState:  config.LangConfig.GetString("STATE.REPLY_TO_MESSAGE"),
 			Command:    config.LangConfig.GetString("STATE.REPLY_TO_MESSAGE") + "_",
-			Command1:   "/start reply_to_message_on_group_",
+			Command1:   config.LangConfig.GetString("COMMANDS.START_REPLY"),
 			Controller: "SendReply",
 		}) {
 			Init(app, bot, true)
@@ -61,7 +61,7 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 		if generalEventsHandler(app, bot, message, &Event{
 			UserState:  config.LangConfig.GetString("STATE.REPLY_BY_DM"),
 			Command:    config.LangConfig.GetString("STATE.REPLY_BY_DM") + "_",
-			Command1:   "/start reply_by_dm_to_user_on_group_",
+			Command1:   config.LangConfig.GetString("COMMANDS.START_REPLY_DM"),
 			Controller: "SanedDM",
 		}) {
 			Init(app, bot, true)
@@ -70,9 +70,9 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 
 	NewMessageGroupHandler:
 		if generalEventsHandler(app, bot, message, &Event{
-			UserState:  "new_message_to_group",
+			UserState:  config.LangConfig.GetString("STATE.NEW_MESSAGE_TO_GROUP"),
 			Command:    config.LangConfig.GetString("STATE.COMPOSE_MESSAGE") + "_",
-			Command1:   "/start compose_message_in_group_",
+			Command1:   config.LangConfig.GetString("COMMANDS.START_COMPOSE_IN_GROUP"),
 			Controller: "NewMessageGroupHandler",
 		}) {
 			Init(app, bot, true)
@@ -86,21 +86,21 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 		switch {
 		case lastState.State == config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY") || incomingMessage == setupVerifiedCompany.Text:
 			goto SetUpCompanyByAdmin
-		case lastState.State == "new_message_to_group" || strings.Contains(incomingMessage, config.LangConfig.GetString("STATE.COMPOSE_MESSAGE")+"_"):
+		case lastState.State == config.LangConfig.GetString("STATE.NEW_MESSAGE_TO_GROUP") || strings.Contains(incomingMessage, config.LangConfig.GetString("STATE.COMPOSE_MESSAGE")+"_"):
 			goto SaveAndSendMessage
-		case lastState.State == config.LangConfig.GetString("STATE.REPLY_TO_MESSAGE") || strings.Contains(incomingMessage, "reply_to_message_on_group_"):
+		case lastState.State == config.LangConfig.GetString("STATE.REPLY_TO_MESSAGE") || strings.Contains(incomingMessage, config.LangConfig.GetString("STATE.REPLY_TO_MESSAGE")+"_"):
 			goto SendAndSaveReplyMessage
 		case lastState.State == config.LangConfig.GetString("STATE.REPLY_BY_DM") || strings.Contains(incomingMessage, config.LangConfig.GetString("STATE.REPLY_BY_DM")+"_"):
 			goto SendAndSaveDirectMessage
 		case lastState.State == config.LangConfig.GetString("STATE.ANSWER_TO_DM") || strings.Contains(incomingMessage, config.LangConfig.GetString("STATE.ANSWER_TO_DM")+"_"):
 			goto SendAnswerAndSaveDirectMessage
-		case lastState.State == "register_user_with_email" || incomingMessage == joinCompanyChannels.Text:
+		case lastState.State == config.LangConfig.GetString("STATE.REGISTER_USER_WITH_EMAIL") || incomingMessage == joinCompanyChannels.Text:
 			goto RegisterUserWithemail
-		case lastState.State == "confirm_register_company_email_address":
+		case lastState.State == config.LangConfig.GetString("STATE.CONFIRM_REGISTER_COMPANY"):
 			goto ConfirmRegisterCompanyRequest
-		case lastState.State == "register_user_for_the_company":
+		case lastState.State == config.LangConfig.GetString("STATE.REGISTER_USER_FOR_COMPANY"):
 			goto ConfirmRegisterUserForTheCompany
-		case lastState.State == "email_for_user_registration":
+		case lastState.State == config.LangConfig.GetString("STATE.EMAIL_FOR_USER_REGISTRATION"):
 			goto RegisterUserWithEmailAndCode
 		default:
 			goto END
@@ -118,7 +118,7 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 
 	SaveAndSendMessage:
 		if inlineOnTextEventsHandler(app, bot, message, db, lastState, &Event{
-			UserState:  "new_message_to_group",
+			UserState:  config.LangConfig.GetString("STATE.NEW_MESSAGE_TO_GROUP"),
 			Command:    config.LangConfig.GetString("STATE.COMPOSE_MESSAGE") + "_",
 			Controller: "SaveAndSendMessage",
 		}) {
@@ -130,7 +130,7 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 		if inlineOnTextEventsHandler(app, bot, message, db, lastState, &Event{
 			UserState:  config.LangConfig.GetString("STATE.REPLY_TO_MESSAGE"),
 			Command:    config.LangConfig.GetString("STATE.REPLY_TO_MESSAGE") + "_",
-			Command1: "/start reply_to_message_on_group_",
+			Command1:   config.LangConfig.GetString("COMMANDS.START_REPLY"),
 			Controller: "SendAndSaveReplyMessage",
 		}) {
 			Init(app, bot, true)
@@ -141,7 +141,7 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 		if inlineOnTextEventsHandler(app, bot, message, db, lastState, &Event{
 			UserState:  config.LangConfig.GetString("STATE.REPLY_BY_DM"),
 			Command:    config.LangConfig.GetString("STATE.REPLY_BY_DM") + "_",
-			Command1: "/start reply_by_dm_to_user_on_group_",
+			Command1:   config.LangConfig.GetString("COMMANDS.START_REPLY_DM"),
 			Controller: "SendAndSaveDirectMessage",
 		}) {
 			Init(app, bot, true)
@@ -151,7 +151,7 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 	SendAnswerAndSaveDirectMessage:
 		if inlineOnTextEventsHandler(app, bot, message, db, lastState, &Event{
 			UserState:  config.LangConfig.GetString("STATE.ANSWER_TO_DM"),
-			Command:    config.LangConfig.GetString("STATE.ANSWER_TO_DM")+"_",
+			Command:    config.LangConfig.GetString("STATE.ANSWER_TO_DM") + "_",
 			Controller: "SendAnswerAndSaveDirectMessage",
 		}) {
 			Init(app, bot, true)
@@ -160,7 +160,7 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 
 	RegisterUserWithemail:
 		if inlineOnTextEventsHandler(app, bot, message, db, lastState, &Event{
-			UserState:  "register_user_with_email",
+			UserState:  config.LangConfig.GetString("STATE.REGISTER_USER_WITH_EMAIL"),
 			Command:    joinCompanyChannels.Text,
 			Controller: "RegisterUserWithemail",
 		}) {
@@ -170,7 +170,7 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 
 	ConfirmRegisterCompanyRequest:
 		if inlineOnTextEventsHandler(app, bot, message, db, lastState, &Event{
-			UserState:  "confirm_register_company_email_address",
+			UserState:  config.LangConfig.GetString("STATE.CONFIRM_REGISTER_COMPANY"),
 			Controller: "ConfirmRegisterCompanyRequest",
 		}) {
 			Init(app, bot, true)
@@ -179,7 +179,7 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 
 	ConfirmRegisterUserForTheCompany:
 		if inlineOnTextEventsHandler(app, bot, message, db, lastState, &Event{
-			UserState:  "register_user_for_the_company",
+			UserState:  config.LangConfig.GetString("STATE.REGISTER_USER_FOR_COMPANY"),
 			Controller: "ConfirmRegisterUserForTheCompany",
 		}) {
 			Init(app, bot, true)
@@ -188,7 +188,7 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 
 	RegisterUserWithEmailAndCode:
 		if inlineOnTextEventsHandler(app, bot, message, db, lastState, &Event{
-			UserState:  "email_for_user_registration",
+			UserState:  config.LangConfig.GetString("STATE.EMAIL_FOR_USER_REGISTRATION"),
 			Controller: "RegisterUserWithEmailAndCode",
 		}) {
 			Init(app, bot, true)

@@ -19,7 +19,7 @@ func onCallbackEvents(app *config.App, bot *tb.Bot) {
 		//check incoming text
 		incomingMessage := c.Data
 		switch {
-		case incomingMessage == config.LangConfig.GetString("GENERAL.HOME") || incomingMessage == "/start":
+		case incomingMessage == config.LangConfig.GetString("GENERAL.HOME") || incomingMessage == config.LangConfig.GetString("COMMANDS.START"):
 			goto StartBotCallback
 		case strings.Contains(incomingMessage, config.LangConfig.GetString("STATE.ANSWER_TO_DM")+"_"):
 			goto SanedAnswerDM
@@ -39,9 +39,9 @@ func onCallbackEvents(app *config.App, bot *tb.Bot) {
 
 	StartBotCallback:
 		if onCallbackEventsHandler(app, bot, c, &Event{
-			UserState:  "home",
+			UserState:  config.LangConfig.GetString("STATE.HOME"),
 			Command:    config.LangConfig.GetString("GENERAL.HOME"),
-			Command1:   "/start",
+			Command1:   config.LangConfig.GetString("COMMANDS.START"),
 			Controller: "StartBotCallback",
 		}) {
 			Init(app, bot, true)
@@ -55,7 +55,7 @@ func onCallbackEvents(app *config.App, bot *tb.Bot) {
 		switch lastState.State {
 		case config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY"):
 			goto SetUpCompanyByAdmin
-		case "register_user_with_email":
+		case config.LangConfig.GetString("STATE.REGISTER_USER_WITH_EMAIL"):
 			goto RegisterUserWithemail
 		default:
 			goto END
@@ -72,7 +72,7 @@ func onCallbackEvents(app *config.App, bot *tb.Bot) {
 
 	RegisterUserWithemail:
 		if inlineOnCallbackEventsHandler(app, bot, c, db, lastState, &Event{
-			UserState:  "register_user_with_email",
+			UserState:  config.LangConfig.GetString("STATE.REGISTER_USER_WITH_EMAIL"),
 			Controller: "RegisterUserWithemail",
 		}) {
 			Init(app, bot, true)

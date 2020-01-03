@@ -19,7 +19,7 @@ func (service *BotService) StartBot(app *config.App, bot *tb.Bot, message *tb.Me
 		newSendOption := new(tb.SendOptions)
 		newSendOption.ReplyMarkup = newReplyModel
 		_ = bot.Delete(message)
-		_, err := bot.Send(message.Sender, "What Do You Want To Do?", newSendOption)
+		_, err := bot.Send(message.Sender, config.LangConfig.GetString("MESSAGES.WHAT_TO_YOU_WANT"), newSendOption)
 		if err != nil {
 			log.Println(err)
 			return false
@@ -41,7 +41,7 @@ func (service *BotService) StartBotCallback(app *config.App, bot *tb.Bot, callba
 		newSendOption := new(tb.SendOptions)
 		newSendOption.ReplyMarkup = newReplyModel
 		_ = bot.Delete(callback.Message)
-		_, err := bot.Send(callback.Sender, "What Do You Want To Do?", newSendOption)
+		_, err := bot.Send(callback.Sender, config.LangConfig.GetString("MESSAGES.WHAT_TO_YOU_WANT"), newSendOption)
 		if err != nil {
 			log.Println(err)
 			return false
@@ -57,6 +57,6 @@ func (service *BotService) AddAnonMessageToChannel(app *config.App, bot *tb.Bot,
 	if message.Sender != nil {
 		SaveUserLastState(db, app, bot, message.Text, message.Sender.ID, request.UserState)
 	}
-	bot.Send(message.Sender, "For anonymous message add the bot to your group and start messaging")
+	bot.Send(message.Sender, config.LangConfig.GetString("MESSAGES.ALERT_FOR_ANON_MESSAGE"))
 	return true
 }

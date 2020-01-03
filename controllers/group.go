@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/amiraliio/tgbp/lang"
 	"github.com/google/uuid"
 
 	"github.com/amiraliio/tgbp/config"
+	"github.com/amiraliio/tgbp/lang"
 	"github.com/amiraliio/tgbp/models"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
@@ -108,7 +108,7 @@ func (service *BotService) RegisterGroup(app *config.App, bot *tb.Bot, m *tb.Mes
 				log.Println(err)
 				return true
 			}
-			successMessage, _ := bot.Send(m.Chat, "You're group registered successfully")
+			successMessage, _ := bot.Send(m.Chat, config.LangConfig.GetString("MESSAGES.GROUP_REGISTERED_SUCCESSFULLY"))
 			time.Sleep(2 * time.Second)
 			if err := bot.Delete(successMessage); err != nil {
 				log.Println(err)
@@ -116,7 +116,7 @@ func (service *BotService) RegisterGroup(app *config.App, bot *tb.Bot, m *tb.Mes
 			}
 			sendOptionModel := new(tb.SendOptions)
 			sendOptionModel.ParseMode = tb.ModeHTML
-			_, err = bot.Send(m.Chat, "This is your group unique ID, you can save it and remove this message: <code> "+uniqueID+" </code>", sendOptionModel)
+			_, err = bot.Send(m.Chat, config.LangConfig.GetString("MESSAGES.GROUP_UNIQUE_ID_MESSAGE")+"<code> "+uniqueID+" </code>", sendOptionModel)
 			if err != nil {
 				log.Println(err)
 				return true
@@ -197,7 +197,7 @@ func (service *BotService) NewMessageGroupHandler(app *config.App, bot *tb.Bot, 
 		}
 		markup.ReplyKeyboard = replyKeys
 		options.ReplyMarkup = markup
-		bot.Send(m.Sender, "Please draft your anonymous new message to the group / channel: "+channelModel.ChannelName, options)
+		bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.PLEASE_DRAFT_YOUR_MESSAGE")+channelModel.ChannelName, options)
 		return true
 	}
 	return false

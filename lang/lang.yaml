@@ -28,6 +28,19 @@ STATE:
   REPLY_BY_DM: reply_by_dm_to_user_on_group
   ANSWER_TO_DM: answer_to_dm
   DIRECT_MESSAGE_SENT: direct_message_sent
+  REGISTER_CHANNEL: register_channel
+  REGISTER_GROUP: register_group
+  UPDATE_GROUP_TITLE: updateGrouptitle
+  ADD_ANON_MESSAGE: add_anon_message
+  HOME: home
+  REGISTER_USER_WITH_EMAIL: register_user_with_email
+  NEW_MESSAGE_TO_GROUP: new_message_to_group
+  CONFIRM_REGISTER_COMPANY: confirm_register_company_email_address
+  REGISTER_USER_FOR_COMPANY: register_user_for_the_company
+  EMAIL_FOR_USER_REGISTRATION: email_for_user_registration
+  JOIN_REQUEST_ADDED: join_request_added
+  JOIN_REQUEST_DISMISSED: join_request_dismissed
+  CANCEL_USER_REGISTRATION: cancel_user_registration_for_the_company
 
 MESSAGES:
   DATA_MUST_NOT_BE_NULL: "final data must not be null"
@@ -46,3 +59,37 @@ MESSAGES:
   DIRECT_REPLY: "Direct Reply"
   DIRECT_HAS_BEEN_SENT: "Your Direct Message Has Been Sent To The User:"
   ON_CHANNEL_GROUP: "On channel/group"
+  GROUP_REGISTERED_SUCCESSFULLY: "You're group registered successfully"
+  GROUP_UNIQUE_ID_MESSAGE: "This is your group unique ID, you can save it and remove this message: "
+  PLEASE_DRAFT_YOUR_MESSAGE: "Please draft your anonymous new message to the group / channel:"
+  ADD_MESSAGE_TO_CHANNEL: "Add Anonymous Message to a Channel/Group"
+  SETUP_VERIFIED_COMPANY: "Setup Verified Company Account"
+  JOIN_TO_COMPANY_CHANNEL: "Join To Company Anonymous Channel/Group"
+  WHAT_TO_YOU_WANT: "What Do You Want To Do?"
+  ALERT_FOR_ANON_MESSAGE: "For anonymous message add the bot to your group and start messaging"
+  PLEASE_ENTER_VALID_EMAIL: "Please Enter a Valid Email Address"
+  NOT_ALLOWED_PUBLIC_EMAIL: "You Can't Enter a Free Email Service, Please Enter Your Email in Your Company:"
+  ENTER_COMPANY_EMAIL: "Please Enter Your Email in Your Company:"
+  COMPANY_WITH_THE_EMAIL_NOT_EXIST: "The company according to your email doesn't exist, do you confirm sending a registration request for your company?"
+  CONFIRM_REGISTER_TO_CHANNEL: "Do you confirm that you want to register to the channel/group "
+  BLONGS_TO_COMPANY: " blongs to the company "
+  SEND_REQUEST_TO_ADMIN: "Your Request Sent To The Admin And Will be Active After Confirmation."
+  CONTINUE_IN_BOT: "You Can Continue in Bot by Pressing The Home Button"
+  STRING_MUST_BE_2_PART: "string must be two part, channelID and userEmail"
+  LENGTH_OF_CHANNEL_DATA_MUST_BE_2: "length of channel data must be 2"
+  REGISTERED_IN_CHANNEL: "You've been registered in the channel/group"
+  ENTER_CODE_FROM_EMAIL: "Please Enter The Code That Sent To Your Email Address"
+  CONTINUE_TO_HOME_BTN: "You Can Continue in Bot by Pressing The Home Button"
+  KEY_IS_INVALID: "The key Is Invalid"
+  CLICK_HERE_TO_START_COMMUNICATION: "Click Here To Start Communication"
+  YOU_ARE_MEMBER_OF_CHANNEL: "You are now member of channel/group "
+  ACTIVE_KEY: " Bot Activation Key"
+  YOU_ACTIVE_KEY: "Your activation key is: "
+  ACTIVE_EXPIRE_PEROID: " this key will be expire about 10 minutes"
+
+COMMANDS:
+  ENABLE_CHAT: "/enable_anonymity_support"
+  START: "/start"
+  START_REPLY: "/start reply_to_message_on_group_"
+  START_REPLY_DM: "/start reply_by_dm_to_user_on_group_"
+  START_COMPOSE_IN_GROUP: "/start compose_message_in_group_"

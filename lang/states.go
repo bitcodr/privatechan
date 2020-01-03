@@ -1,4 +1,0 @@
-//Package lang ...
-package lang
-
-
