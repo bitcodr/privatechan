@@ -8,15 +8,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/amiraliio/tgbp/lang"
 	"github.com/google/uuid"
 
 	"github.com/amiraliio/tgbp/config"
 	"github.com/amiraliio/tgbp/helpers"
+	"github.com/amiraliio/tgbp/lang"
 	"github.com/amiraliio/tgbp/models"
 	tb "gopkg.in/tucnak/telebot.v2"
 )
-
 
 //RegisterChannel
 func (service *BotService) RegisterChannel(app *config.App, bot *tb.Bot, m *tb.Message, request *Event) bool {
@@ -197,7 +196,7 @@ func (service *BotService) SendReply(app *config.App, bot *tb.Bot, m *tb.Message
 		}
 		markup.ReplyKeyboard = replyKeys
 		options.ReplyMarkup = markup
-		_, err = bot.Send(m.Sender, "Please send your reply to the message: '"+messageModel.Message+"...' on "+channelModel.ChannelName, options)
+		_, err = bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.PLEASE_REPLY")+"'"+messageModel.Message+"...' on "+channelModel.ChannelName, options)
 		if err != nil {
 			log.Println(err)
 			return true
@@ -219,9 +218,9 @@ func (service *BotService) SanedDM(app *config.App, bot *tb.Bot, m *tb.Message, 
 			return true
 		}
 		if m.Sender.ID == directSenderID {
-			bot.Send(m.Sender, "You are attempting to Direct Message 📲 yourself. You cannot 🚫 do this. No message has been sent.", HomeKeyOption(db, app))
+			bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.BAN_DIRECT"), HomeKeyOption(db, app))
 			if m.Sender != nil {
-				SaveUserLastState(db, app, bot, "not_access_to_dm", m.Sender.ID, "not_access_to_dm")
+				SaveUserLastState(db, app, bot, config.LangConfig.GetString("STATE.NOT_DM_ACCESS"), m.Sender.ID, config.LangConfig.GetString("STATE.NOT_DM_ACCESS"))
 			}
 			return true
 		}
@@ -243,7 +242,7 @@ func (service *BotService) SanedDM(app *config.App, bot *tb.Bot, m *tb.Message, 
 		options.ParseMode = tb.ModeHTML
 		user := service.GetUserByTelegramID(db, app, directSenderID)
 		channel := service.GetChannelByTelegramID(db, app, channelID)
-		_, err = bot.Send(m.Sender, "<code>Please send your direct message to the user:</code><b>"+helpers.Hash(user.UserID+channelID)+"</b> <code>From:</code> <b>"+channel.ChannelName+"</b>", options)
+		_, err = bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.PLEASE_SEND_YOUR_DIRECT")+"<b>"+helpers.Hash(user.UserID+channelID)+"</b>"+config.LangConfig.GetString("GENERAL.FROM")+": <b>"+channel.ChannelName+"</b>", options)
 		if err != nil {
 			log.Println(err)
 			return true
@@ -266,9 +265,9 @@ func (service *BotService) SanedAnswerDM(app *config.App, bot *tb.Bot, m *tb.Cal
 			return true
 		}
 		if m.Sender.ID == directSenderID {
-			bot.Send(m.Sender, "You are attempting to Direct Message 📲 yourself. You cannot 🚫 do this. No message has been sent.", HomeKeyOption(db, app))
+			bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.BAN_DIRECT"), HomeKeyOption(db, app))
 			if m.Sender != nil {
-				SaveUserLastState(db, app, bot, "not_access_to_dm", m.Sender.ID, "not_access_to_dm")
+				SaveUserLastState(db, app, bot, config.LangConfig.GetString("STATE.NOT_DM_ACCESS"), m.Sender.ID, config.LangConfig.GetString("STATE.NOT_DM_ACCESS"))
 			}
 			return true
 		}
@@ -289,7 +288,7 @@ func (service *BotService) SanedAnswerDM(app *config.App, bot *tb.Bot, m *tb.Cal
 		channelID := strings.TrimSpace(data[0])
 		user := service.GetUserByTelegramID(db, app, directSenderID)
 		channel := service.GetChannelByTelegramID(db, app, channelID)
-		_, err = bot.Send(m.Sender, "<code>Please send your direct message to the user:</code><b>"+helpers.Hash(user.UserID+channelID)+"</b> <code>From:</code> <b>"+channel.ChannelName+"</b>", options)
+		_, err = bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.PLEASE_SEND_YOUR_DIRECT")+"<b>"+helpers.Hash(user.UserID+channelID)+"</b>"+config.LangConfig.GetString("GENERAL.FROM")+": <b>"+channel.ChannelName+"</b>", options)
 		if err != nil {
 			log.Println(err)
 			return true
@@ -305,19 +304,19 @@ func (service *BotService) SaveAndSendMessage(db *sql.DB, app *config.App, bot *
 		senderID := strconv.Itoa(m.Sender.ID)
 		botMessageID := strconv.Itoa(m.ID)
 		newReply := tb.InlineButton{
-			Unique: "reply_to_message_on_group_" + activeChannel.ChannelID + "_" + senderID + "_" + botMessageID,
-			Text:   "👻Reply",
-			URL:    app.TgDomain + app.BotUsername + "?start=reply_to_message_on_group_" + activeChannel.ChannelID + "_" + senderID + "_" + botMessageID,
+			Unique: config.LangConfig.GetString("STATE.REPLY_TO_MESSAGE") + "_" + activeChannel.ChannelID + "_" + senderID + "_" + botMessageID,
+			Text:   config.LangConfig.GetString("MESSAGES.REPLY"),
+			URL:    app.TgDomain + app.BotUsername + "?start=" + config.LangConfig.GetString("STATE.REPLY_TO_MESSAGE") + "_" + activeChannel.ChannelID + "_" + senderID + "_" + botMessageID,
 		}
 		newM := tb.InlineButton{
-			Unique: "compose_message_in_group_" + activeChannel.ChannelID,
-			Text:   "📝New",
-			URL:    app.TgDomain + app.BotUsername + "?start=compose_message_in_group_" + activeChannel.ChannelID,
+			Unique: config.LangConfig.GetString("STATE.COMPOSE_MESSAGE") + "_" + activeChannel.ChannelID,
+			Text:   config.LangConfig.GetString("MESSAGES.NEW"),
+			URL:    app.TgDomain + app.BotUsername + "?start=" + config.LangConfig.GetString("STATE.COMPOSE_MESSAGE") + "_" + activeChannel.ChannelID,
 		}
 		newDM := tb.InlineButton{
-			Unique: "reply_by_dm_to_user_on_group_" + activeChannel.ChannelID + "_" + senderID + "_" + botMessageID,
-			Text:   "📲Direct",
-			URL:    app.TgDomain + app.BotUsername + "?start=reply_by_dm_to_user_on_group_" + activeChannel.ChannelID + "_" + senderID + "_" + botMessageID,
+			Unique: config.LangConfig.GetString("STATE.REPLY_BY_DM") + "_" + activeChannel.ChannelID + "_" + senderID + "_" + botMessageID,
+			Text:   config.LangConfig.GetString("MESSAGES.DIRECT"),
+			URL:    app.TgDomain + app.BotUsername + "?start=" + config.LangConfig.GetString("STATE.REPLY_BY_DM") + "_" + activeChannel.ChannelID + "_" + senderID + "_" + botMessageID,
 		}
 		inlineKeys := [][]tb.InlineButton{
 			[]tb.InlineButton{newReply, newM, newDM},
@@ -360,7 +359,7 @@ func (service *BotService) SaveAndSendMessage(db *sql.DB, app *config.App, bot *
 				markup.ReplyKeyboard = replyKeys
 				// markup.InlineKeyboard = inlineKeys
 				options.ReplyMarkup = markup
-				bot.Send(m.Sender, "Your message has been sent anonymously to the group / channel "+activeChannel.ChannelName, options)
+				bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES..MESSAGE_HAS_BEEN_SENT")+activeChannel.ChannelName, options)
 				SaveUserLastState(db, app, bot, "", m.Sender.ID, "message_sent")
 			}
 		}
@@ -370,7 +369,7 @@ func (service *BotService) SaveAndSendMessage(db *sql.DB, app *config.App, bot *
 
 func (service *BotService) SendAndSaveReplyMessage(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *Event, lastState *models.UserLastState) bool {
 	if lastState.Data != "" {
-		ids := strings.TrimPrefix(lastState.Data, "/start reply_to_message_on_group_")
+		ids := strings.TrimPrefix(lastState.Data, request.Command1)
 		if ids != "" {
 			data := strings.Split(ids, "_")
 			if len(data) == 3 {
@@ -391,19 +390,19 @@ func (service *BotService) SendAndSaveReplyMessage(db *sql.DB, app *config.App, 
 					channelIntValue, err := strconv.Atoi(channelID)
 					if err == nil {
 						newReply := tb.InlineButton{
-							Unique: "reply_to_message_on_group_" + channelID + "_" + senderID + "_" + botMessageID,
-							Text:   "👻Reply",
-							URL:    app.TgDomain + app.BotUsername + "?start=reply_to_message_on_group_" + channelID + "_" + senderID + "_" + botMessageID,
+							Unique: config.LangConfig.GetString("STATE.REPLY_TO_MESSAGE") + "_" + channelID + "_" + senderID + "_" + botMessageID,
+							Text:   config.LangConfig.GetString("MESSAGES.REPLY"),
+							URL:    app.TgDomain + app.BotUsername + "?start=" + config.LangConfig.GetString("STATE.REPLY_TO_MESSAGE") + "_" + channelID + "_" + senderID + "_" + botMessageID,
 						}
 						newM := tb.InlineButton{
-							Unique: "compose_message_in_group_" + channelID,
-							Text:   "📝New",
-							URL:    app.TgDomain + app.BotUsername + "?start=compose_message_in_group_" + channelID,
+							Unique: config.LangConfig.GetString("STATE.COMPOSE_MESSAGE") + "_" + channelID,
+							Text:   config.LangConfig.GetString("MESSAGES.NEW"),
+							URL:    app.TgDomain + app.BotUsername + "?start=" + config.LangConfig.GetString("STATE.COMPOSE_MESSAGE") + "_" + channelID,
 						}
 						newDM := tb.InlineButton{
-							Unique: "reply_by_dm_to_user_on_group_" + channelID + "_" + senderID + "_" + botMessageID,
-							Text:   "📲Direct",
-							URL:    app.TgDomain + app.BotUsername + "?start=reply_by_dm_to_user_on_group_" + channelID + "_" + senderID + "_" + botMessageID,
+							Unique: config.LangConfig.GetString("STATE.REPLY_BY_DM") + "_" + channelID + "_" + senderID + "_" + botMessageID,
+							Text:   config.LangConfig.GetString("MESSAGES.DIRECT"),
+							URL:    app.TgDomain + app.BotUsername + "?start=" + config.LangConfig.GetString("STATE.REPLY_BY_DM") + "_" + channelID + "_" + senderID + "_" + botMessageID,
 						}
 						inlineKeys := [][]tb.InlineButton{
 							[]tb.InlineButton{newReply, newM, newDM},
@@ -452,7 +451,7 @@ func (service *BotService) SendAndSaveReplyMessage(db *sql.DB, app *config.App, 
 									}
 									markup.ReplyKeyboard = replyKeys
 									options.ReplyMarkup = markup
-									bot.Send(m.Sender, "Your reply message has been sent anonymously to the group / channel "+newChannelModel.ChannelName, options)
+									bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.REPLY_MESSAGE_HAS_BEEN_SENT")+newChannelModel.ChannelName, options)
 									SaveUserLastState(db, app, bot, "", m.Sender.ID, "reply_message_sent")
 								}
 							}
@@ -467,7 +466,7 @@ func (service *BotService) SendAndSaveReplyMessage(db *sql.DB, app *config.App, 
 
 func (service *BotService) SendAndSaveDirectMessage(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *Event, lastState *models.UserLastState) bool {
 	if lastState.Data != "" {
-		ids := strings.TrimPrefix(lastState.Data, "/start reply_by_dm_to_user_on_group_")
+		ids := strings.TrimPrefix(lastState.Data, request.Command1)
 		if ids != "" {
 			data := strings.Split(ids, "_")
 			if len(data) == 3 {
@@ -489,8 +488,8 @@ func (service *BotService) SendAndSaveDirectMessage(db *sql.DB, app *config.App,
 					channelModel := new(models.Channel)
 					if err := message.Scan(&messageModel.ID, &messageModel.ChannelMessageID, &channelModel.ChannelName); err == nil {
 						newReply := tb.InlineButton{
-							Unique: "answer_to_dm_" + channelID + "_" + senderID + "_" + newBotMessageID,
-							Text:   "Direct Reply",
+							Unique: config.LangConfig.GetString("STATE.ANSWER_TO_DM") + "_" + channelID + "_" + senderID + "_" + newBotMessageID,
+							Text:   config.LangConfig.GetString("MESSAGES.DIRECT_REPLY"),
 						}
 						inlineKeys := [][]tb.InlineButton{
 							[]tb.InlineButton{newReply},
@@ -508,7 +507,7 @@ func (service *BotService) SendAndSaveDirectMessage(db *sql.DB, app *config.App,
 							markup.ReplyKeyboard = replyKeys
 							options.ReplyMarkup = markup
 							options.ParseMode = tb.ModeHTML
-							bot.Send(m.Sender, "Your Direct Message Has Been Sent To The User: <b>"+helpers.Hash(userID+channelID)+"</b>", options)
+							bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.DIRECT_HAS_BEEN_SENT")+"<b>"+helpers.Hash(userID+channelID)+"</b>", options)
 							// sendMessageModel := new(tb.Message)
 							// sendMessageModel.ID = ChannelMessageDataID
 							newReplyModel := new(tb.ReplyMarkup)
@@ -519,7 +518,7 @@ func (service *BotService) SendAndSaveDirectMessage(db *sql.DB, app *config.App,
 							newSendOption.ParseMode = tb.ModeHTML
 							user := new(tb.User)
 							user.ID = userIDInInt
-							sendMessage, err := bot.Send(user, "<b>Message:</b> "+m.Text+" <b>From:</b> "+helpers.Hash(senderID+channelID)+"<b> On channel/group: </b> "+channelModel.ChannelName, newSendOption)
+							sendMessage, err := bot.Send(user, "<b>"+config.LangConfig.GetString("GENERAL.MESSAGE")+":</b> "+m.Text+" <b>"+config.LangConfig.GetString("GENERAL.FROM")+":</b> "+helpers.Hash(senderID+channelID)+"<b> "+config.LangConfig.GetString("MESSAGES.ON_CHANNEL_GROUP")+": </b> "+channelModel.ChannelName, newSendOption)
 							if err == nil {
 								newChannelMessageID := strconv.Itoa(sendMessage.ID)
 								parentID := strconv.FormatInt(messageModel.ID, 10)
@@ -539,7 +538,7 @@ func (service *BotService) SendAndSaveDirectMessage(db *sql.DB, app *config.App,
 										return true
 									}
 									defer insertedMessage.Close()
-									SaveUserLastState(db, app, bot, "", m.Sender.ID, "direct_message_sent")
+									SaveUserLastState(db, app, bot, "", m.Sender.ID, config.LangConfig.GetString("STATE.DIRECT_MESSAGE_SENT"))
 								}
 							}
 						}
@@ -553,7 +552,7 @@ func (service *BotService) SendAndSaveDirectMessage(db *sql.DB, app *config.App,
 
 func (service *BotService) SendAnswerAndSaveDirectMessage(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *Event, lastState *models.UserLastState) bool {
 	if lastState.Data != "" {
-		ids := strings.ReplaceAll(lastState.Data, "answer_to_dm_", "")
+		ids := strings.ReplaceAll(lastState.Data, config.LangConfig.GetString("STATE.ANSWER_TO_DM")+"_", "")
 		if ids != "" {
 			data := strings.Split(ids, "_")
 			if len(data) == 3 {
@@ -564,8 +563,8 @@ func (service *BotService) SendAnswerAndSaveDirectMessage(db *sql.DB, app *confi
 				userIDInInt, err := strconv.Atoi(userID)
 				if err == nil {
 					newReply := tb.InlineButton{
-						Unique: "answer_to_dm_" + channelID + "_" + senderID + "_" + newBotMessageID,
-						Text:   "Direct Reply",
+						Unique: config.LangConfig.GetString("STATE.ANSWER_TO_DM") + "_" + channelID + "_" + senderID + "_" + newBotMessageID,
+						Text:   config.LangConfig.GetString("MESSAGES.DIRECT_REPLY"),
 					}
 					inlineKeys := [][]tb.InlineButton{
 						[]tb.InlineButton{newReply},
@@ -581,7 +580,7 @@ func (service *BotService) SendAnswerAndSaveDirectMessage(db *sql.DB, app *confi
 					markup.ReplyKeyboard = replyKeys
 					options.ReplyMarkup = markup
 					options.ParseMode = tb.ModeHTML
-					bot.Send(m.Sender, "Your Direct Message Has Been Sent To The User: <b>"+helpers.Hash(userID+channelID)+"</b>", options)
+					bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.DIRECT_HAS_BEEN_SENT")+" <b>"+helpers.Hash(userID+channelID)+"</b>", options)
 					currentChannelStatement, err := db.Prepare("SELECT id,channelName from `channels` where `channelID`=?")
 					if err != nil {
 						log.Println(err)
@@ -603,7 +602,7 @@ func (service *BotService) SendAnswerAndSaveDirectMessage(db *sql.DB, app *confi
 							newSendOption.ParseMode = tb.ModeHTML
 							user := new(tb.User)
 							user.ID = userIDInInt
-							sendMessage, err := bot.Send(user, "<b>Message:</b> "+m.Text+" <b>From:</b> "+helpers.Hash(senderID+channelID)+"<b> On channel/group: </b> "+newChannelModel.ChannelName, newSendOption)
+							sendMessage, err := bot.Send(user, "<b>"+config.LangConfig.GetString("GENERAL.MESSAGE")+":</b> "+m.Text+" <b>"+config.LangConfig.GetString("GENERAL.FROM")+":</b> "+helpers.Hash(senderID+channelID)+"<b> "+config.LangConfig.GetString("MESSAGES.ON_CHANNEL_GROUP")+": </b> "+newChannelModel.ChannelName, newSendOption)
 							if err == nil {
 								newChannelMessageID := strconv.Itoa(sendMessage.ID)
 								newChannelModelID := strconv.FormatInt(newChannelModel.ID, 10)
@@ -613,7 +612,7 @@ func (service *BotService) SendAnswerAndSaveDirectMessage(db *sql.DB, app *confi
 									return true
 								}
 								defer insertedMessage.Close()
-								SaveUserLastState(db, app, bot, "", m.Sender.ID, "direct_message_sent")
+								SaveUserLastState(db, app, bot, "", m.Sender.ID, config.LangConfig.GetString("STATE.DIRECT_MESSAGE_SENT"))
 							}
 						}
 					}

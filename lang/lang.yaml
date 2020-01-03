@@ -16,11 +16,18 @@ GENERAL:
   NEW_MESSAGE_VERIFY: newMessageVerify
   REPLY_VERIFY: replyVerify
   DIRECT_VERIFY: directVerify
+  FROM: From
+  MESSAGE: Message
 
 STATE:
   SETUP_VERIFIED_COMPANY: setup_verified_company_account
   DONE_SETUP_VERIFIED_COMPANY: done_setup_verified_company_account
   COMPOSE_MESSAGE: compose_message_in_group
+  NOT_DM_ACCESS: not_access_to_dm
+  REPLY_TO_MESSAGE: reply_to_message_on_group
+  REPLY_BY_DM: reply_by_dm_to_user_on_group
+  ANSWER_TO_DM: answer_to_dm
+  DIRECT_MESSAGE_SENT: direct_message_sent
 
 MESSAGES:
   DATA_MUST_NOT_BE_NULL: "final data must not be null"
@@ -28,5 +35,14 @@ MESSAGES:
   CHANNEL_REGISTERED_SUCCESSFULLY: "You're channel registered successfully"
   CHANNEL_UNIQUE_ID_MESSAGE: "This is your channel unique ID, you can save it and remove this message:"
   COMPOSE_MESSAGE: "📝 New Anonymous Message 👻"
-
-
+  PLEASE_REPLY: "Please send your reply to the message: "
+  BAN_DIRECT: "You are attempting to Direct Message 📲 yourself. You cannot 🚫 do this. No message has been sent."
+  PLEASE_SEND_YOUR_DIRECT: "Please send your direct message to the user:"
+  REPLY: "👻Reply"
+  NEW: "📝New"
+  DIRECT: "📲Direct"
+  MESSAGE_HAS_BEEN_SENT: "Your message has been sent anonymously to the group / channel "
+  REPLY_MESSAGE_HAS_BEEN_SENT: "Your reply message has been sent anonymously to the group / channel "
+  DIRECT_REPLY: "Direct Reply"
+  DIRECT_HAS_BEEN_SENT: "Your Direct Message Has Been Sent To The User:"
+  ON_CHANNEL_GROUP: "On channel/group"

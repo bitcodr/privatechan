@@ -27,9 +27,9 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 			goto StartBot
 		case strings.Contains(incomingMessage, "reply_to_message_on_group_"):
 			goto SendReply
-		case strings.Contains(incomingMessage, "reply_by_dm_to_user_on_group_"):
+		case strings.Contains(incomingMessage, config.LangConfig.GetString("STATE.REPLY_BY_DM")+"_"):
 			goto SanedDM
-		case strings.Contains(incomingMessage, "compose_message_in_group_"):
+		case strings.Contains(incomingMessage, config.LangConfig.GetString("STATE.COMPOSE_MESSAGE")+"_"):
 			goto NewMessageGroupHandler
 		default:
 			goto CheckState
@@ -48,8 +48,8 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 
 	SendReply:
 		if generalEventsHandler(app, bot, message, &Event{
-			UserState:  "reply_to_message_on_group",
-			Command:    "reply_to_message_on_group_",
+			UserState:  config.LangConfig.GetString("STATE.REPLY_TO_MESSAGE"),
+			Command:    config.LangConfig.GetString("STATE.REPLY_TO_MESSAGE") + "_",
 			Command1:   "/start reply_to_message_on_group_",
 			Controller: "SendReply",
 		}) {
@@ -59,8 +59,8 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 
 	SanedDM:
 		if generalEventsHandler(app, bot, message, &Event{
-			UserState:  "reply_by_dm_to_user_on_group",
-			Command:    "reply_by_dm_to_user_on_group_",
+			UserState:  config.LangConfig.GetString("STATE.REPLY_BY_DM"),
+			Command:    config.LangConfig.GetString("STATE.REPLY_BY_DM") + "_",
 			Command1:   "/start reply_by_dm_to_user_on_group_",
 			Controller: "SanedDM",
 		}) {
@@ -71,7 +71,7 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 	NewMessageGroupHandler:
 		if generalEventsHandler(app, bot, message, &Event{
 			UserState:  "new_message_to_group",
-			Command:    "compose_message_in_group_",
+			Command:    config.LangConfig.GetString("STATE.COMPOSE_MESSAGE") + "_",
 			Command1:   "/start compose_message_in_group_",
 			Controller: "NewMessageGroupHandler",
 		}) {
@@ -86,13 +86,13 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 		switch {
 		case lastState.State == config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY") || incomingMessage == setupVerifiedCompany.Text:
 			goto SetUpCompanyByAdmin
-		case lastState.State == "new_message_to_group" || strings.Contains(incomingMessage, "compose_message_in_group_"):
+		case lastState.State == "new_message_to_group" || strings.Contains(incomingMessage, config.LangConfig.GetString("STATE.COMPOSE_MESSAGE")+"_"):
 			goto SaveAndSendMessage
-		case lastState.State == "reply_to_message_on_group" || strings.Contains(incomingMessage, "reply_to_message_on_group_"):
+		case lastState.State == config.LangConfig.GetString("STATE.REPLY_TO_MESSAGE") || strings.Contains(incomingMessage, "reply_to_message_on_group_"):
 			goto SendAndSaveReplyMessage
-		case lastState.State == "reply_by_dm_to_user_on_group" || strings.Contains(incomingMessage, "reply_by_dm_to_user_on_group_"):
+		case lastState.State == config.LangConfig.GetString("STATE.REPLY_BY_DM") || strings.Contains(incomingMessage, config.LangConfig.GetString("STATE.REPLY_BY_DM")+"_"):
 			goto SendAndSaveDirectMessage
-		case lastState.State == "answer_to_dm" || strings.Contains(incomingMessage, "answer_to_dm_"):
+		case lastState.State == config.LangConfig.GetString("STATE.ANSWER_TO_DM") || strings.Contains(incomingMessage, config.LangConfig.GetString("STATE.ANSWER_TO_DM")+"_"):
 			goto SendAnswerAndSaveDirectMessage
 		case lastState.State == "register_user_with_email" || incomingMessage == joinCompanyChannels.Text:
 			goto RegisterUserWithemail
@@ -119,7 +119,7 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 	SaveAndSendMessage:
 		if inlineOnTextEventsHandler(app, bot, message, db, lastState, &Event{
 			UserState:  "new_message_to_group",
-			Command:    "compose_message_in_group_",
+			Command:    config.LangConfig.GetString("STATE.COMPOSE_MESSAGE") + "_",
 			Controller: "SaveAndSendMessage",
 		}) {
 			Init(app, bot, true)
@@ -128,8 +128,9 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 
 	SendAndSaveReplyMessage:
 		if inlineOnTextEventsHandler(app, bot, message, db, lastState, &Event{
-			UserState:  "reply_to_message_on_group",
-			Command:    "reply_to_message_on_group_",
+			UserState:  config.LangConfig.GetString("STATE.REPLY_TO_MESSAGE"),
+			Command:    config.LangConfig.GetString("STATE.REPLY_TO_MESSAGE") + "_",
+			Command1: "/start reply_to_message_on_group_",
 			Controller: "SendAndSaveReplyMessage",
 		}) {
 			Init(app, bot, true)
@@ -138,8 +139,9 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 
 	SendAndSaveDirectMessage:
 		if inlineOnTextEventsHandler(app, bot, message, db, lastState, &Event{
-			UserState:  "reply_by_dm_to_user_on_group",
-			Command:    "reply_by_dm_to_user_on_group_",
+			UserState:  config.LangConfig.GetString("STATE.REPLY_BY_DM"),
+			Command:    config.LangConfig.GetString("STATE.REPLY_BY_DM") + "_",
+			Command1: "/start reply_by_dm_to_user_on_group_",
 			Controller: "SendAndSaveDirectMessage",
 		}) {
 			Init(app, bot, true)
@@ -148,8 +150,8 @@ func onTextEvents(app *config.App, bot *tb.Bot) {
 
 	SendAnswerAndSaveDirectMessage:
 		if inlineOnTextEventsHandler(app, bot, message, db, lastState, &Event{
-			UserState:  "answer_to_dm",
-			Command:    "answer_to_dm_",
+			UserState:  config.LangConfig.GetString("STATE.ANSWER_TO_DM"),
+			Command:    config.LangConfig.GetString("STATE.ANSWER_TO_DM")+"_",
 			Controller: "SendAnswerAndSaveDirectMessage",
 		}) {
 			Init(app, bot, true)

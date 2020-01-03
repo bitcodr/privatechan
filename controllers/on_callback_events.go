@@ -21,7 +21,7 @@ func onCallbackEvents(app *config.App, bot *tb.Bot) {
 		switch {
 		case incomingMessage == config.LangConfig.GetString("GENERAL.HOME") || incomingMessage == "/start":
 			goto StartBotCallback
-		case strings.Contains(incomingMessage, "answer_to_dm_"):
+		case strings.Contains(incomingMessage, config.LangConfig.GetString("STATE.ANSWER_TO_DM")+"_"):
 			goto SanedAnswerDM
 		default:
 			goto CheckState
@@ -29,8 +29,8 @@ func onCallbackEvents(app *config.App, bot *tb.Bot) {
 
 	SanedAnswerDM:
 		if onCallbackEventsHandler(app, bot, c, &Event{
-			UserState:  "answer_to_dm",
-			Command:    "answer_to_dm_",
+			UserState:  config.LangConfig.GetString("STATE.ANSWER_TO_DM"),
+			Command:    config.LangConfig.GetString("STATE.ANSWER_TO_DM")+"_",
 			Controller: "SanedAnswerDM",
 		}) {
 			Init(app, bot, true)
