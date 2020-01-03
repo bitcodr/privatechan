@@ -1,9 +1,11 @@
 package helpers
 
 import (
+	"crypto/md5"
+	"encoding/hex"
 	"golang.org/x/crypto/bcrypt"
-	"hash/fnv"
-	"strconv"
+	"math/rand"
+	"time"
 )
 
 //HashPassword helper
@@ -24,7 +26,11 @@ func CheckPasswordHash(password, hash string) bool {
 }
 
 func Hash(data string) string {
-	hash := fnv.New32a()
+	hash := md5.New()
 	hash.Write([]byte(data))
-	return strconv.FormatInt(int64(hash.Sum32()), 10)
+	hashedData := hex.EncodeToString(hash.Sum(nil))
+	rand.Seed(time.Now().Unix())
+	emojiSlice := []string{"😀", "😟", "💪", "🤓", "🙃", "😆", "🎾"}
+	n := rand.Int() % len(emojiSlice)
+	return emojiSlice[n] + hashedData[len(hashedData)-4:]
 }
