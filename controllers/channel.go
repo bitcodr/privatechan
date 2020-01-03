@@ -53,7 +53,7 @@ func (service *BotService) RegisterChannel(app *config.App, bot *tb.Bot, m *tb.M
 			}
 			uniqueID := uuid.New().String()
 			//insert channel
-			channelInserted, err := transaction.Exec("INSERT INTO `channels` (`channelType`,`channelURL`,`channelID`,`channelName`,`uniqueID`,`createdAt`,`updatedAt`) VALUES('channel','" + channelURL + "','" + channelID + "','" + m.Chat.Title + "','" + uniqueID + "','" + app.CurrentTime + "','" + app.CurrentTime + "')")
+			channelInserted, err := transaction.Exec("INSERT INTO `channels` (`channelType`,`channelURL`,`channelID`,`channelName`,`uniqueID`,`channelType`,`createdAt`,`updatedAt`) VALUES('channel','" + channelURL + "','" + channelID + "','" + m.Chat.Title + "','" + uniqueID + "','channel','" + app.CurrentTime + "','" + app.CurrentTime + "')")
 			if err != nil {
 				transaction.Rollback()
 				log.Println(err)
@@ -343,20 +343,25 @@ func (service *BotService) SaveAndSendMessage(db *sql.DB, app *config.App, bot *
 				defer insertedMessage.Close()
 				options := new(tb.SendOptions)
 				markup := new(tb.ReplyMarkup)
-				// homeBTN := tb.ReplyButton{
-				// 	Text: config.LangConfig.GetString("GENERAL.HOME"),
-				// }
-				// replyKeys := [][]tb.ReplyButton{
-				// 	[]tb.ReplyButton{homeBTN},
-				// }
-				redirectBTN := tb.InlineButton{
+				anotherMessage := tb.InlineButton{
 					Unique: config.LangConfig.GetString("STATE.COMPOSE_MESSAGE") + "_" + activeChannel.ChannelID,
 					Text:   config.LangConfig.GetString("MESSAGES.ANOTHER_NEW"),
 				}
-				inlineKeys := [][]tb.InlineButton{
-					[]tb.InlineButton{redirectBTN},
+				var inlineKeys [][]tb.InlineButton
+				if activeChannel.ChannelURL != "" {
+					redirectBTN := tb.InlineButton{
+						Text: config.LangConfig.GetString("MESSAGES.BACK_TO") + strings.Title(activeChannel.ChannelType),
+						URL:  activeChannel.ChannelURL,
+					}
+					inlineKeys = [][]tb.InlineButton{
+						[]tb.InlineButton{anotherMessage},
+						[]tb.InlineButton{redirectBTN},
+					}
+				} else {
+					inlineKeys = [][]tb.InlineButton{
+						[]tb.InlineButton{anotherMessage},
+					}
 				}
-				// markup.ReplyKeyboard = replyKeys
 				markup.InlineKeyboard = inlineKeys
 				options.ReplyMarkup = markup
 				bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.MESSAGE_HAS_BEEN_SENT")+activeChannel.ChannelName, options)
@@ -409,7 +414,7 @@ func (service *BotService) SendAndSaveReplyMessage(db *sql.DB, app *config.App, 
 						}
 						ChannelMessageDataID, err := strconv.Atoi(messageModel.ChannelMessageID)
 						if err == nil {
-							// activeChannel := service.GetUserCurrentActiveChannel(db, app, bot, m)
+							activeChannel := service.GetUserCurrentActiveChannel(db, app, bot, m)
 							sendMessageModel := new(tb.Message)
 							sendMessageModel.ID = ChannelMessageDataID
 							newReplyModel := new(tb.ReplyMarkup)
@@ -443,13 +448,24 @@ func (service *BotService) SendAndSaveReplyMessage(db *sql.DB, app *config.App, 
 									defer insertedMessage.Close()
 									options := new(tb.SendOptions)
 									markup := new(tb.ReplyMarkup)
-									homeBTN := tb.ReplyButton{
-										Text: config.LangConfig.GetString("GENERAL.HOME"),
+									if activeChannel.ChannelURL != "" {
+										redirectBTN := tb.InlineButton{
+											Text: config.LangConfig.GetString("MESSAGES.BACK_TO") + strings.Title(activeChannel.ChannelType),
+											URL:  activeChannel.ChannelURL,
+										}
+										inlineKeys := [][]tb.InlineButton{
+											[]tb.InlineButton{redirectBTN},
+										}
+										markup.InlineKeyboard = inlineKeys
+									} else {
+										homeBTN := tb.ReplyButton{
+											Text: config.LangConfig.GetString("GENERAL.HOME"),
+										}
+										replyKeys := [][]tb.ReplyButton{
+											[]tb.ReplyButton{homeBTN},
+										}
+										markup.ReplyKeyboard = replyKeys
 									}
-									replyKeys := [][]tb.ReplyButton{
-										[]tb.ReplyButton{homeBTN},
-									}
-									markup.ReplyKeyboard = replyKeys
 									options.ReplyMarkup = markup
 									bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.REPLY_MESSAGE_HAS_BEEN_SENT")+newChannelModel.ChannelName, options)
 									SaveUserLastState(db, app, bot, "", m.Sender.ID, "reply_message_sent")
@@ -477,7 +493,7 @@ func (service *BotService) SendAndSaveDirectMessage(db *sql.DB, app *config.App,
 				newBotMessageID := strconv.Itoa(m.ID)
 				userIDInInt, err := strconv.Atoi(userID)
 				if err == nil {
-					messageStatement, err := db.Prepare("SELECT me.id,me.channelMessageID,ch.channelName from `messages` as me inner join `channels` as ch on me.channelID=ch.id and ch.channelID=? where me.`botMessageID`=? and me.`userID`=?")
+					messageStatement, err := db.Prepare("SELECT me.id,me.channelMessageID,ch.channelName,ch.channelURL,ch.channelType from `messages` as me inner join `channels` as ch on me.channelID=ch.id and ch.channelID=? where me.`botMessageID`=? and me.`userID`=?")
 					if err != nil {
 						log.Println(err)
 						return true
@@ -486,42 +502,45 @@ func (service *BotService) SendAndSaveDirectMessage(db *sql.DB, app *config.App,
 					message := messageStatement.QueryRow(channelID, botMessageID, userID)
 					messageModel := new(models.Message)
 					channelModel := new(models.Channel)
-					if err := message.Scan(&messageModel.ID, &messageModel.ChannelMessageID, &channelModel.ChannelName); err == nil {
-						newReply := tb.InlineButton{
-							Unique: config.LangConfig.GetString("STATE.ANSWER_TO_DM") + "_" + channelID + "_" + senderID + "_" + newBotMessageID,
-							Text:   config.LangConfig.GetString("MESSAGES.DIRECT_REPLY"),
-						}
-						inlineKeys := [][]tb.InlineButton{
-							[]tb.InlineButton{newReply},
-						}
+					if err := message.Scan(&messageModel.ID, &messageModel.ChannelMessageID, &channelModel.ChannelName, &channelModel.ChannelURL, &channelModel.ChannelType); err == nil {
 						_, err := strconv.Atoi(messageModel.ChannelMessageID)
 						if err == nil {
 							options := new(tb.SendOptions)
 							markup := new(tb.ReplyMarkup)
-							// homeBTN := tb.ReplyButton{
-							// 	Text: config.LangConfig.GetString("GENERAL.HOME"),
-							// }
-							// replyKeys := [][]tb.ReplyButton{
-							// 	[]tb.ReplyButton{homeBTN},
-							// }
 							SendAnotherDM := tb.InlineButton{
 								Unique: config.LangConfig.GetString("STATE.ANSWER_TO_DM") + "_" + channelID + "_" + userID + "_" + newBotMessageID,
 								Text:   config.LangConfig.GetString("MESSAGES.ANOTHER_DIRECT_REPLY"),
 							}
-							AnotherDMKeys := [][]tb.InlineButton{
-								[]tb.InlineButton{SendAnotherDM},
+							var AnotherDMKeys [][]tb.InlineButton
+							if channelModel.ChannelURL != "" {
+								redirectBTN := tb.InlineButton{
+									Text: config.LangConfig.GetString("MESSAGES.BACK_TO") + strings.Title(channelModel.ChannelType),
+									URL:  channelModel.ChannelURL,
+								}
+								AnotherDMKeys = [][]tb.InlineButton{
+									[]tb.InlineButton{SendAnotherDM},
+									[]tb.InlineButton{redirectBTN},
+								}
+
+							} else {
+								AnotherDMKeys = [][]tb.InlineButton{
+									[]tb.InlineButton{SendAnotherDM},
+								}
 							}
-							// markup.ReplyKeyboard = replyKeys
 							markup.InlineKeyboard = AnotherDMKeys
 							options.ReplyMarkup = markup
 							options.ParseMode = tb.ModeHTML
 							bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.DIRECT_HAS_BEEN_SENT")+"<b>"+helpers.Hash(userID+channelID)+"</b>", options)
-							// sendMessageModel := new(tb.Message)
-							// sendMessageModel.ID = ChannelMessageDataID
 							newReplyModel := new(tb.ReplyMarkup)
+							newReply := tb.InlineButton{
+								Unique: config.LangConfig.GetString("STATE.ANSWER_TO_DM") + "_" + channelID + "_" + senderID + "_" + newBotMessageID,
+								Text:   config.LangConfig.GetString("MESSAGES.DIRECT_REPLY"),
+							}
+							inlineKeys := [][]tb.InlineButton{
+								[]tb.InlineButton{newReply},
+							}
 							newReplyModel.InlineKeyboard = inlineKeys
 							newSendOption := new(tb.SendOptions)
-							// newSendOption.ReplyTo = sendMessageModel
 							newSendOption.ReplyMarkup = newReplyModel
 							newSendOption.ParseMode = tb.ModeHTML
 							user := new(tb.User)
@@ -566,69 +585,87 @@ func (service *BotService) SendAnswerAndSaveDirectMessage(db *sql.DB, app *confi
 			if len(data) == 3 {
 				channelID := strings.TrimSpace(data[0])
 				userID := strings.TrimSpace(data[1])
+				botMessageID := strings.TrimSpace(data[2])
 				senderID := strconv.Itoa(m.Sender.ID)
 				newBotMessageID := strconv.Itoa(m.ID)
 				userIDInInt, err := strconv.Atoi(userID)
 				if err == nil {
-					options := new(tb.SendOptions)
-					markup := new(tb.ReplyMarkup)
-					// homeBTN := tb.ReplyButton{
-					// 	Text: config.LangConfig.GetString("GENERAL.HOME"),
-					// }
-					// replyKeys := [][]tb.ReplyButton{
-					// 	[]tb.ReplyButton{homeBTN},
-					// }
-					SendAnotherDM := tb.InlineButton{
-						Unique: config.LangConfig.GetString("STATE.ANSWER_TO_DM") + "_" + channelID + "_" + userID + "_" + newBotMessageID,
-						Text:   config.LangConfig.GetString("MESSAGES.ANOTHER_DIRECT_REPLY"),
-					}
-					AnotherDMKeys := [][]tb.InlineButton{
-						[]tb.InlineButton{SendAnotherDM},
-					}
-					// markup.ReplyKeyboard = replyKeys
-					markup.InlineKeyboard = AnotherDMKeys
-					options.ReplyMarkup = markup
-					options.ParseMode = tb.ModeHTML
-					bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.DIRECT_HAS_BEEN_SENT")+" <b>"+helpers.Hash(userID+channelID)+"</b>", options)
-					currentChannelStatement, err := db.Prepare("SELECT id,channelName from `channels` where `channelID`=?")
+					messageStatement, err := db.Prepare("SELECT me.id,me.channelMessageID,ch.channelName,ch.channelURL,ch.channelType from `messages` as me inner join `channels` as ch on me.channelID=ch.id and ch.channelID=? where me.`botMessageID`=? and me.`userID`=?")
 					if err != nil {
 						log.Println(err)
 						return true
 					}
-					defer currentChannelStatement.Close()
-					currentChannel, err := currentChannelStatement.Query(channelID)
-					if err != nil {
-						log.Println(err)
-						return true
-					}
-					if currentChannel.Next() {
-						newChannelModel := new(models.Channel)
-						if err := currentChannel.Scan(&newChannelModel.ID, &newChannelModel.ChannelName); err == nil {
-							newReply := tb.InlineButton{
-								Unique: config.LangConfig.GetString("STATE.ANSWER_TO_DM") + "_" + channelID + "_" + senderID + "_" + newBotMessageID,
-								Text:   config.LangConfig.GetString("MESSAGES.DIRECT_REPLY"),
+					defer messageStatement.Close()
+					message := messageStatement.QueryRow(channelID, botMessageID, userID)
+					messageModel := new(models.Message)
+					channelModel := new(models.Channel)
+					if err := message.Scan(&messageModel.ID, &messageModel.ChannelMessageID, &channelModel.ChannelName, &channelModel.ChannelURL, &channelModel.ChannelType); err == nil {
+						options := new(tb.SendOptions)
+						markup := new(tb.ReplyMarkup)
+						SendAnotherDM := tb.InlineButton{
+							Unique: config.LangConfig.GetString("STATE.ANSWER_TO_DM") + "_" + channelID + "_" + userID + "_" + newBotMessageID,
+							Text:   config.LangConfig.GetString("MESSAGES.ANOTHER_DIRECT_REPLY"),
+						}
+						var AnotherDMKeys [][]tb.InlineButton
+						if channelModel.ChannelURL != "" {
+							redirectBTN := tb.InlineButton{
+								Text: config.LangConfig.GetString("MESSAGES.BACK_TO") + strings.Title(channelModel.ChannelType),
+								URL:  channelModel.ChannelURL,
 							}
-							inlineKeys := [][]tb.InlineButton{
-								[]tb.InlineButton{newReply},
+							AnotherDMKeys = [][]tb.InlineButton{
+								[]tb.InlineButton{SendAnotherDM},
+								[]tb.InlineButton{redirectBTN},
 							}
-							newReplyModel := new(tb.ReplyMarkup)
-							newReplyModel.InlineKeyboard = inlineKeys
-							newSendOption := new(tb.SendOptions)
-							newSendOption.ReplyMarkup = newReplyModel
-							newSendOption.ParseMode = tb.ModeHTML
-							user := new(tb.User)
-							user.ID = userIDInInt
-							sendMessage, err := bot.Send(user, "<b>"+config.LangConfig.GetString("GENERAL.MESSAGE")+":</b> "+m.Text+" <b>"+config.LangConfig.GetString("GENERAL.FROM")+":</b> "+helpers.Hash(senderID+channelID)+"<b> "+config.LangConfig.GetString("MESSAGES.ON_CHANNEL_GROUP")+": </b> "+newChannelModel.ChannelName, newSendOption)
-							if err == nil {
-								newChannelMessageID := strconv.Itoa(sendMessage.ID)
-								newChannelModelID := strconv.FormatInt(newChannelModel.ID, 10)
-								insertedMessage, err := db.Query("INSERT INTO `messages` (`userID`,`channelID`,`channelMessageID`,`botMessageID`,`createdAt`) VALUES('" + senderID + "','" + newChannelModelID + "','" + newChannelMessageID + "','" + newBotMessageID + "','" + app.CurrentTime + "')")
-								if err != nil {
-									log.Println(err)
-									return true
+
+						} else {
+							AnotherDMKeys = [][]tb.InlineButton{
+								[]tb.InlineButton{SendAnotherDM},
+							}
+						}
+						markup.InlineKeyboard = AnotherDMKeys
+						options.ReplyMarkup = markup
+						options.ParseMode = tb.ModeHTML
+						bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.DIRECT_HAS_BEEN_SENT")+" <b>"+helpers.Hash(userID+channelID)+"</b>", options)
+						currentChannelStatement, err := db.Prepare("SELECT id,channelName from `channels` where `channelID`=?")
+						if err != nil {
+							log.Println(err)
+							return true
+						}
+						defer currentChannelStatement.Close()
+						currentChannel, err := currentChannelStatement.Query(channelID)
+						if err != nil {
+							log.Println(err)
+							return true
+						}
+						if currentChannel.Next() {
+							newChannelModel := new(models.Channel)
+							if err := currentChannel.Scan(&newChannelModel.ID, &newChannelModel.ChannelName); err == nil {
+								newReply := tb.InlineButton{
+									Unique: config.LangConfig.GetString("STATE.ANSWER_TO_DM") + "_" + channelID + "_" + senderID + "_" + newBotMessageID,
+									Text:   config.LangConfig.GetString("MESSAGES.DIRECT_REPLY"),
 								}
-								defer insertedMessage.Close()
-								SaveUserLastState(db, app, bot, "", m.Sender.ID, config.LangConfig.GetString("STATE.DIRECT_MESSAGE_SENT"))
+								inlineKeys := [][]tb.InlineButton{
+									[]tb.InlineButton{newReply},
+								}
+								newReplyModel := new(tb.ReplyMarkup)
+								newReplyModel.InlineKeyboard = inlineKeys
+								newSendOption := new(tb.SendOptions)
+								newSendOption.ReplyMarkup = newReplyModel
+								newSendOption.ParseMode = tb.ModeHTML
+								user := new(tb.User)
+								user.ID = userIDInInt
+								sendMessage, err := bot.Send(user, "<b>"+config.LangConfig.GetString("GENERAL.MESSAGE")+":</b> "+m.Text+" <b>"+config.LangConfig.GetString("GENERAL.FROM")+":</b> "+helpers.Hash(senderID+channelID)+"<b> "+config.LangConfig.GetString("MESSAGES.ON_CHANNEL_GROUP")+": </b> "+newChannelModel.ChannelName, newSendOption)
+								if err == nil {
+									newChannelMessageID := strconv.Itoa(sendMessage.ID)
+									newChannelModelID := strconv.FormatInt(newChannelModel.ID, 10)
+									insertedMessage, err := db.Query("INSERT INTO `messages` (`userID`,`channelID`,`channelMessageID`,`botMessageID`,`createdAt`) VALUES('" + senderID + "','" + newChannelModelID + "','" + newChannelMessageID + "','" + newBotMessageID + "','" + app.CurrentTime + "')")
+									if err != nil {
+										log.Println(err)
+										return true
+									}
+									defer insertedMessage.Close()
+									SaveUserLastState(db, app, bot, "", m.Sender.ID, config.LangConfig.GetString("STATE.DIRECT_MESSAGE_SENT"))
+								}
 							}
 						}
 					}
@@ -641,7 +678,7 @@ func (service *BotService) SendAnswerAndSaveDirectMessage(db *sql.DB, app *confi
 
 func (service *BotService) GetUserCurrentActiveChannel(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message) *models.Channel {
 	userID := strconv.Itoa(m.Sender.ID)
-	userActiveStatement, err := db.Prepare("SELECT ch.id,ch.channelID,ch.channelName,ch.channelURL,us.id,us.userID from `channels` as ch inner join `users_current_active_channel` as uc on ch.id=uc.channelID and uc.status='ACTIVE' inner join `users` as us on uc.userID=us.id and us.userID=? and us.`status`='ACTIVE' ")
+	userActiveStatement, err := db.Prepare("SELECT ch.id,ch.channelID,ch.channelName,ch.channelURL,ch.channelType,us.id,us.userID from `channels` as ch inner join `users_current_active_channel` as uc on ch.id=uc.channelID and uc.status='ACTIVE' inner join `users` as us on uc.userID=us.id and us.userID=? and us.`status`='ACTIVE' ")
 	if err != nil {
 		log.Println(err)
 	}
@@ -653,7 +690,7 @@ func (service *BotService) GetUserCurrentActiveChannel(db *sql.DB, app *config.A
 	if userActiveChannel.Next() {
 		channelModel := new(models.Channel)
 		userModel := new(models.User)
-		if err := userActiveChannel.Scan(&channelModel.ID, &channelModel.ChannelID, &channelModel.ChannelName, &channelModel.ChannelURL, &userModel.ID, &userModel.UserID); err != nil {
+		if err := userActiveChannel.Scan(&channelModel.ID, &channelModel.ChannelID, &channelModel.ChannelName, &channelModel.ChannelURL, &channelModel.ChannelType, &userModel.ID, &userModel.UserID); err != nil {
 			log.Println(err)
 		}
 		channelModel.User = userModel

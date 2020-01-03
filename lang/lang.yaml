@@ -88,6 +88,7 @@ MESSAGES:
   YOU_ACTIVE_KEY: "Your activation key is: "
   ACTIVE_EXPIRE_PEROID: " this key will be expire about 10 minutes"
   ANOTHER_DIRECT_REPLY: "Send another DM"
+  BACK_TO: "Back to "
 
 COMMANDS:
   ENABLE_CHAT: "/enable_anonymity_support"
