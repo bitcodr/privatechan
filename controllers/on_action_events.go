@@ -1,10 +1,8 @@
 package controllers
 
 import (
-	"fmt"
 	"github.com/amiraliio/tgbp/config"
 	tb "gopkg.in/tucnak/telebot.v2"
-	"log"
 )
 
 func onActionEvents(app *config.App, bot *tb.Bot) {
