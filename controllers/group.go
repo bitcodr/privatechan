@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"database/sql"
+	"errors"
 	"log"
 	"strconv"
 	"strings"
@@ -22,18 +23,9 @@ func (service *BotService) RegisterGroup(app *config.App, bot *tb.Bot, m *tb.Mes
 		SaveUserLastState(db, app, bot, m.Text, m.Sender.ID, request.UserState)
 	}
 	channelID := strconv.FormatInt(m.Chat.ID, 10)
-	resultsStatement, err := db.Prepare("SELECT id FROM `channels` where channelID=?")
-	if err != nil {
-		log.Println(err)
-		return true
-	}
-	defer resultsStatement.Close()
-	results, err := resultsStatement.Query(channelID)
-	if err != nil {
-		log.Println(err)
-		return true
-	}
-	if !results.Next() {
+	channelModel := new(models.Channel)
+	err := db.QueryRow("SELECT id FROM `channels` where channelID=?", channelID).Scan(&channelModel.ID)
+	if errors.Is(err, sql.ErrNoRows) {
 		//start transaction
 		transaction, err := db.Begin()
 		if err != nil {
@@ -53,20 +45,9 @@ func (service *BotService) RegisterGroup(app *config.App, bot *tb.Bot, m *tb.Mes
 			//company name
 			companyFlag := strconv.FormatInt(m.Chat.ID, 10)
 			//check if company is not exist
-			companyExistsStatement, err := db.Prepare("SELECT id FROM `companies` where `companyName`=?")
-			if err != nil {
-				transaction.Rollback()
-				log.Println(err)
-				return true
-			}
-			defer companyExistsStatement.Close()
-			companyExists, err := companyExistsStatement.Query(companyFlag)
-			if err != nil {
-				transaction.Rollback()
-				log.Println(err)
-				return true
-			}
-			if !companyExists.Next() {
+			companyModel := new(models.Company)
+			err := db.QueryRow("SELECT id FROM `companies` where `companyName`=?", companyFlag).Scan(&companyModel.ID)
+			if errors.Is(err, sql.ErrNoRows) {
 				//insert company
 				companyInserted, err := transaction.Exec("INSERT INTO `companies` (`companyName`,`createdAt`,`updatedAt`) VALUES('" + companyFlag + "','" + app.CurrentTime + "','" + app.CurrentTime + "')")
 				if err != nil {
@@ -87,12 +68,6 @@ func (service *BotService) RegisterGroup(app *config.App, bot *tb.Bot, m *tb.Mes
 					}
 				}
 			} else {
-				companyModel := new(models.Company)
-				if err := companyExists.Scan(&companyModel.ID); err != nil {
-					transaction.Rollback()
-					log.Println(err)
-					return true
-				}
 				companyModelID := strconv.FormatInt(companyModel.ID, 10)
 				channelModelID := strconv.FormatInt(insertedChannelID, 10)
 				//insert company channel pivot
@@ -176,14 +151,8 @@ func (service *BotService) NewMessageGroupHandler(app *config.App, bot *tb.Bot, 
 		}
 		channelID := strings.ReplaceAll(m.Text, request.Command1, "")
 		service.JoinFromGroup(db, app, bot, m, channelID)
-		resultsStatement, err := db.Prepare("SELECT `channelName` FROM `channels` where `channelID`=?")
-		if err != nil {
-			log.Println(err)
-			return true
-		}
-		defer resultsStatement.Close()
 		channelModel := new(models.Channel)
-		if err := resultsStatement.QueryRow(channelID).Scan(&channelModel.ChannelName); err != nil {
+		if err := db.QueryRow("SELECT `channelName` FROM `channels` where `channelID`=?", channelID).Scan(&channelModel.ChannelName); err != nil {
 			log.Println(err)
 			return true
 		}
@@ -213,14 +182,8 @@ func (service *BotService) NewMessageGroupHandlerCallback(app *config.App, bot *
 			SaveUserLastState(db, app, bot, c.Data, c.Sender.ID, request.UserState)
 		}
 		channelID := strings.ReplaceAll(c.Data, request.Command, "")
-		resultsStatement, err := db.Prepare("SELECT `channelName` FROM `channels` where `channelID`=?")
-		if err != nil {
-			log.Println(err)
-			return true
-		}
-		defer resultsStatement.Close()
 		channelModel := new(models.Channel)
-		if err := resultsStatement.QueryRow(strings.TrimLeft(channelID, "\f")).Scan(&channelModel.ChannelName); err != nil {
+		if err := db.QueryRow("SELECT `channelName` FROM `channels` where `channelID`=?", strings.TrimLeft(channelID, "\f")).Scan(&channelModel.ChannelName); err != nil {
 			log.Println(err)
 			return true
 		}
@@ -243,27 +206,19 @@ func (service *BotService) NewMessageGroupHandlerCallback(app *config.App, bot *
 func (service *BotService) JoinFromGroup(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, channelID string) {
 	userID := strconv.Itoa(m.Sender.ID)
 	//check if user is not created
-	resultsStatement, err := db.Prepare("SELECT id FROM `users` where `status`= 'ACTIVE' and `userID`=?")
-	if err != nil {
-		log.Println(err)
-	}
-	defer resultsStatement.Close()
-	results, err := resultsStatement.Query(userID)
-	if err != nil {
-		log.Println(err)
-	}
-	//start transaction
-	transaction, err := db.Begin()
-	if err != nil {
-		log.Println(err)
-	}
-	if !results.Next() {
+	userModel := new(models.User)
+	err := db.QueryRow("SELECT id FROM `users` where `status`= 'ACTIVE' and `userID`=?", userID).Scan(&userModel.ID)
+	if errors.Is(err, sql.ErrNoRows) {
 		//insert user
 		var isBotValue string
 		if m.Sender.IsBot {
 			isBotValue = "1"
 		} else {
 			isBotValue = "0"
+		}
+		transaction, err := db.Begin()
+		if err != nil {
+			log.Println(err)
 		}
 		userInsert, err := transaction.Exec("INSERT INTO `users` (`userID`,`username`,`firstName`,`lastName`,`lang`,`isBot`,`createdAt`,`updatedAt`) VALUES('" + userID + "','" + m.Sender.Username + "','" + m.Sender.FirstName + "','" + m.Sender.LastName + "','" + m.Sender.LanguageCode + "','" + isBotValue + "','" + app.CurrentTime + "','" + app.CurrentTime + "')")
 		if err != nil {
@@ -277,9 +232,8 @@ func (service *BotService) JoinFromGroup(db *sql.DB, app *config.App, bot *tb.Bo
 		}
 		service.checkAndInsertUserGroup(app, bot, m, insertedUserID, channelID, db, transaction)
 	} else {
-		userModel := new(models.User)
-		if err := results.Scan(&userModel.ID); err != nil {
-			transaction.Rollback()
+		transaction, err := db.Begin()
+		if err != nil {
 			log.Println(err)
 		}
 		service.checkAndInsertUserGroup(app, bot, m, userModel.ID, channelID, db, transaction)

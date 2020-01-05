@@ -36,12 +36,6 @@ func (service *BotService) RegisterUserWithemail(db *sql.DB, app *config.App, bo
 }
 
 func (service *BotService) checkTheCompanyEmailSuffixExist(app *config.App, bot *tb.Bot, email, emailSuffix string, db *sql.DB, userModel *tb.User) {
-	tempData, err := db.Prepare("SELECT co.companyName,ch.id,ch.channelName from `channels_email_suffixes` as cs inner join `channels` as ch on cs.channelID=ch.id inner join `companies_channels` as cc on ch.Id=cc.channelID inner join `companies` as co on cc.companyID=co.id where cs.suffix=? limit 1")
-	if err != nil {
-		log.Println(err)
-		return
-	}
-	defer tempData.Close()
 	companyModel := new(models.Company)
 	channelModel := new(models.Channel)
 	options := new(tb.SendOptions)
@@ -61,7 +55,7 @@ func (service *BotService) checkTheCompanyEmailSuffixExist(app *config.App, bot 
 	replyModel := new(tb.ReplyMarkup)
 	replyModel.ReplyKeyboard = replyKeys
 	options.ReplyMarkup = replyModel
-	if err = tempData.QueryRow(emailSuffix).Scan(&companyModel.CompanyName, &channelModel.ID, &channelModel.ChannelName); err != nil {
+	if err := db.QueryRow("SELECT co.companyName,ch.id,ch.channelName from `channels_email_suffixes` as cs inner join `channels` as ch on cs.channelID=ch.id inner join `companies_channels` as cc on ch.Id=cc.channelID inner join `companies` as co on cc.companyID=co.id where cs.suffix=? limit 1", emailSuffix).Scan(&companyModel.CompanyName, &channelModel.ID, &channelModel.ChannelName); err != nil {
 		SaveUserLastState(db, app, bot, emailSuffix, userModel.ID, config.LangConfig.GetString("STATE.CONFIRM_REGISTER_COMPANY"))
 		bot.Send(userModel, config.LangConfig.GetString("MESSAGES.COMPANY_WITH_THE_EMAIL_NOT_EXIST"), options)
 		return
@@ -118,14 +112,8 @@ func (service *BotService) ConfirmRegisterUserForTheCompany(db *sql.DB, app *con
 			log.Println(config.LangConfig.GetString("MESSAGES.LENGTH_OF_CHANNEL_DATA_MUST_BE_2"))
 			return true
 		}
-		userExistOrNot, err := db.Prepare("SELECT us.id FROM `users` as us inner join `users_channels` as uc on us.id=uc.userID and uc.channelID=? and uc.status='ACTIVE' where us.userID=?")
-		if err != nil {
-			log.Println(err)
-			return true
-		}
-		defer userExistOrNot.Close()
 		userDBModel := new(models.User)
-		if err := userExistOrNot.QueryRow(channelData[0], m.Sender.ID).Scan(&userDBModel.ID); err == nil {
+		if err := db.QueryRow("SELECT us.id FROM `users` as us inner join `users_channels` as uc on us.id=uc.userID and uc.channelID=? and uc.status='ACTIVE' where us.userID=?", channelData[0], m.Sender.ID).Scan(&userDBModel.ID); err == nil {
 			bot.Send(userModel, config.LangConfig.GetString("MESSAGES.REGISTERED_IN_CHANNEL"))
 			return true
 		}
@@ -155,14 +143,8 @@ func (service *BotService) ConfirmRegisterUserForTheCompany(db *sql.DB, app *con
 func (service *BotService) RegisterUserWithEmailAndCode(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *Event, lastState *models.UserLastState) bool {
 	userModel := new(tb.User)
 	userModel.ID = m.Sender.ID
-	userActiveKey, err := db.Prepare("SELECT `activeKey`,`createdAt` FROM `users_activation_key` where userID=? order by `id` DESC limit 1")
-	if err != nil {
-		log.Println(err)
-		return true
-	}
-	defer userActiveKey.Close()
 	userActiveKeyModel := new(models.UsersActivationKey)
-	if err := userActiveKey.QueryRow(m.Sender.ID).Scan(&userActiveKeyModel.ActiveKey, &userActiveKeyModel.CreatedAt); err != nil {
+	if err := db.QueryRow("SELECT `activeKey`,`createdAt` FROM `users_activation_key` where userID=? order by `id` DESC limit 1",m.Sender.ID).Scan(&userActiveKeyModel.ActiveKey, &userActiveKeyModel.CreatedAt); err != nil {
 		log.Println(err)
 		return true
 	}
@@ -180,19 +162,13 @@ func (service *BotService) RegisterUserWithEmailAndCode(db *sql.DB, app *config.
 		log.Println(config.LangConfig.GetString("MESSAGES.LENGTH_OF_CHANNEL_DATA_MUST_BE_2"))
 		return true
 	}
-	resultsStatement, err := db.Prepare("SELECT channelID,channelURL,manualChannelName,channelName FROM `channels` where id=?")
-	if err != nil {
-		log.Println(err)
-		return true
-	}
-	defer resultsStatement.Close()
 	channelModel := new(models.Channel)
 	channelID, err := strconv.ParseInt(channelData[0], 10, 0)
 	if err != nil {
 		log.Println(err)
 		return true
 	}
-	if err := resultsStatement.QueryRow(channelID).Scan(&channelModel.ChannelID, &channelModel.ChannelURL, &channelModel.ManualChannelName, &channelModel.ChannelName); err != nil {
+	if err := db.QueryRow("SELECT channelID,channelURL,manualChannelName,channelName FROM `channels` where id=?",channelID).Scan(&channelModel.ChannelID, &channelModel.ChannelURL, &channelModel.ManualChannelName, &channelModel.ChannelName); err != nil {
 		log.Println(err)
 		return true
 	}
@@ -227,40 +203,20 @@ func (service *BotService) RegisterUserWithEmailAndCode(db *sql.DB, app *config.
 }
 
 func (service *BotService) GetUserByTelegramID(db *sql.DB, app *config.App, userID int) *models.User {
-	userLastStateQueryStatement, err := db.Prepare("SELECT `id`,`userID` from `users` where `userID`=? ")
-	if err != nil {
-		log.Println(err)
-	}
-	defer userLastStateQueryStatement.Close()
-	userLastStateQuery, err := userLastStateQueryStatement.Query(userID)
-	if err != nil {
-		log.Println(err)
-	}
 	userModel := new(models.User)
-	if userLastStateQuery.Next() {
-		if err := userLastStateQuery.Scan(&userModel.ID, &userModel.UserID); err != nil {
-			log.Println(err)
-		}
+	if err := db.QueryRow("SELECT `id`,`userID` from `users` where `userID`=? ", userID).Scan(&userModel.ID, &userModel.UserID); err != nil {
+		log.Println(err)
+		userModel.Status = "INACTIVE"
 		return userModel
 	}
 	return userModel
 }
 
 func GetUserLastState(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, user int) *models.UserLastState {
-	userLastStateQueryStatement, err := db.Prepare("SELECT `data`,`state`,`userID` from `users_last_state` where `userId`=? order by `id` DESC limit 1")
-	if err != nil {
-		log.Println(err)
-	}
-	defer userLastStateQueryStatement.Close()
-	userLastStateQuery, err := userLastStateQueryStatement.Query(user)
-	if err != nil {
-		log.Println(err)
-	}
 	userLastState := new(models.UserLastState)
-	if userLastStateQuery.Next() {
-		if err := userLastStateQuery.Scan(&userLastState.Data, &userLastState.State, &userLastState.UserID); err != nil {
-			log.Println(err)
-		}
+	if err := db.QueryRow("SELECT `data`,`state`,`userID` from `users_last_state` where `userId`=? order by `id` DESC limit 1", user).Scan(&userLastState.Data, &userLastState.State, &userLastState.UserID); err != nil {
+		log.Println(err)
+		userLastState.Status = "INACTIVE"
 		return userLastState
 	}
 	return userLastState

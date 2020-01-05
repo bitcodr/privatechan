@@ -106,13 +106,12 @@ func (service *BotService) sendMessageUserWithActionOnKeyboards(db *sql.DB, app 
 }
 
 func (service *BotService) finalStage(app *config.App, bot *tb.Bot, relationDate string, db *sql.DB, text string, userID int) {
-	tempData, err := db.Prepare("SELECT id,tableName,columnName,data,relation,status,userID,createdAt from `temp_setup_flow` where status='ACTIVE' and relation=? and userID=?")
+	results, err := db.Query("SELECT id,tableName,columnName,data,relation,status,userID,createdAt from `temp_setup_flow` where status='ACTIVE' and relation=? and userID=?", config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY")+"_"+strconv.Itoa(userID)+"_"+relationDate, userID)
 	if err != nil {
 		log.Println(err)
 		return
 	}
-	defer tempData.Close()
-	results, err := tempData.Query(config.LangConfig.GetString("STATE.SETUP_VERIFIED_COMPANY")+"_"+strconv.Itoa(userID)+"_"+relationDate, userID)
+	defer results.Close()
 	if err == nil {
 		var channelTableData []*models.TempSetupFlow
 		var companyTableData []*models.TempSetupFlow
@@ -177,16 +176,9 @@ func (service *BotService) insertFinalStateData(app *config.App, bot *tb.Bot, us
 			companyType = v.Data
 		}
 	}
-	companyResultsStatement, err := db.Prepare("SELECT id,companyName FROM `companies` where `companyName`=?")
-	if err != nil {
-		transaction.Rollback()
-		log.Println(err)
-		return
-	}
-	defer companyResultsStatement.Close()
 	companyNewModel := new(models.Company)
 	var companyID int64
-	if err := companyResultsStatement.QueryRow(companyName).Scan(&companyNewModel.ID, &companyNewModel.CompanyName); err != nil {
+	if err := db.QueryRow("SELECT id,companyName FROM `companies` where `companyName`=?", companyName).Scan(&companyNewModel.ID, &companyNewModel.CompanyName); err != nil {
 		insertCompany, err := transaction.Exec("INSERT INTO `companies` (`companyName`,`companyType`,`createdAt`) VALUES('" + companyName + "','" + companyType + "','" + app.CurrentTime + "')")
 		if err != nil {
 			_ = transaction.Rollback()
@@ -202,7 +194,6 @@ func (service *BotService) insertFinalStateData(app *config.App, bot *tb.Bot, us
 	} else {
 		companyID = companyNewModel.ID
 	}
-
 	//insert channel
 	var channelType, manualChannelName, uniqueID, channelURL string
 	for _, v := range channelTableData {
@@ -219,16 +210,13 @@ func (service *BotService) insertFinalStateData(app *config.App, bot *tb.Bot, us
 			channelURL = v.Data
 		}
 	}
-	resultsStatement, err := db.Prepare("SELECT channelID,id FROM `channels` where `uniqueID`=?")
-	if err != nil {
+	channelModel := new(models.Channel)
+	if err := db.QueryRow("SELECT channelID,id FROM `channels` where `uniqueID`=?", uniqueID).Scan(&channelModel.ChannelID, &channelModel.ID); err != nil {
 		transaction.Rollback()
 		log.Println(err)
 		return
 	}
-	defer resultsStatement.Close()
-	channelModel := new(models.Channel)
-	_ = resultsStatement.QueryRow(uniqueID).Scan(&channelModel.ChannelID, &channelModel.ID)
-	_, err = transaction.Exec("update `channels` set `manualChannelName`='" + manualChannelName + "', `channelType`='" + channelType + "', `channelURL`='" + channelURL + "' where `uniqueID`='" + uniqueID + "'")
+	_, err := transaction.Exec("update `channels` set `manualChannelName`='" + manualChannelName + "', `channelType`='" + channelType + "', `channelURL`='" + channelURL + "' where `uniqueID`='" + uniqueID + "'")
 	if err != nil {
 		transaction.Rollback()
 		log.Println(err)
