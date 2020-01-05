@@ -219,22 +219,26 @@ func (service *BotService) JoinFromGroup(db *sql.DB, app *config.App, bot *tb.Bo
 		transaction, err := db.Begin()
 		if err != nil {
 			log.Println(err)
+			return
 		}
 		userInsert, err := transaction.Exec("INSERT INTO `users` (`userID`,`username`,`firstName`,`lastName`,`lang`,`isBot`,`createdAt`,`updatedAt`) VALUES('" + userID + "','" + m.Sender.Username + "','" + m.Sender.FirstName + "','" + m.Sender.LastName + "','" + m.Sender.LanguageCode + "','" + isBotValue + "','" + app.CurrentTime + "','" + app.CurrentTime + "')")
 		if err != nil {
 			transaction.Rollback()
 			log.Println(err)
+			return
 		}
 		insertedUserID, err := userInsert.LastInsertId()
 		if err != nil {
 			transaction.Rollback()
 			log.Println(err)
+			return
 		}
 		service.checkAndInsertUserGroup(app, bot, m, insertedUserID, channelID, db, transaction)
 	} else {
 		transaction, err := db.Begin()
 		if err != nil {
 			log.Println(err)
+			return
 		}
 		service.checkAndInsertUserGroup(app, bot, m, userModel.ID, channelID, db, transaction)
 	}
@@ -243,79 +247,48 @@ func (service *BotService) JoinFromGroup(db *sql.DB, app *config.App, bot *tb.Bo
 func (service *BotService) checkAndInsertUserGroup(app *config.App, bot *tb.Bot, m *tb.Message, queryUserID int64, channelID string, db *sql.DB, transaction *sql.Tx) {
 	userModelID := strconv.FormatInt(queryUserID, 10)
 	//check if channel for user is exists
-	checkUserChannelStatement, err := db.Prepare("SELECT ch.id as id FROM `channels` as ch inner join `users_channels` as uc on uc.channelID = ch.id and uc.userID=? and ch.channelID=?")
-	if err != nil {
-		transaction.Rollback()
-		log.Println(err)
-	}
-	defer checkUserChannelStatement.Close()
-	checkUserChannel, err := checkUserChannelStatement.Query(userModelID, channelID)
-	if err != nil {
-		transaction.Rollback()
-		log.Println(err)
-	}
-	if !checkUserChannel.Next() {
-		getChannelIDStatement, err := db.Prepare("SELECT `id` FROM `channels` where `channelID`=?")
-		if err != nil {
+	channelModel := new(models.Channel)
+	err := db.QueryRow("SELECT ch.id as id FROM `channels` as ch inner join `users_channels` as uc on uc.channelID = ch.id and uc.userID=? and ch.channelID=?", userModelID, channelID).Scan(&channelModel.ID)
+	if errors.Is(err, sql.ErrNoRows) {
+		channelModel := new(models.Channel)
+		if err := db.QueryRow("SELECT `id` FROM `channels` where `channelID`=?").Scan(&channelModel.ID); err != nil {
 			transaction.Rollback()
-			log.Println(err)
-		}
-		defer getChannelIDStatement.Close()
-		getChannelID, err := getChannelIDStatement.Query(channelID)
-		if err != nil {
-			transaction.Rollback()
-			log.Println(err)
-		}
-		if getChannelID.Next() {
-			channelModel := new(models.Channel)
-			if err := getChannelID.Scan(&channelModel.ID); err != nil {
-				transaction.Rollback()
-				log.Println(err)
-			}
-			channelModelID := strconv.FormatInt(channelModel.ID, 10)
-			_, err := transaction.Exec("INSERT INTO `users_channels` (`status`,`userID`,`channelID`,`createdAt`,`updatedAt`) VALUES('ACTIVE','" + userModelID + "','" + channelModelID + "','" + app.CurrentTime + "','" + app.CurrentTime + "')")
-			if err != nil {
-				transaction.Rollback()
-				log.Println(err)
-			}
-		}
-	}
-	channelDetailStatement, err := db.Prepare("SELECT ch.`id` as id, ch.channelName as channelName, co.companyName as companyName  FROM `channels` as ch inner join `companies_channels` as cc on ch.id = cc.channelID inner join `companies` as co on cc.companyID = co.id where ch.`channelID`=?")
-	if err != nil {
-		transaction.Rollback()
-		log.Println(err)
-	}
-	defer channelDetailStatement.Close()
-	channelDetail, err := channelDetailStatement.Query(channelID)
-	if err != nil {
-		transaction.Rollback()
-		log.Println(err)
-	}
-	if channelDetail.Next() {
-		channelModelData := new(models.Channel)
-		companyModel := new(models.Company)
-		if err := channelDetail.Scan(&channelModelData.ID, &channelModelData.ChannelName, &companyModel.CompanyName); err != nil {
-			transaction.Rollback()
-			log.Println(err)
-		}
-		channelModelID := strconv.FormatInt(channelModelData.ID, 10)
-		_, err = transaction.Exec("update `users_current_active_channel` set `status`='INACTIVE' where `userID`='" + userModelID + "'")
-		if err != nil {
-			transaction.Rollback()
-			log.Println(err)
-		}
-		//set user active channel
-		_, err = transaction.Exec("INSERT INTO `users_current_active_channel` (`userID`,`channelID`,`createdAt`,`updatedAt`) VALUES('" + userModelID + "','" + channelModelID + "','" + app.CurrentTime + "','" + app.CurrentTime + "')")
-		if err != nil {
-			transaction.Rollback()
-			log.Println(err)
-		}
-		err := transaction.Commit()
-		if err != nil {
 			log.Println(err)
 			return
 		}
-
+		channelModelID := strconv.FormatInt(channelModel.ID, 10)
+		_, err := transaction.Exec("INSERT INTO `users_channels` (`status`,`userID`,`channelID`,`createdAt`,`updatedAt`) VALUES('ACTIVE','" + userModelID + "','" + channelModelID + "','" + app.CurrentTime + "','" + app.CurrentTime + "')")
+		if err != nil {
+			transaction.Rollback()
+			log.Println(err)
+			return
+		}
+	}
+	channelModelData := new(models.Channel)
+	companyModel := new(models.Company)
+	if err := db.QueryRow("SELECT ch.`id` as id, ch.channelName as channelName, co.companyName as companyName  FROM `channels` as ch inner join `companies_channels` as cc on ch.id = cc.channelID inner join `companies` as co on cc.companyID = co.id where ch.`channelID`=?", channelID).Scan(&channelModelData.ID, &channelModelData.ChannelName, &companyModel.CompanyName); err != nil {
+		transaction.Rollback()
+		log.Println(err)
+		return
+	}
+	channelModelID := strconv.FormatInt(channelModelData.ID, 10)
+	_, err = transaction.Exec("update `users_current_active_channel` set `status`='INACTIVE' where `userID`='" + userModelID + "'")
+	if err != nil {
+		transaction.Rollback()
+		log.Println(err)
+		return
+	}
+	//set user active channel
+	_, err = transaction.Exec("INSERT INTO `users_current_active_channel` (`userID`,`channelID`,`createdAt`,`updatedAt`) VALUES('" + userModelID + "','" + channelModelID + "','" + app.CurrentTime + "','" + app.CurrentTime + "')")
+	if err != nil {
+		transaction.Rollback()
+		log.Println(err)
+		return
+	}
+	err = transaction.Commit()
+	if err != nil {
+		log.Println(err)
+		return
 	}
 }
 
