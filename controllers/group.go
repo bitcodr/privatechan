@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/amiraliio/tgbp/config"
+	"github.com/amiraliio/tgbp/helpers"
 	"github.com/amiraliio/tgbp/lang"
 	"github.com/amiraliio/tgbp/models"
 	tb "gopkg.in/tucnak/telebot.v2"
@@ -222,7 +223,7 @@ func (service *BotService) JoinFromGroup(db *sql.DB, app *config.App, bot *tb.Bo
 			log.Println(err)
 			return
 		}
-		userInsert, err := transaction.Exec("INSERT INTO `users` (`userID`,`username`,`firstName`,`lastName`,`lang`,`isBot`,`customID`,`createdAt`,`updatedAt`) VALUES('" + userID + "','" + m.Sender.Username + "','" + m.Sender.FirstName + "','" + m.Sender.LastName + "','" + m.Sender.LanguageCode + "','" + isBotValue + "','" + app.CurrentTime + "','" + app.CurrentTime + "')")
+		userInsert, err := transaction.Exec("INSERT INTO `users` (`userID`,`username`,`firstName`,`lastName`,`lang`,`isBot`,`customID`,`createdAt`,`updatedAt`) VALUES('" + userID + "','" + m.Sender.Username + "','" + m.Sender.FirstName + "','" + m.Sender.LastName + "','" + m.Sender.LanguageCode + "','" + isBotValue + "','" + helpers.Hash(userID+channelID) + "','" + app.CurrentTime + "','" + app.CurrentTime + "')")
 		if err != nil {
 			transaction.Rollback()
 			log.Println(err)

@@ -32,5 +32,5 @@ func Hash(data string) string {
 	rand.Seed(time.Now().Unix())
 	emojiSlice := []string{"🌵", "🔥", "🍑", "📀", "😀", "💰", "🍒", "🚒", "🌽", "🌍", "🍺", "😟", "💪", "🎤", "🎵", "🤓", "🍄", "🎩", "🎯", "🙃", "🌛", "🎨", "🎧", "😆", "🎾", "✋", "⭐"}
 	n := rand.Int() % len(emojiSlice)
-	return emojiSlice[n] + hashedData[len(hashedData)-4:]
+	return emojiSlice[n] + hashedData[len(hashedData)-3:]
 }

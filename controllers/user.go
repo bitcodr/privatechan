@@ -204,7 +204,7 @@ func (service *BotService) RegisterUserWithEmailAndCode(db *sql.DB, app *config.
 
 func (service *BotService) GetUserByTelegramID(db *sql.DB, app *config.App, userID int) *models.User {
 	userModel := new(models.User)
-	if err := db.QueryRow("SELECT `id`,`userID` from `users` where `userID`=? ", userID).Scan(&userModel.ID, &userModel.UserID); err != nil {
+	if err := db.QueryRow("SELECT `id`,`userID`,`customID` from `users` where `userID`=? ", userID).Scan(&userModel.ID, &userModel.UserID,&userModel.CustomID); err != nil {
 		log.Println(err)
 		userModel.Status = "INACTIVE"
 		return userModel
