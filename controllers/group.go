@@ -3,7 +3,6 @@ package controllers
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"log"
 	"strconv"
 	"strings"
@@ -145,7 +144,7 @@ func (service *BotService) NewMessageGroupHandler(app *config.App, bot *tb.Bot, 
 	if strings.Contains(m.Text, request.Command) {
 		db := app.DB()
 		defer db.Close()
-		service.CheckIfBotIsAdmin(app, bot, m, request)
+		service.CheckIfBotIsAdmin(app, bot, m, db, request)
 		// lastState := GetUserLastState(db, app, bot, m, m.Sender.ID)
 		// service.CheckUserRegisteredOrNot(db, app, bot, m, request, lastState, m.Text, m.Sender.ID)
 		if m.Sender != nil {
@@ -223,7 +222,7 @@ func (service *BotService) JoinFromGroup(db *sql.DB, app *config.App, bot *tb.Bo
 			log.Println(err)
 			return
 		}
-		userInsert, err := transaction.Exec("INSERT INTO `users` (`userID`,`username`,`firstName`,`lastName`,`lang`,`isBot`,`createdAt`,`updatedAt`) VALUES('" + userID + "','" + m.Sender.Username + "','" + m.Sender.FirstName + "','" + m.Sender.LastName + "','" + m.Sender.LanguageCode + "','" + isBotValue + "','" + app.CurrentTime + "','" + app.CurrentTime + "')")
+		userInsert, err := transaction.Exec("INSERT INTO `users` (`userID`,`username`,`firstName`,`lastName`,`lang`,`isBot`,`customID`,`createdAt`,`updatedAt`) VALUES('" + userID + "','" + m.Sender.Username + "','" + m.Sender.FirstName + "','" + m.Sender.LastName + "','" + m.Sender.LanguageCode + "','" + isBotValue + "','" + app.CurrentTime + "','" + app.CurrentTime + "')")
 		if err != nil {
 			transaction.Rollback()
 			log.Println(err)
@@ -253,7 +252,7 @@ func (service *BotService) checkAndInsertUserGroup(app *config.App, bot *tb.Bot,
 	err := db.QueryRow("SELECT ch.id as id FROM `channels` as ch inner join `users_channels` as uc on uc.channelID = ch.id and uc.userID=? and ch.channelID=?", userModelID, channelID).Scan(&channelModel.ID)
 	if errors.Is(err, sql.ErrNoRows) {
 		channelModel := new(models.Channel)
-		if err := db.QueryRow("SELECT `id` FROM `channels` where `channelID`=?",channelID).Scan(&channelModel.ID); err != nil {
+		if err := db.QueryRow("SELECT `id` FROM `channels` where `channelID`=?", channelID).Scan(&channelModel.ID); err != nil {
 			transaction.Rollback()
 			log.Println(err)
 			return
@@ -308,13 +307,46 @@ func (service *BotService) UpdateGroupTitle(app *config.App, bot *tb.Bot, m *tb.
 	return true
 }
 
-func (service *BotService) CheckIfBotIsAdmin(app *config.App, bot *tb.Bot, message *tb.Message, request *Event) {
-	if message.FromGroup() {
-		admins, err := bot.AdminsOf(message.Chat)
-		if err != nil {
-			log.Println(err)
+func (service *BotService) CheckIfBotIsAdmin(app *config.App, bot *tb.Bot, m *tb.Message, db *sql.DB, request *Event) {
+	ids := strings.TrimPrefix(m.Text, request.Command1)
+	var channelID string
+	if strings.Contains(ids, "_") {
+		data := strings.Split(ids, "_")
+		if len(data) > 0 {
+			channelID = strings.TrimSpace(data[0])
 		}
-		fmt.Println(admins)
+	} else {
+		channelID = ids
+	}
+	chatModel := new(tb.Chat)
+	id, err := strconv.ParseInt(channelID, 10, 0)
+	if err != nil {
+		log.Println(err)
 		return
+	}
+	chatModel.ID = id
+	admins, err := bot.AdminsOf(chatModel)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	if len(admins) > 0 {
+		for _, admin := range admins {
+			if admin.User.ID == bot.Me.ID {
+				channelModel := new(models.Channel)
+				if err := db.QueryRow("SELECT id from `channels` where `channelID`=? and (`channelURL` is NULL OR `channelURL` = '')", id).Scan(&channelModel.ID); err == nil {
+					inviteLink, err := bot.GetInviteLink(chatModel)
+					if err != nil {
+						log.Println(err)
+						return
+					}
+					_, err = db.Query("update channels set channelURL=? where channelID=?", inviteLink, id)
+					if err != nil {
+						log.Println(err)
+						return
+					}
+				}
+			}
+		}
 	}
 }

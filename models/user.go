@@ -1,6 +1,5 @@
 package models
 
-
 type User struct {
 	ID        int64      `json:"id"`
 	Status    string     `json:"status"`
@@ -11,11 +10,11 @@ type User struct {
 	Lang      string     `json:"lang"`
 	Email     string     `json:"email"`
 	IsBot     string     `json:"isBot"`
+	CustomID  string     `json:"customID"`
 	CreatedAt string     `json:"createdAt"`
 	UpdatedAt string     `json:"updatedAt"`
 	Channels  []*Channel `json:"channels"`
 }
-
 
 type UserChannel struct {
 	ID        int64    `json:"id"`
@@ -27,8 +26,6 @@ type UserChannel struct {
 	User      *User    `json:"user"`
 	Channel   *Channel `json:"channel"`
 }
-
-
 
 type UsersCurrentActiveChannel struct {
 	ID        int64    `json:"id"`
@@ -51,7 +48,6 @@ type UserLastState struct {
 	Data      string `json:"data"`
 	User      *User  `json:"user"`
 }
-
 
 type UsersActivationKey struct {
 	ID        int64  `json:"id"`
