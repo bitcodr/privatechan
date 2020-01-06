@@ -144,6 +144,8 @@ func (service *BotService) SendReply(app *config.App, bot *tb.Bot, m *tb.Message
 	if strings.Contains(m.Text, request.Command) {
 		db := app.DB()
 		defer db.Close()
+		service.CheckIfBotIsAdmin(app, bot, m, request)
+
 		if m.Sender != nil {
 			SaveUserLastState(db, app, bot, m.Text, m.Sender.ID, request.UserState)
 		}
@@ -182,6 +184,7 @@ func (service *BotService) SanedDM(app *config.App, bot *tb.Bot, m *tb.Message, 
 	if strings.Contains(m.Text, request.Command) {
 		db := app.DB()
 		defer db.Close()
+		service.CheckIfBotIsAdmin(app, bot, m, request)
 		ids := strings.TrimPrefix(m.Text, request.Command1)
 		data := strings.Split(ids, "_")
 		directSenderID, err := strconv.Atoi(data[1])

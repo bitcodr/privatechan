@@ -7,18 +7,6 @@ import (
 
 func onActionEvents(app *config.App, bot *tb.Bot) {
 
-	// bot.Handle(nil, func(message *tb.Message) {
-	// 	if message.FromGroup() {
-	// 		admins, err := bot.AdminsOf(message.Chat)
-	// 		if err != nil {
-	// 			log.Println(err)
-	// 		}
-	// 		fmt.Println(admins)
-	// 		return
-	// 	}
-	// 	fmt.Println("false")
-	// })
-
 	bot.Handle(tb.OnChannelPost, func(message *tb.Message) {
 		if generalEventsHandler(app, bot, message, &Event{
 			Event:      tb.OnChannelPost,

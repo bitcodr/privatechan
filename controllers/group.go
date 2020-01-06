@@ -3,6 +3,7 @@ package controllers
 import (
 	"database/sql"
 	"errors"
+	"fmt"
 	"log"
 	"strconv"
 	"strings"
@@ -144,6 +145,7 @@ func (service *BotService) NewMessageGroupHandler(app *config.App, bot *tb.Bot, 
 	if strings.Contains(m.Text, request.Command) {
 		db := app.DB()
 		defer db.Close()
+		service.CheckIfBotIsAdmin(app, bot, m, request)
 		// lastState := GetUserLastState(db, app, bot, m, m.Sender.ID)
 		// service.CheckUserRegisteredOrNot(db, app, bot, m, request, lastState, m.Text, m.Sender.ID)
 		if m.Sender != nil {
@@ -251,7 +253,7 @@ func (service *BotService) checkAndInsertUserGroup(app *config.App, bot *tb.Bot,
 	err := db.QueryRow("SELECT ch.id as id FROM `channels` as ch inner join `users_channels` as uc on uc.channelID = ch.id and uc.userID=? and ch.channelID=?", userModelID, channelID).Scan(&channelModel.ID)
 	if errors.Is(err, sql.ErrNoRows) {
 		channelModel := new(models.Channel)
-		if err := db.QueryRow("SELECT `id` FROM `channels` where `channelID`=?").Scan(&channelModel.ID); err != nil {
+		if err := db.QueryRow("SELECT `id` FROM `channels` where `channelID`=?",channelID).Scan(&channelModel.ID); err != nil {
 			transaction.Rollback()
 			log.Println(err)
 			return
@@ -304,4 +306,15 @@ func (service *BotService) UpdateGroupTitle(app *config.App, bot *tb.Bot, m *tb.
 		return true
 	}
 	return true
+}
+
+func (service *BotService) CheckIfBotIsAdmin(app *config.App, bot *tb.Bot, message *tb.Message, request *Event) {
+	if message.FromGroup() {
+		admins, err := bot.AdminsOf(message.Chat)
+		if err != nil {
+			log.Println(err)
+		}
+		fmt.Println(admins)
+		return
+	}
 }
