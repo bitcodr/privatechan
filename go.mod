@@ -5,8 +5,6 @@ go 1.13
 require (
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/google/uuid v1.1.1
-	github.com/hackebrot/go-repr v0.1.0 // indirect
-	github.com/hackebrot/turtle v0.1.0
 	github.com/pelletier/go-toml v1.6.0 // indirect
 	github.com/spf13/afero v1.2.2 // indirect
 	github.com/spf13/cast v1.3.1 // indirect
