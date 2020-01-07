@@ -504,7 +504,8 @@ func (service *BotService) SendAndSaveDirectMessage(db *sql.DB, app *config.App,
 							newSendOption.ParseMode = tb.ModeHTML
 							user := new(tb.User)
 							user.ID = userIDInInt
-							sendMessage, err := bot.Send(user, "<b>"+config.LangConfig.GetString("GENERAL.FROM")+":</b> "+userDataModel.CustomID+"<b> On The "+strings.Title(channelModel.ChannelType)+": </b> "+channelModel.ChannelName+"<b> "+config.LangConfig.GetString("GENERAL.MESSAGE")+":</b> "+m.Text, newSendOption)
+							senderDataModel := service.GetUserByTelegramID(db, app, m.Sender.ID)
+							sendMessage, err := bot.Send(user, "<b>"+config.LangConfig.GetString("GENERAL.FROM")+":</b> "+senderDataModel.CustomID+"<b> On The "+strings.Title(channelModel.ChannelType)+": </b> "+channelModel.ChannelName+"<b> "+config.LangConfig.GetString("GENERAL.MESSAGE")+":</b> "+m.Text, newSendOption)
 							if err == nil {
 								newChannelMessageID := strconv.Itoa(sendMessage.ID)
 								parentID := strconv.FormatInt(messageModel.ID, 10)
@@ -586,7 +587,8 @@ func (service *BotService) SendAnswerAndSaveDirectMessage(db *sql.DB, app *confi
 							newSendOption.ParseMode = tb.ModeHTML
 							user := new(tb.User)
 							user.ID = userIDInInt
-							sendMessage, err := bot.Send(user, "<b>"+config.LangConfig.GetString("GENERAL.FROM")+":</b> "+userDataModel.CustomID+"<b> On The "+strings.Title(newChannelModel.ChannelType)+": </b> "+newChannelModel.ChannelName+" <b>"+config.LangConfig.GetString("GENERAL.MESSAGE")+":</b> "+m.Text, newSendOption)
+							senderDataModel := service.GetUserByTelegramID(db, app, m.Sender.ID)
+							sendMessage, err := bot.Send(user, "<b>"+config.LangConfig.GetString("GENERAL.FROM")+":</b> "+senderDataModel.CustomID+"<b> On The "+strings.Title(newChannelModel.ChannelType)+": </b> "+newChannelModel.ChannelName+" <b>"+config.LangConfig.GetString("GENERAL.MESSAGE")+":</b> "+m.Text, newSendOption)
 							if err == nil {
 								newChannelMessageID := strconv.Itoa(sendMessage.ID)
 								newChannelModelID := strconv.FormatInt(newChannelModel.ID, 10)
