@@ -62,7 +62,7 @@ MESSAGES:
   ON_CHANNEL_GROUP: "On channel/group"
   GROUP_REGISTERED_SUCCESSFULLY: "You're group registered successfully"
   GROUP_UNIQUE_ID_MESSAGE: "This is your group unique ID, you can save it and remove this message: "
-  PLEASE_DRAFT_YOUR_MESSAGE: "Please draft your anonymous new message to the : "
+  PLEASE_DRAFT_YOUR_MESSAGE: "Please draft your anonymous new message to the "
   ADD_MESSAGE_TO_CHANNEL: "Add Anonymous Message to a Channel/Group"
   SETUP_VERIFIED_COMPANY: "Setup Verified Company Account"
   JOIN_TO_COMPANY_CHANNEL: "Join To Company Anonymous Channel/Group"
