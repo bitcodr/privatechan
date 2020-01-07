@@ -55,13 +55,13 @@ func (service *BotService) checkTheCompanyEmailSuffixExist(app *config.App, bot 
 	replyModel := new(tb.ReplyMarkup)
 	replyModel.ReplyKeyboard = replyKeys
 	options.ReplyMarkup = replyModel
-	if err := db.QueryRow("SELECT co.companyName,ch.id,ch.channelName from `channels_email_suffixes` as cs inner join `channels` as ch on cs.channelID=ch.id inner join `companies_channels` as cc on ch.Id=cc.channelID inner join `companies` as co on cc.companyID=co.id where cs.suffix=? limit 1", emailSuffix).Scan(&companyModel.CompanyName, &channelModel.ID, &channelModel.ChannelName); err != nil {
+	if err := db.QueryRow("SELECT co.companyName,ch.id,ch.channelName,ch.channelType from `channels_email_suffixes` as cs inner join `channels` as ch on cs.channelID=ch.id inner join `companies_channels` as cc on ch.Id=cc.channelID inner join `companies` as co on cc.companyID=co.id where cs.suffix=? limit 1", emailSuffix).Scan(&companyModel.CompanyName, &channelModel.ID, &channelModel.ChannelName,&channelModel.ChannelType); err != nil {
 		SaveUserLastState(db, app, bot, emailSuffix, userModel.ID, config.LangConfig.GetString("STATE.CONFIRM_REGISTER_COMPANY"))
 		bot.Send(userModel, config.LangConfig.GetString("MESSAGES.COMPANY_WITH_THE_EMAIL_NOT_EXIST"), options)
 		return
 	}
 	SaveUserLastState(db, app, bot, strconv.FormatInt(channelModel.ID, 10)+"_"+email, userModel.ID, config.LangConfig.GetString("STATE.REGISTER_USER_FOR_COMPANY"))
-	bot.Send(userModel, config.LangConfig.GetString("MESSAGES.CONFIRM_REGISTER_TO_CHANNEL")+channelModel.ChannelName+config.LangConfig.GetString("MESSAGES.BLONGS_TO_COMPANY")+companyModel.CompanyName+"?", options)
+	bot.Send(userModel, config.LangConfig.GetString("MESSAGES.CONFIRM_REGISTER_TO_CHANNEL")+channelModel.ChannelType+" "+channelModel.ChannelName+config.LangConfig.GetString("MESSAGES.BLONGS_TO_COMPANY")+companyModel.CompanyName+"?", options)
 }
 
 func (service *BotService) ConfirmRegisterCompanyRequest(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *Event, lastState *models.UserLastState) bool {
@@ -113,8 +113,9 @@ func (service *BotService) ConfirmRegisterUserForTheCompany(db *sql.DB, app *con
 			return true
 		}
 		userDBModel := new(models.User)
-		if err := db.QueryRow("SELECT us.id FROM `users` as us inner join `users_channels` as uc on us.id=uc.userID and uc.channelID=? and uc.status='ACTIVE' where us.userID=?", channelData[0], m.Sender.ID).Scan(&userDBModel.ID); err == nil {
-			bot.Send(userModel, config.LangConfig.GetString("MESSAGES.REGISTERED_IN_CHANNEL"))
+		channelModel := new(models.Channel)
+		if err := db.QueryRow("SELECT us.id,ch.channelType FROM `users` as us inner join `users_channels` as uc on us.id=uc.userID and uc.channelID=? and uc.status='ACTIVE' inner join `channels` as ch on uc.channelID=ch.id where us.userID=?", channelData[0], m.Sender.ID).Scan(&userDBModel.ID,&channelModel.ChannelType); err == nil {
+			bot.Send(userModel, config.LangConfig.GetString("MESSAGES.REGISTERED_IN_CHANNEL")+channelModel.ChannelType)
 			return true
 		}
 		rand.Seed(time.Now().UnixNano())
@@ -168,7 +169,7 @@ func (service *BotService) RegisterUserWithEmailAndCode(db *sql.DB, app *config.
 		log.Println(err)
 		return true
 	}
-	if err := db.QueryRow("SELECT channelID,channelURL,manualChannelName,channelName FROM `channels` where id=?",channelID).Scan(&channelModel.ChannelID, &channelModel.ChannelURL, &channelModel.ManualChannelName, &channelModel.ChannelName); err != nil {
+	if err := db.QueryRow("SELECT channelID,channelURL,manualChannelName,channelName,channelType FROM `channels` where id=?",channelID).Scan(&channelModel.ChannelID, &channelModel.ChannelURL, &channelModel.ManualChannelName, &channelModel.ChannelName, &channelModel.ChannelType); err != nil {
 		log.Println(err)
 		return true
 	}
@@ -198,7 +199,7 @@ func (service *BotService) RegisterUserWithEmailAndCode(db *sql.DB, app *config.
 	replyModel.ReplyKeyboard = replyBTN
 	replyModel.InlineKeyboard = replyKeys
 	options.ReplyMarkup = replyModel
-	bot.Send(userModel, config.LangConfig.GetString("MESSAGES.YOU_ARE_MEMBER_OF_CHANNEL")+channelModel.ChannelName, options)
+	bot.Send(userModel, config.LangConfig.GetString("MESSAGES.YOU_ARE_MEMBER_OF_CHANNEL")+channelModel.ChannelType+" "+channelModel.ChannelName, options)
 	return true
 }
 

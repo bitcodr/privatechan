@@ -338,7 +338,7 @@ func (service *BotService) SaveAndSendMessage(db *sql.DB, app *config.App, bot *
 				}
 				markup.InlineKeyboard = inlineKeys
 				options.ReplyMarkup = markup
-				bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.MESSAGE_HAS_BEEN_SENT")+activeChannel.ChannelName, options)
+				bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.MESSAGE_HAS_BEEN_SENT")+activeChannel.ChannelType+" "+activeChannel.ChannelName, options)
 				SaveUserLastState(db, app, bot, "", m.Sender.ID, "message_sent")
 			}
 		}
@@ -398,7 +398,7 @@ func (service *BotService) SendAndSaveReplyMessage(db *sql.DB, app *config.App, 
 								newChannelMessageID := strconv.Itoa(sendMessage.ID)
 								parentID := strconv.FormatInt(messageModel.ID, 10)
 								newChannelModel := new(models.Channel)
-								if err := db.QueryRow("SELECT id,channelName from `channels` where channelID=?", channelID).Scan(&newChannelModel.ID, &newChannelModel.ChannelName); err == nil {
+								if err := db.QueryRow("SELECT id,channelName,channelType from `channels` where channelID=?", channelID).Scan(&newChannelModel.ID, &newChannelModel.ChannelName, &newChannelModel.ChannelType); err == nil {
 									newChannelModelID := strconv.FormatInt(newChannelModel.ID, 10)
 									insertedMessage, err := db.Query("INSERT INTO `messages` (`message`,`userID`,`channelID`,`channelMessageID`,`botMessageID`,`parentID`,`createdAt`) VALUES('" + helpers.ClearString(m.Text) + "','" + senderID + "','" + newChannelModelID + "','" + newChannelMessageID + "','" + newBotMessageID + "','" + parentID + "','" + app.CurrentTime + "')")
 									if err != nil {
@@ -427,7 +427,7 @@ func (service *BotService) SendAndSaveReplyMessage(db *sql.DB, app *config.App, 
 										markup.ReplyKeyboard = replyKeys
 									}
 									options.ReplyMarkup = markup
-									bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.REPLY_MESSAGE_HAS_BEEN_SENT")+newChannelModel.ChannelName, options)
+									bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.REPLY_MESSAGE_HAS_BEEN_SENT")+newChannelModel.ChannelType+" "+newChannelModel.ChannelName, options)
 									SaveUserLastState(db, app, bot, "", m.Sender.ID, "reply_message_sent")
 								}
 							}
@@ -504,7 +504,7 @@ func (service *BotService) SendAndSaveDirectMessage(db *sql.DB, app *config.App,
 							newSendOption.ParseMode = tb.ModeHTML
 							user := new(tb.User)
 							user.ID = userIDInInt
-							sendMessage, err := bot.Send(user, "<b>"+config.LangConfig.GetString("GENERAL.MESSAGE")+":</b> "+m.Text+" <b>"+config.LangConfig.GetString("GENERAL.FROM")+":</b> "+userDataModel.CustomID+"<b> "+config.LangConfig.GetString("MESSAGES.ON_CHANNEL_GROUP")+": </b> "+channelModel.ChannelName, newSendOption)
+							sendMessage, err := bot.Send(user, "<b>"+config.LangConfig.GetString("GENERAL.MESSAGE")+":</b> "+m.Text+" <b>"+config.LangConfig.GetString("GENERAL.FROM")+":</b> "+userDataModel.CustomID+"<b> "+strings.Title(channelModel.ChannelType)+": </b> "+channelModel.ChannelName, newSendOption)
 							if err == nil {
 								newChannelMessageID := strconv.Itoa(sendMessage.ID)
 								parentID := strconv.FormatInt(messageModel.ID, 10)
@@ -571,7 +571,7 @@ func (service *BotService) SendAnswerAndSaveDirectMessage(db *sql.DB, app *confi
 						userDataModel := service.GetUserByTelegramID(db, app, userIDInInt)
 						bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.DIRECT_HAS_BEEN_SENT")+" <b>"+userDataModel.CustomID+"</b>", options)
 						newChannelModel := new(models.Channel)
-						if err := db.QueryRow("SELECT id,channelName from `channels` where `channelID`=?", channelID).Scan(&newChannelModel.ID, &newChannelModel.ChannelName); err == nil {
+						if err := db.QueryRow("SELECT id,channelName,channelType from `channels` where `channelID`=?", channelID).Scan(&newChannelModel.ID, &newChannelModel.ChannelName, &newChannelModel.ChannelType); err == nil {
 							newReply := tb.InlineButton{
 								Unique: config.LangConfig.GetString("STATE.ANSWER_TO_DM") + "_" + channelID + "_" + senderID + "_" + newBotMessageID,
 								Text:   config.LangConfig.GetString("MESSAGES.DIRECT_REPLY"),
@@ -586,7 +586,7 @@ func (service *BotService) SendAnswerAndSaveDirectMessage(db *sql.DB, app *confi
 							newSendOption.ParseMode = tb.ModeHTML
 							user := new(tb.User)
 							user.ID = userIDInInt
-							sendMessage, err := bot.Send(user, "<b>"+config.LangConfig.GetString("GENERAL.MESSAGE")+":</b> "+m.Text+" <b>"+config.LangConfig.GetString("GENERAL.FROM")+":</b> "+userDataModel.CustomID+"<b> "+config.LangConfig.GetString("MESSAGES.ON_CHANNEL_GROUP")+": </b> "+newChannelModel.ChannelName, newSendOption)
+							sendMessage, err := bot.Send(user, "<b>"+config.LangConfig.GetString("GENERAL.MESSAGE")+":</b> "+m.Text+" <b>"+config.LangConfig.GetString("GENERAL.FROM")+":</b> "+userDataModel.CustomID+"<b> "+strings.Title(newChannelModel.ChannelType)+": </b> "+newChannelModel.ChannelName, newSendOption)
 							if err == nil {
 								newChannelMessageID := strconv.Itoa(sendMessage.ID)
 								newChannelModelID := strconv.FormatInt(newChannelModel.ID, 10)

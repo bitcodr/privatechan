@@ -154,7 +154,7 @@ func (service *BotService) NewMessageGroupHandler(app *config.App, bot *tb.Bot, 
 		channelID := strings.ReplaceAll(m.Text, request.Command1, "")
 		service.JoinFromGroup(db, app, bot, m, channelID)
 		channelModel := new(models.Channel)
-		if err := db.QueryRow("SELECT `channelName` FROM `channels` where `channelID`=?", channelID).Scan(&channelModel.ChannelName); err != nil {
+		if err := db.QueryRow("SELECT `channelName`,`channelType` FROM `channels` where `channelID`=?", channelID).Scan(&channelModel.ChannelName,&channelModel.ChannelType); err != nil {
 			log.Println(err)
 			return true
 		}
@@ -168,7 +168,7 @@ func (service *BotService) NewMessageGroupHandler(app *config.App, bot *tb.Bot, 
 		}
 		markup.ReplyKeyboard = replyKeys
 		options.ReplyMarkup = markup
-		bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.PLEASE_DRAFT_YOUR_MESSAGE")+channelModel.ChannelName, options)
+		bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.PLEASE_DRAFT_YOUR_MESSAGE")+channelModel.ChannelType+" "+channelModel.ChannelName, options)
 		return true
 	}
 	return false
@@ -185,7 +185,7 @@ func (service *BotService) NewMessageGroupHandlerCallback(app *config.App, bot *
 		}
 		channelID := strings.ReplaceAll(c.Data, request.Command, "")
 		channelModel := new(models.Channel)
-		if err := db.QueryRow("SELECT `channelName` FROM `channels` where `channelID`=?", strings.TrimLeft(channelID, "\f")).Scan(&channelModel.ChannelName); err != nil {
+		if err := db.QueryRow("SELECT `channelName`,`channelType` FROM `channels` where `channelID`=?", strings.TrimLeft(channelID, "\f")).Scan(&channelModel.ChannelName,&channelModel.ChannelType); err != nil {
 			log.Println(err)
 			return true
 		}
@@ -199,7 +199,7 @@ func (service *BotService) NewMessageGroupHandlerCallback(app *config.App, bot *
 		}
 		markup.ReplyKeyboard = replyKeys
 		options.ReplyMarkup = markup
-		bot.Send(c.Sender, config.LangConfig.GetString("MESSAGES.PLEASE_DRAFT_YOUR_MESSAGE")+channelModel.ChannelName, options)
+		bot.Send(c.Sender, config.LangConfig.GetString("MESSAGES.PLEASE_DRAFT_YOUR_MESSAGE")+channelModel.ChannelType+" "+channelModel.ChannelName, options)
 		return true
 	}
 	return false
