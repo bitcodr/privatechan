@@ -505,11 +505,11 @@ func (service *BotService) SendAndSaveDirectMessage(db *sql.DB, app *config.App,
 							newReplyModel.InlineKeyboard = inlineKeys
 							newSendOption := new(tb.SendOptions)
 							newSendOption.ReplyMarkup = newReplyModel
-							newSendOption.ParseMode = tb.ModeMarkdown
+							newSendOption.ParseMode = tb.ModeHTML
 							user := new(tb.User)
 							user.ID = userIDInInt
 							senderDataModel := service.GetUserByTelegramID(db, app, m.Sender.ID)
-							sendMessage, err := bot.Send(user, config.LangConfig.GetString("GENERAL.FROM")+": "+channelModel.ChannelName+"\nBy: "+senderDataModel.CustomID+"\n------------------------------\n"+config.LangConfig.GetString("GENERAL.MESSAGE")+": "+m.Text, newSendOption)
+							sendMessage, err := bot.Send(user, config.LangConfig.GetString("GENERAL.FROM")+": "+channelModel.ChannelName+"\nBy: [User "+senderDataModel.CustomID+"]\n------------------------------\n"+config.LangConfig.GetString("GENERAL.MESSAGE")+": "+m.Text, newSendOption)
 							if err == nil {
 								newChannelMessageID := strconv.Itoa(sendMessage.ID)
 								parentID := strconv.FormatInt(messageModel.ID, 10)
@@ -588,11 +588,11 @@ func (service *BotService) SendAnswerAndSaveDirectMessage(db *sql.DB, app *confi
 							newReplyModel.InlineKeyboard = inlineKeys
 							newSendOption := new(tb.SendOptions)
 							newSendOption.ReplyMarkup = newReplyModel
-							newSendOption.ParseMode = tb.ModeMarkdown
+							newSendOption.ParseMode = tb.ModeHTML
 							user := new(tb.User)
 							user.ID = userIDInInt
 							senderDataModel := service.GetUserByTelegramID(db, app, m.Sender.ID)
-							sendMessage, err := bot.Send(user, config.LangConfig.GetString("GENERAL.FROM")+": "+newChannelModel.ChannelName+"\nBy: "+senderDataModel.CustomID+"\n------------------------------\n"+config.LangConfig.GetString("GENERAL.MESSAGE")+": "+m.Text, newSendOption)
+							sendMessage, err := bot.Send(user, config.LangConfig.GetString("GENERAL.FROM")+": "+newChannelModel.ChannelName+"\nBy: [User "+senderDataModel.CustomID+"]\n------------------------------\n"+config.LangConfig.GetString("GENERAL.MESSAGE")+": "+m.Text, newSendOption)
 							if err == nil {
 								newChannelMessageID := strconv.Itoa(sendMessage.ID)
 								newChannelModelID := strconv.FormatInt(newChannelModel.ID, 10)
