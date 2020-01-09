@@ -304,7 +304,8 @@ func (service *BotService) SaveAndSendMessage(db *sql.DB, app *config.App, bot *
 			replyModel.InlineKeyboard = inlineKeys
 			options.ReplyMarkup = replyModel
 			options.ParseMode = tb.ModeHTML
-			message, err := bot.Send(user, m.Text, options)
+			userDataModel := service.GetUserByTelegramID(db, app, m.Sender.ID)
+			message, err := bot.Send(user, "[User "+userDataModel.CustomID+"] "+m.Text, options)
 			// message, err := bot.Send(user, "From: <b>"+strconv.FormatInt(activeChannel.User.ID, 10)+activeChannel.User.UserID+"</b> <pre>\n"+m.Text+"</pre>", options)
 			if err == nil {
 				channelMessageID := strconv.Itoa(message.ID)
@@ -338,7 +339,8 @@ func (service *BotService) SaveAndSendMessage(db *sql.DB, app *config.App, bot *
 				}
 				markup.InlineKeyboard = inlineKeys
 				options.ReplyMarkup = markup
-				bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.MESSAGE_HAS_BEEN_SENT")+activeChannel.ChannelType+" "+activeChannel.ChannelName, options)
+				options.ParseMode = tb.ModeMarkdown
+				bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.MESSAGE_HAS_BEEN_SENT")+activeChannel.ChannelType+", *"+activeChannel.ChannelName+"*.", options)
 				SaveUserLastState(db, app, bot, "", m.Sender.ID, "message_sent")
 			}
 		}
@@ -392,7 +394,8 @@ func (service *BotService) SendAndSaveReplyMessage(db *sql.DB, app *config.App, 
 							newSendOption.ParseMode = tb.ModeHTML
 							user := new(tb.User)
 							user.ID = channelIntValue
-							sendMessage, err := bot.Send(user, m.Text, newSendOption)
+							userDataModel := service.GetUserByTelegramID(db, app, m.Sender.ID)
+							sendMessage, err := bot.Send(user, "[User "+userDataModel.CustomID+"] "+m.Text, newSendOption)
 							// sendMessage, err := bot.Send(user, "From: <b>"+strconv.FormatInt(activeChannel.User.ID, 10)+activeChannel.User.UserID+"</b> <pre>\n"+m.Text+"</pre>", newSendOption)
 							if err == nil {
 								newChannelMessageID := strconv.Itoa(sendMessage.ID)
@@ -427,7 +430,8 @@ func (service *BotService) SendAndSaveReplyMessage(db *sql.DB, app *config.App, 
 										markup.ReplyKeyboard = replyKeys
 									}
 									options.ReplyMarkup = markup
-									bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.REPLY_MESSAGE_HAS_BEEN_SENT")+newChannelModel.ChannelType+" "+newChannelModel.ChannelName, options)
+									options.ParseMode = tb.ModeMarkdown
+									bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.REPLY_MESSAGE_HAS_BEEN_SENT")+newChannelModel.ChannelType+", *"+newChannelModel.ChannelName+"*.", options)
 									SaveUserLastState(db, app, bot, "", m.Sender.ID, "reply_message_sent")
 								}
 							}
@@ -501,11 +505,11 @@ func (service *BotService) SendAndSaveDirectMessage(db *sql.DB, app *config.App,
 							newReplyModel.InlineKeyboard = inlineKeys
 							newSendOption := new(tb.SendOptions)
 							newSendOption.ReplyMarkup = newReplyModel
-							newSendOption.ParseMode = tb.ModeHTML
+							newSendOption.ParseMode = tb.ModeMarkdown
 							user := new(tb.User)
 							user.ID = userIDInInt
 							senderDataModel := service.GetUserByTelegramID(db, app, m.Sender.ID)
-							sendMessage, err := bot.Send(user, "<b>"+config.LangConfig.GetString("GENERAL.FROM")+":</b> "+senderDataModel.CustomID+"<b> On The "+strings.Title(channelModel.ChannelType)+": </b> "+channelModel.ChannelName+"<b> "+config.LangConfig.GetString("GENERAL.MESSAGE")+":</b> "+m.Text, newSendOption)
+							sendMessage, err := bot.Send(user, config.LangConfig.GetString("GENERAL.FROM")+": "+channelModel.ChannelName+"\nBy: "+senderDataModel.CustomID+"\n------------------------------\n"+config.LangConfig.GetString("GENERAL.MESSAGE")+": "+m.Text, newSendOption)
 							if err == nil {
 								newChannelMessageID := strconv.Itoa(sendMessage.ID)
 								parentID := strconv.FormatInt(messageModel.ID, 10)
@@ -584,11 +588,11 @@ func (service *BotService) SendAnswerAndSaveDirectMessage(db *sql.DB, app *confi
 							newReplyModel.InlineKeyboard = inlineKeys
 							newSendOption := new(tb.SendOptions)
 							newSendOption.ReplyMarkup = newReplyModel
-							newSendOption.ParseMode = tb.ModeHTML
+							newSendOption.ParseMode = tb.ModeMarkdown
 							user := new(tb.User)
 							user.ID = userIDInInt
 							senderDataModel := service.GetUserByTelegramID(db, app, m.Sender.ID)
-							sendMessage, err := bot.Send(user, "<b>"+config.LangConfig.GetString("GENERAL.FROM")+":</b> "+senderDataModel.CustomID+"<b> On The "+strings.Title(newChannelModel.ChannelType)+": </b> "+newChannelModel.ChannelName+" <b>"+config.LangConfig.GetString("GENERAL.MESSAGE")+":</b> "+m.Text, newSendOption)
+							sendMessage, err := bot.Send(user, config.LangConfig.GetString("GENERAL.FROM")+": "+newChannelModel.ChannelName+"\nBy: "+senderDataModel.CustomID+"\n------------------------------\n"+config.LangConfig.GetString("GENERAL.MESSAGE")+": "+m.Text, newSendOption)
 							if err == nil {
 								newChannelMessageID := strconv.Itoa(sendMessage.ID)
 								newChannelModelID := strconv.FormatInt(newChannelModel.ID, 10)
