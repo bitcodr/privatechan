@@ -462,11 +462,17 @@ func (service *BotService) SendAndSaveDirectMessage(db *sql.DB, app *config.App,
 					if err := db.QueryRow("SELECT me.id,me.channelMessageID,ch.channelName,ch.channelURL,ch.channelType from `messages` as me inner join `channels` as ch on me.channelID=ch.id and ch.channelID=? where me.`botMessageID`=? and me.`userID`=?", channelID, botMessageID, userID).Scan(&messageModel.ID, &messageModel.ChannelMessageID, &channelModel.ChannelName, &channelModel.ChannelURL, &channelModel.ChannelType); err == nil {
 						_, err := strconv.Atoi(messageModel.ChannelMessageID)
 						if err == nil {
+							userIntID, err := strconv.Atoi(userID)
+							if err != nil {
+								log.Println(err)
+								return true
+							}
+							userDataModel := service.GetUserByTelegramID(db, app, userIntID)
 							options := new(tb.SendOptions)
 							markup := new(tb.ReplyMarkup)
 							SendAnotherDM := tb.InlineButton{
 								Unique: config.LangConfig.GetString("STATE.ANSWER_TO_DM") + "_" + channelID + "_" + userID + "_" + newBotMessageID,
-								Text:   config.LangConfig.GetString("MESSAGES.ANOTHER_DIRECT_REPLY"),
+								Text:   config.LangConfig.GetString("MESSAGES.ANOTHER_DIRECT_REPLY") + " [User " + userDataModel.CustomID + "]",
 							}
 							var AnotherDMKeys [][]tb.InlineButton
 							if channelModel.ChannelURL != "" {
@@ -487,17 +493,12 @@ func (service *BotService) SendAndSaveDirectMessage(db *sql.DB, app *config.App,
 							markup.InlineKeyboard = AnotherDMKeys
 							options.ReplyMarkup = markup
 							options.ParseMode = tb.ModeHTML
-							userIntID, err := strconv.Atoi(userID)
-							if err != nil {
-								log.Println(err)
-								return true
-							}
-							userDataModel := service.GetUserByTelegramID(db, app, userIntID)
 							bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.DIRECT_HAS_BEEN_SENT")+"<b>"+userDataModel.CustomID+"</b>", options)
 							newReplyModel := new(tb.ReplyMarkup)
+							senderUserDataModel := service.GetUserByTelegramID(db, app, m.Sender.ID)
 							newReply := tb.InlineButton{
 								Unique: config.LangConfig.GetString("STATE.ANSWER_TO_DM") + "_" + channelID + "_" + senderID + "_" + newBotMessageID,
-								Text:   config.LangConfig.GetString("MESSAGES.DIRECT_REPLY"),
+								Text:   config.LangConfig.GetString("MESSAGES.DIRECT_REPLY")+ " [User " + senderUserDataModel.CustomID + "]",
 							}
 							inlineKeys := [][]tb.InlineButton{
 								[]tb.InlineButton{newReply},
@@ -550,9 +551,10 @@ func (service *BotService) SendAnswerAndSaveDirectMessage(db *sql.DB, app *confi
 					if err := db.QueryRow("SELECT channelURL,channelType from `channels` where channelID=?", channelID).Scan(&channelModel.ChannelURL, &channelModel.ChannelType); err == nil {
 						options := new(tb.SendOptions)
 						markup := new(tb.ReplyMarkup)
+						userDataModel := service.GetUserByTelegramID(db, app, userIDInInt)
 						SendAnotherDM := tb.InlineButton{
 							Unique: config.LangConfig.GetString("STATE.ANSWER_TO_DM") + "_" + channelID + "_" + userID + "_" + newBotMessageID,
-							Text:   config.LangConfig.GetString("MESSAGES.ANOTHER_DIRECT_REPLY"),
+							Text:   config.LangConfig.GetString("MESSAGES.ANOTHER_DIRECT_REPLY")+ " [User " + userDataModel.CustomID + "]",
 						}
 						var AnotherDMKeys [][]tb.InlineButton
 						if channelModel.ChannelURL != "" {
@@ -573,13 +575,13 @@ func (service *BotService) SendAnswerAndSaveDirectMessage(db *sql.DB, app *confi
 						markup.InlineKeyboard = AnotherDMKeys
 						options.ReplyMarkup = markup
 						options.ParseMode = tb.ModeHTML
-						userDataModel := service.GetUserByTelegramID(db, app, userIDInInt)
 						bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.DIRECT_HAS_BEEN_SENT")+" <b>"+userDataModel.CustomID+"</b>", options)
 						newChannelModel := new(models.Channel)
 						if err := db.QueryRow("SELECT id,channelName,channelType from `channels` where `channelID`=?", channelID).Scan(&newChannelModel.ID, &newChannelModel.ChannelName, &newChannelModel.ChannelType); err == nil {
+							senderUserDataModel := service.GetUserByTelegramID(db, app, m.Sender.ID)
 							newReply := tb.InlineButton{
 								Unique: config.LangConfig.GetString("STATE.ANSWER_TO_DM") + "_" + channelID + "_" + senderID + "_" + newBotMessageID,
-								Text:   config.LangConfig.GetString("MESSAGES.DIRECT_REPLY"),
+								Text:   config.LangConfig.GetString("MESSAGES.DIRECT_REPLY")+ " [User " + senderUserDataModel.CustomID + "]",
 							}
 							inlineKeys := [][]tb.InlineButton{
 								[]tb.InlineButton{newReply},
