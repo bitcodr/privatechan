@@ -47,7 +47,7 @@ func (service *BotService) RegisterChannel(app *config.App, bot *tb.Bot, m *tb.M
 			}
 			uniqueID := uuid.New().String()
 			//insert channel
-			channelInserted, err := transaction.Exec("INSERT INTO `channels` (`channelType`,`channelURL`,`channelID`,`channelName`,`uniqueID`,`createdAt`,`updatedAt`) VALUES('channel','" + channelURL + "','" + channelID + "','" + m.Chat.Title + "','" + uniqueID + "','" + app.CurrentTime + "','" + app.CurrentTime + "')")
+			channelInserted, err := transaction.Exec("INSERT INTO `channels` (`channelType`,`channelURL`,`channelID`,`channelName`,`uniqueID`,`createdAt`,`updatedAt`) VALUES(?,?,?,?,?,?,?)", "channel", channelURL, channelID, m.Chat.Title, uniqueID, app.CurrentTime, app.CurrentTime)
 			if err != nil {
 				transaction.Rollback()
 				log.Println(err)
@@ -62,7 +62,7 @@ func (service *BotService) RegisterChannel(app *config.App, bot *tb.Bot, m *tb.M
 				err := db.QueryRow("SELECT id FROM `companies` where `companyName`=?", companyFlag).Scan(&companyModel.ID)
 				if errors.Is(err, sql.ErrNoRows) {
 					//insert company
-					companyInserted, err := transaction.Exec("INSERT INTO `companies` (`companyName`,`createdAt`,`updatedAt`) VALUES('" + companyFlag + "','" + app.CurrentTime + "','" + app.CurrentTime + "')")
+					companyInserted, err := transaction.Exec("INSERT INTO `companies` (`companyName`,`createdAt`,`updatedAt`) VALUES(?,?,?)", companyFlag, app.CurrentTime, app.CurrentTime)
 					if err != nil {
 						transaction.Rollback()
 						log.Println(err)
@@ -73,7 +73,7 @@ func (service *BotService) RegisterChannel(app *config.App, bot *tb.Bot, m *tb.M
 						companyModelID := strconv.FormatInt(insertedCompanyID, 10)
 						channelModelID := strconv.FormatInt(insertedChannelID, 10)
 						//insert company channel pivot
-						_, err := transaction.Exec("INSERT INTO `companies_channels` (`companyID`,`channelID`,`createdAt`) VALUES('" + companyModelID + "','" + channelModelID + "','" + app.CurrentTime + "')")
+						_, err := transaction.Exec("INSERT INTO `companies_channels` (`companyID`,`channelID`,`createdAt`) VALUES(?,?,?)", companyModelID, channelModelID, app.CurrentTime)
 						if err != nil {
 							transaction.Rollback()
 							log.Println(err)
@@ -84,7 +84,7 @@ func (service *BotService) RegisterChannel(app *config.App, bot *tb.Bot, m *tb.M
 					companyModelID := strconv.FormatInt(companyModel.ID, 10)
 					channelModelID := strconv.FormatInt(insertedChannelID, 10)
 					//insert company channel pivot
-					_, err := transaction.Exec("INSERT INTO `companies_channels` (`companyID`,`channelID`,`createdAt`) VALUES('" + companyModelID + "','" + channelModelID + "','" + app.CurrentTime + "')")
+					_, err := transaction.Exec("INSERT INTO `companies_channels` (`companyID`,`channelID`,`createdAt`) VALUES(?,?,?)", companyModelID, channelModelID, app.CurrentTime)
 					if err != nil {
 						transaction.Rollback()
 						log.Println(err)
@@ -169,9 +169,9 @@ func (service *BotService) SendReply(app *config.App, bot *tb.Bot, m *tb.Message
 		markup.ReplyKeyboard = replyKeys
 		options.ReplyMarkup = markup
 		var maxLenOfString int
-		if len(messageModel.Message) < 60{
+		if len(messageModel.Message) < 60 {
 			maxLenOfString = len(messageModel.Message)
-		}else{
+		} else {
 			maxLenOfString = 60
 		}
 		_, err := bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.PLEASE_REPLY")+"'"+messageModel.Message[0:maxLenOfString]+"...' on "+channelModel.ChannelName, options)

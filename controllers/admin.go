@@ -179,7 +179,7 @@ func (service *BotService) insertFinalStateData(app *config.App, bot *tb.Bot, us
 	companyNewModel := new(models.Company)
 	var companyID int64
 	if err := db.QueryRow("SELECT id,companyName FROM `companies` where `companyName`=?", companyName).Scan(&companyNewModel.ID, &companyNewModel.CompanyName); err != nil {
-		insertCompany, err := transaction.Exec("INSERT INTO `companies` (`companyName`,`companyType`,`createdAt`) VALUES('" + companyName + "','" + companyType + "','" + app.CurrentTime + "')")
+		insertCompany, err := transaction.Exec("INSERT INTO `companies` (`companyName`,`companyType`,`createdAt`) VALUES(?,?,?)", companyName ,companyType , app.CurrentTime)
 		if err != nil {
 			_ = transaction.Rollback()
 			log.Println(err)
