@@ -19,5 +19,5 @@ func ClearString(text string) string {
 		log.Println(err)
 		return "-"
 	}
-	return data.ReplaceAllString(text, "")
+	return data.ReplaceAllString(text, " ")
 }

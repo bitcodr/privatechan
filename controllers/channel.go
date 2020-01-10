@@ -12,7 +12,6 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/amiraliio/tgbp/config"
-	"github.com/amiraliio/tgbp/helpers"
 	"github.com/amiraliio/tgbp/lang"
 	"github.com/amiraliio/tgbp/models"
 	tb "gopkg.in/tucnak/telebot.v2"
@@ -169,7 +168,13 @@ func (service *BotService) SendReply(app *config.App, bot *tb.Bot, m *tb.Message
 		}
 		markup.ReplyKeyboard = replyKeys
 		options.ReplyMarkup = markup
-		_, err := bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.PLEASE_REPLY")+"'"+messageModel.Message+"...' on "+channelModel.ChannelName, options)
+		var maxLenOfString int
+		if len(messageModel.Message) < 60{
+			maxLenOfString = len(messageModel.Message)
+		}else{
+			maxLenOfString = 60
+		}
+		_, err := bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.PLEASE_REPLY")+"'"+messageModel.Message[0:maxLenOfString]+"...' on "+channelModel.ChannelName, options)
 		if err != nil {
 			log.Println(err)
 			return true
@@ -312,7 +317,7 @@ func (service *BotService) SaveAndSendMessage(db *sql.DB, app *config.App, bot *
 			if err == nil {
 				channelMessageID := strconv.Itoa(message.ID)
 				channelID := strconv.FormatInt(activeChannel.ID, 10)
-				insertedMessage, err := db.Query("INSERT INTO `messages` (`message`,`userID`,`channelID`,`channelMessageID`,`botMessageID`,`createdAt`) VALUES('" + m.Text + "','" + senderID + "','" + channelID + "','" + channelMessageID + "','" + botMessageID + "','" + app.CurrentTime + "')")
+				insertedMessage, err := db.Query("INSERT INTO `messages` (`message`,`userID`,`channelID`,`channelMessageID`,`botMessageID`,`createdAt`) VALUES(?,?,?,?,?,?)", m.Text, senderID, channelID, channelMessageID, botMessageID, app.CurrentTime)
 				if err != nil {
 					log.Println(err)
 					return true
@@ -407,7 +412,7 @@ func (service *BotService) SendAndSaveReplyMessage(db *sql.DB, app *config.App, 
 								newChannelModel := new(models.Channel)
 								if err := db.QueryRow("SELECT id,channelName,channelType from `channels` where channelID=?", channelID).Scan(&newChannelModel.ID, &newChannelModel.ChannelName, &newChannelModel.ChannelType); err == nil {
 									newChannelModelID := strconv.FormatInt(newChannelModel.ID, 10)
-									insertedMessage, err := db.Query("INSERT INTO `messages` (`message`,`userID`,`channelID`,`channelMessageID`,`botMessageID`,`parentID`,`createdAt`) VALUES('" + helpers.ClearString(m.Text) + "','" + senderID + "','" + newChannelModelID + "','" + newChannelMessageID + "','" + newBotMessageID + "','" + parentID + "','" + app.CurrentTime + "')")
+									insertedMessage, err := db.Query("INSERT INTO `messages` (`message`,`userID`,`channelID`,`channelMessageID`,`botMessageID`,`parentID`,`createdAt`) VALUES(?,?,?,?,?,?,?)", m.Text, senderID, newChannelModelID, newChannelMessageID, newBotMessageID, parentID, app.CurrentTime)
 									if err != nil {
 										log.Println(err)
 										return true
