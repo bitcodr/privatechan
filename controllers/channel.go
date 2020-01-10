@@ -367,9 +367,9 @@ func (service *BotService) SendAndSaveReplyMessage(db *sql.DB, app *config.App, 
 					if err == nil {
 						userDataModel := service.GetUserByTelegramID(db, app, m.Sender.ID)
 						newReply := tb.InlineButton{
-							Unique: config.LangConfig.GetString("STATE.REPLY_TO_MESSAGE") + "_" + channelID + "_" + senderID + "_" + botMessageID,
+							Unique: config.LangConfig.GetString("STATE.REPLY_TO_MESSAGE") + "_" + channelID + "_" + senderID + "_" + newBotMessageID,
 							Text:   config.LangConfig.GetString("MESSAGES.REPLY"),
-							URL:    app.TgDomain + app.BotUsername + "?start=" + config.LangConfig.GetString("STATE.REPLY_TO_MESSAGE") + "_" + channelID + "_" + senderID + "_" + botMessageID,
+							URL:    app.TgDomain + app.BotUsername + "?start=" + config.LangConfig.GetString("STATE.REPLY_TO_MESSAGE") + "_" + channelID + "_" + senderID + "_" + newBotMessageID,
 						}
 						newM := tb.InlineButton{
 							Unique: config.LangConfig.GetString("STATE.COMPOSE_MESSAGE") + "_" + channelID,
@@ -377,9 +377,9 @@ func (service *BotService) SendAndSaveReplyMessage(db *sql.DB, app *config.App, 
 							URL:    app.TgDomain + app.BotUsername + "?start=" + config.LangConfig.GetString("STATE.COMPOSE_MESSAGE") + "_" + channelID,
 						}
 						newDM := tb.InlineButton{
-							Unique: config.LangConfig.GetString("STATE.REPLY_BY_DM") + "_" + channelID + "_" + senderID + "_" + botMessageID,
+							Unique: config.LangConfig.GetString("STATE.REPLY_BY_DM") + "_" + channelID + "_" + senderID + "_" + newBotMessageID,
 							Text:   config.LangConfig.GetString("MESSAGES.DIRECT") + " [User " + userDataModel.CustomID + "]",
-							URL:    app.TgDomain + app.BotUsername + "?start=" + config.LangConfig.GetString("STATE.REPLY_BY_DM") + "_" + channelID + "_" + senderID + "_" + botMessageID,
+							URL:    app.TgDomain + app.BotUsername + "?start=" + config.LangConfig.GetString("STATE.REPLY_BY_DM") + "_" + channelID + "_" + senderID + "_" + newBotMessageID,
 						}
 						inlineKeys := [][]tb.InlineButton{
 							[]tb.InlineButton{newReply},
