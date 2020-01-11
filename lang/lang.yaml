@@ -41,6 +41,7 @@ STATE:
   JOIN_REQUEST_ADDED: join_request_added
   JOIN_REQUEST_DISMISSED: join_request_dismissed
   CANCEL_USER_REGISTRATION: cancel_user_registration_for_the_company
+  USER_NOT_REGISTERED: user_not_registered
 
 MESSAGES:
   DATA_MUST_NOT_BE_NULL: "final data must not be null"
@@ -89,6 +90,7 @@ MESSAGES:
   ACTIVE_EXPIRE_PEROID: " this key will be expire about 10 minutes"
   ANOTHER_DIRECT_REPLY: "📲Send another DM"
   BACK_TO: "⬅️Back to "
+  YOU_DO_NOT_HAVE_PREMISSION_TO_SEND_A_MESSAGE: "You should first confirm your company email for sending a message"
 
 COMMANDS:
   ENABLE_CHAT: "/enable_anonymity_support"

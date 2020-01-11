@@ -146,8 +146,10 @@ func (service *BotService) NewMessageGroupHandler(app *config.App, bot *tb.Bot, 
 		db := app.DB()
 		defer db.Close()
 		service.CheckIfBotIsAdmin(app, bot, m, db, request)
-		// lastState := GetUserLastState(db, app, bot, m, m.Sender.ID)
-		// service.CheckUserRegisteredOrNot(db, app, bot, m, request, lastState, m.Text, m.Sender.ID)
+		lastState := GetUserLastState(db, app, bot, m, m.Sender.ID)
+		if service.CheckUserRegisteredOrNot(db, app, bot, m, request, lastState, m.Text, m.Sender.ID){
+			return true
+		}
 		if m.Sender != nil {
 			SaveUserLastState(db, app, bot, m.Text, m.Sender.ID, request.UserState)
 		}
@@ -259,7 +261,7 @@ func (service *BotService) checkAndInsertUserGroup(app *config.App, bot *tb.Bot,
 			return
 		}
 		channelModelID := strconv.FormatInt(channelModel.ID, 10)
-		_, err := transaction.Exec("INSERT INTO `users_channels` (`userID`,`channelID`,`createdAt`,`updatedAt`) VALUES(?,?,?,?)", userModelID ,channelModelID ,app.CurrentTime , app.CurrentTime)
+		_, err := transaction.Exec("INSERT INTO `users_channels` (`userID`,`channelID`,`createdAt`,`updatedAt`) VALUES(?,?,?,?)", userModelID, channelModelID, app.CurrentTime, app.CurrentTime)
 		if err != nil {
 			transaction.Rollback()
 			log.Println(err)
@@ -281,7 +283,7 @@ func (service *BotService) checkAndInsertUserGroup(app *config.App, bot *tb.Bot,
 		return
 	}
 	//set user active channel
-	_, err = transaction.Exec("INSERT INTO `users_current_active_channel` (`userID`,`channelID`,`createdAt`,`updatedAt`) VALUES(?,?,?,?)", userModelID ,channelModelID ,app.CurrentTime , app.CurrentTime )
+	_, err = transaction.Exec("INSERT INTO `users_current_active_channel` (`userID`,`channelID`,`createdAt`,`updatedAt`) VALUES(?,?,?,?)", userModelID, channelModelID, app.CurrentTime, app.CurrentTime)
 	if err != nil {
 		transaction.Rollback()
 		log.Println(err)

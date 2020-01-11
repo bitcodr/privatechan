@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"database/sql"
+	"errors"
 	"github.com/amiraliio/tgbp/config"
 	"github.com/amiraliio/tgbp/helpers"
 	"github.com/amiraliio/tgbp/models"
@@ -55,7 +56,7 @@ func (service *BotService) checkTheCompanyEmailSuffixExist(app *config.App, bot 
 	replyModel := new(tb.ReplyMarkup)
 	replyModel.ReplyKeyboard = replyKeys
 	options.ReplyMarkup = replyModel
-	if err := db.QueryRow("SELECT co.companyName,ch.id,ch.channelName,ch.channelType from `channels_email_suffixes` as cs inner join `channels` as ch on cs.channelID=ch.id inner join `companies_channels` as cc on ch.Id=cc.channelID inner join `companies` as co on cc.companyID=co.id where cs.suffix=? limit 1", emailSuffix).Scan(&companyModel.CompanyName, &channelModel.ID, &channelModel.ChannelName,&channelModel.ChannelType); err != nil {
+	if err := db.QueryRow("SELECT co.companyName,ch.id,ch.channelName,ch.channelType from `channels_email_suffixes` as cs inner join `channels` as ch on cs.channelID=ch.id inner join `companies_channels` as cc on ch.Id=cc.channelID inner join `companies` as co on cc.companyID=co.id where cs.suffix=? limit 1", emailSuffix).Scan(&companyModel.CompanyName, &channelModel.ID, &channelModel.ChannelName, &channelModel.ChannelType); err != nil {
 		SaveUserLastState(db, app, bot, emailSuffix, userModel.ID, config.LangConfig.GetString("STATE.CONFIRM_REGISTER_COMPANY"))
 		bot.Send(userModel, config.LangConfig.GetString("MESSAGES.COMPANY_WITH_THE_EMAIL_NOT_EXIST"), options)
 		return
@@ -114,7 +115,7 @@ func (service *BotService) ConfirmRegisterUserForTheCompany(db *sql.DB, app *con
 		}
 		userDBModel := new(models.User)
 		channelModel := new(models.Channel)
-		if err := db.QueryRow("SELECT us.id,ch.channelType FROM `users` as us inner join `users_channels` as uc on us.id=uc.userID and uc.channelID=? and uc.status='ACTIVE' inner join `channels` as ch on uc.channelID=ch.id where us.userID=?", channelData[0], m.Sender.ID).Scan(&userDBModel.ID,&channelModel.ChannelType); err == nil {
+		if err := db.QueryRow("SELECT us.id,ch.channelType FROM `users` as us inner join `users_channels` as uc on us.id=uc.userID and uc.channelID=? and uc.status='ACTIVE' inner join `channels` as ch on uc.channelID=ch.id where us.userID=?", channelData[0], m.Sender.ID).Scan(&userDBModel.ID, &channelModel.ChannelType); err == nil {
 			bot.Send(userModel, config.LangConfig.GetString("MESSAGES.REGISTERED_IN_CHANNEL")+channelModel.ChannelType)
 			return true
 		}
@@ -145,7 +146,7 @@ func (service *BotService) RegisterUserWithEmailAndCode(db *sql.DB, app *config.
 	userModel := new(tb.User)
 	userModel.ID = m.Sender.ID
 	userActiveKeyModel := new(models.UsersActivationKey)
-	if err := db.QueryRow("SELECT `activeKey`,`createdAt` FROM `users_activation_key` where userID=? order by `id` DESC limit 1",m.Sender.ID).Scan(&userActiveKeyModel.ActiveKey, &userActiveKeyModel.CreatedAt); err != nil {
+	if err := db.QueryRow("SELECT `activeKey`,`createdAt` FROM `users_activation_key` where userID=? order by `id` DESC limit 1", m.Sender.ID).Scan(&userActiveKeyModel.ActiveKey, &userActiveKeyModel.CreatedAt); err != nil {
 		log.Println(err)
 		return true
 	}
@@ -169,7 +170,7 @@ func (service *BotService) RegisterUserWithEmailAndCode(db *sql.DB, app *config.
 		log.Println(err)
 		return true
 	}
-	if err := db.QueryRow("SELECT channelID,channelURL,manualChannelName,channelName,channelType FROM `channels` where id=?",channelID).Scan(&channelModel.ChannelID, &channelModel.ChannelURL, &channelModel.ManualChannelName, &channelModel.ChannelName, &channelModel.ChannelType); err != nil {
+	if err := db.QueryRow("SELECT channelID,channelURL,manualChannelName,channelName,channelType FROM `channels` where id=?", channelID).Scan(&channelModel.ChannelID, &channelModel.ChannelURL, &channelModel.ManualChannelName, &channelModel.ChannelName, &channelModel.ChannelType); err != nil {
 		log.Println(err)
 		return true
 	}
@@ -180,11 +181,11 @@ func (service *BotService) RegisterUserWithEmailAndCode(db *sql.DB, app *config.
 		return true
 	}
 	userModelData := new(models.User)
-	if err := db.QueryRow("SELECT id FROM `users` where userID=?",m.Sender.ID).Scan(&userModelData.ID); err != nil {
+	if err := db.QueryRow("SELECT id FROM `users` where userID=?", m.Sender.ID).Scan(&userModelData.ID); err != nil {
 		log.Println(err)
 		return true
 	}
-	_, err = db.Query("update `users_channels` set `status`=? where `userID`=? and `channelID`=?", "ACTIVE", userModelData.ID,channelID)
+	_, err = db.Query("update `users_channels` set `status`=? where `userID`=? and `channelID`=?", "ACTIVE", userModelData.ID, channelID)
 	if err != nil {
 		log.Println(err)
 		return true
@@ -207,7 +208,7 @@ func (service *BotService) RegisterUserWithEmailAndCode(db *sql.DB, app *config.
 
 func (service *BotService) GetUserByTelegramID(db *sql.DB, app *config.App, userID int) *models.User {
 	userModel := new(models.User)
-	if err := db.QueryRow("SELECT `id`,`userID`,`customID` from `users` where `userID`=? ", userID).Scan(&userModel.ID, &userModel.UserID,&userModel.CustomID); err != nil {
+	if err := db.QueryRow("SELECT `id`,`userID`,`customID` from `users` where `userID`=? ", userID).Scan(&userModel.ID, &userModel.UserID, &userModel.CustomID); err != nil {
 		log.Println(err)
 		userModel.Status = "INACTIVE"
 		return userModel
@@ -225,13 +226,25 @@ func GetUserLastState(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, u
 	return userLastState
 }
 
-func (service *BotService) CheckUserRegisteredOrNot(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *Event, lastState *models.UserLastState, text string, userID int) {
+func (service *BotService) CheckUserRegisteredOrNot(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *Event, lastState *models.UserLastState, text string, userID int) bool {
 	channel := service.GetUserCurrentActiveChannel(db, app, bot, m)
-	if channel.Setting != nil {
-
+	if channel.ChannelModel != "" {
+		userModel := new(models.User)
+		err := db.QueryRow("SELECT us.`id` from `users` as us inner join `users_channels` as uc on us.id=uc.userID and uc.channelID=? where us.userID=? and uc.status = 'ACTIVE' limit 1", channel.ID, userID).Scan(&userModel.ID)
+		if errors.Is(err, sql.ErrNoRows) {
+			err := db.QueryRow("SELECT us.`id` from `users` as us inner join `users_channels` as uc on us.id=uc.userID inner join companies_channels as cc on cc.channelID=uc.channelID and cc.companyID=? where us.userID=? and uc.status = 'ACTIVE' limit 1", channel.Company.ID, userID).Scan(&userModel.ID)
+			if errors.Is(err, sql.ErrNoRows) {
+				if m.Sender != nil {
+					SaveUserLastState(db, app, bot, m.Text, m.Sender.ID, config.LangConfig.GetString("MESSAGES.USER_NOT_REGISTERED"))
+				}
+				bot.Send(m.Sender, config.LangConfig.GetString("MESSAGES.YOU_DO_NOT_HAVE_PREMISSION_TO_SEND_A_MESSAGE"))
+				return true
+			}
+		}
 	}
-	//TODO check the channel is registered or not
-	//TODO if the channel is one of the company that user is registered verification is not necessary
+	return false
+	//TODO check the channel is registered or not = ok
+	//TODO if the channel is one of the company that user is registered verification is not necessary = ok
 	//TODO also check it according to event channel is required a action for instance reply is mandatory or not
-	//TODO check if user is registered to company or not
+	//TODO check if user is registered to company or not = ok
 }

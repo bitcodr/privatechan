@@ -627,11 +627,13 @@ func (service *BotService) GetUserCurrentActiveChannel(db *sql.DB, app *config.A
 	userID := strconv.Itoa(m.Sender.ID)
 	userModel := new(models.User)
 	channelModel := new(models.Channel)
-	if err := db.QueryRow("SELECT ch.id,ch.channelID,ch.channelName,ch.channelURL,ch.channelType,us.id,us.userID from `channels` as ch inner join `users_current_active_channel` as uc on ch.id=uc.channelID and uc.status='ACTIVE' inner join `users` as us on uc.userID=us.id and us.userID=? and us.`status`='ACTIVE' ", userID).Scan(&channelModel.ID, &channelModel.ChannelID, &channelModel.ChannelName, &channelModel.ChannelURL, &channelModel.ChannelType, &userModel.ID, &userModel.UserID); err != nil {
+	companyModel := new(models.Company)
+	if err := db.QueryRow("SELECT ch.id,ch.channelID,ch.channelName,ch.channelURL,ch.channelType,us.id,us.userID,ch.channelModel,cc.companyID from `channels` as ch inner join `users_current_active_channel` as uc on ch.id=uc.channelID and uc.status='ACTIVE' inner join `users` as us on uc.userID=us.id and us.userID=? and us.`status`='ACTIVE' inner join companies_channels as cc on cc.channelID=ch.id", userID).Scan(&channelModel.ID, &channelModel.ChannelID, &channelModel.ChannelName, &channelModel.ChannelURL, &channelModel.ChannelType, &userModel.ID, &userModel.UserID, &channelModel.ChannelModel, &companyModel.ID); err != nil {
 		log.Println(err)
 		return channelModel
 	}
 	channelModel.User = userModel
+	channelModel.Company = companyModel
 	return channelModel
 }
 
