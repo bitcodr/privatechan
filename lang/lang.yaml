@@ -5,7 +5,6 @@ GENERAL:
   CHANNELS_SETTINGS: channels_settings
   CHANNEL_EMAIL_SUFFIXES: channels_email_suffixes
   COMPANY_NAME: companyName
-  COMPANY_TYPE: companyType
   CHANNEL_TYPE: channelType
   CHANNEL_MODEL: channelModel
   MANUAL_CHANNEL_NAME: manualChannelName

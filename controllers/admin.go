@@ -167,19 +167,16 @@ func (service *BotService) insertFinalStateData(app *config.App, bot *tb.Bot, us
 	}
 
 	//insert company
-	var companyName, companyType string
+	var companyName string
 	for _, v := range companyTableData {
 		if v.ColumnName == config.LangConfig.GetString("GENERAL.COMPANY_NAME") {
 			companyName = v.Data
-		}
-		if v.ColumnName == config.LangConfig.GetString("GENERAL.COMPANY_TYPE") {
-			companyType = v.Data
 		}
 	}
 	companyNewModel := new(models.Company)
 	var companyID int64
 	if err := db.QueryRow("SELECT id,companyName FROM `companies` where `companyName`=?", companyName).Scan(&companyNewModel.ID, &companyNewModel.CompanyName); err != nil {
-		insertCompany, err := transaction.Exec("INSERT INTO `companies` (`companyName`,`companyType`,`createdAt`) VALUES(?,?,?)", companyName, companyType, app.CurrentTime)
+		insertCompany, err := transaction.Exec("INSERT INTO `companies` (`companyName`,`createdAt`) VALUES(?,?)", companyName, app.CurrentTime)
 		if err != nil {
 			_ = transaction.Rollback()
 			log.Println(err)
@@ -216,7 +213,7 @@ func (service *BotService) insertFinalStateData(app *config.App, bot *tb.Bot, us
 		log.Println(err)
 		return
 	}
-	_, err := transaction.Exec("update `channels` set `manualChannelName`=? `channelModel`=? `channelURL`=? where `uniqueID`=?", manualChannelName, channelModelField, channelURL, uniqueID)
+	_, err := transaction.Exec("update `channels` set `manualChannelName`=?, `channelModel`=?, `channelURL`=? where `uniqueID`=?", manualChannelName, channelModelField, channelURL, uniqueID)
 	if err != nil {
 		transaction.Rollback()
 		log.Println(err)
