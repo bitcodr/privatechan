@@ -259,7 +259,7 @@ func (service *BotService) checkAndInsertUserGroup(app *config.App, bot *tb.Bot,
 			return
 		}
 		channelModelID := strconv.FormatInt(channelModel.ID, 10)
-		_, err := transaction.Exec("INSERT INTO `users_channels` (`userID`,`channelID`,`createdAt`,`updatedAt`) VALUES(?,?,?,?,?)", userModelID ,channelModelID ,app.CurrentTime , app.CurrentTime)
+		_, err := transaction.Exec("INSERT INTO `users_channels` (`userID`,`channelID`,`createdAt`,`updatedAt`) VALUES(?,?,?,?)", userModelID ,channelModelID ,app.CurrentTime , app.CurrentTime)
 		if err != nil {
 			transaction.Rollback()
 			log.Println(err)

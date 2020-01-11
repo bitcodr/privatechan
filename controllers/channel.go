@@ -313,7 +313,6 @@ func (service *BotService) SaveAndSendMessage(db *sql.DB, app *config.App, bot *
 			options.ReplyMarkup = replyModel
 			options.ParseMode = tb.ModeHTML
 			message, err := bot.Send(user, "[User "+userDataModel.CustomID+"] "+m.Text, options)
-			// message, err := bot.Send(user, "From: <b>"+strconv.FormatInt(activeChannel.User.ID, 10)+activeChannel.User.UserID+"</b> <pre>\n"+m.Text+"</pre>", options)
 			if err == nil {
 				channelMessageID := strconv.Itoa(message.ID)
 				channelID := strconv.FormatInt(activeChannel.ID, 10)
