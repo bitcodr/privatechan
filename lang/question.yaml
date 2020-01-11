@@ -13,8 +13,8 @@ SUPERADMIN:
           QUESTION: "Enter Email Address Suffixes:"
           ANSWERS: ""
         N3:
-          TABLE_NAME: companies
-          COLUMN_NAME: companyType
+          TABLE_NAME: channels
+          COLUMN_NAME: channelModel
           QUESTION: "Select Type Of Channel/Group To Add:"
           ANSWERS: "Global,Country,City"
         N4:

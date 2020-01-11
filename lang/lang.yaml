@@ -7,6 +7,7 @@ GENERAL:
   COMPANY_NAME: companyName
   COMPANY_TYPE: companyType
   CHANNEL_TYPE: channelType
+  CHANNEL_MODEL: channelModel
   MANUAL_CHANNEL_NAME: manualChannelName
   UNIQUE_ID: uniqueID
   CHANNEL_URL: channelURL
