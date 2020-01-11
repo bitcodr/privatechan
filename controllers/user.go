@@ -179,15 +179,18 @@ func (service *BotService) RegisterUserWithEmailAndCode(db *sql.DB, app *config.
 		log.Println(err)
 		return true
 	}
-	//TODO also update users channel state
+	userModelData := new(models.User)
+	if err := db.QueryRow("SELECT id FROM `users` where userID=?",m.Sender.ID).Scan(&userModelData.ID); err != nil {
+		log.Println(err)
+		return true
+	}
+	_, err = db.Query("update `users_channels` set `status`=? where `userID`=? and `channelID`=?", "ACTIVE", userModelData.ID,channelID)
+	if err != nil {
+		log.Println(err)
+		return true
+	}
 	SaveUserLastState(db, app, bot, "", m.Sender.ID, config.LangConfig.GetString("STATE.JOIN_REQUEST_ADDED"))
 	options := new(tb.SendOptions)
-	homeBTN := tb.ReplyButton{
-		Text: config.LangConfig.GetString("GENERAL.HOME"),
-	}
-	replyBTN := [][]tb.ReplyButton{
-		[]tb.ReplyButton{homeBTN},
-	}
 	startBTN := tb.InlineButton{
 		Text: config.LangConfig.GetString("MESSAGES.CLICK_HERE_TO_START_COMMUNICATION"),
 		URL:  channelModel.ChannelURL,
@@ -196,7 +199,6 @@ func (service *BotService) RegisterUserWithEmailAndCode(db *sql.DB, app *config.
 		[]tb.InlineButton{startBTN},
 	}
 	replyModel := new(tb.ReplyMarkup)
-	replyModel.ReplyKeyboard = replyBTN
 	replyModel.InlineKeyboard = replyKeys
 	options.ReplyMarkup = replyModel
 	bot.Send(userModel, config.LangConfig.GetString("MESSAGES.YOU_ARE_MEMBER_OF_CHANNEL")+channelModel.ChannelType+" "+channelModel.ChannelName, options)
