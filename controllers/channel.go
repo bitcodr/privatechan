@@ -316,7 +316,7 @@ func (service *BotService) SaveAndSendMessage(db *sql.DB, app *config.App, bot *
 			if err == nil {
 				channelMessageID := strconv.Itoa(message.ID)
 				channelID := strconv.FormatInt(activeChannel.ID, 10)
-				insertedMessage, err := db.Query("INSERT INTO `messages` (`message`,`userID`,`channelID`,`channelMessageID`,`botMessageID`,`createdAt`) VALUES(?,?,?,?,?,?)", m.Text, senderID, channelID, channelMessageID, botMessageID, app.CurrentTime)
+				insertedMessage, err := db.Query("INSERT INTO `messages` (`message`,`userID`,`channelID`,`channelMessageID`,`botMessageID`,`type`,`createdAt`) VALUES(?,?,?,?,?,?,?)", m.Text, senderID, channelID, channelMessageID, botMessageID, "NEW", app.CurrentTime)
 				if err != nil {
 					log.Println(err)
 					return true
@@ -411,7 +411,7 @@ func (service *BotService) SendAndSaveReplyMessage(db *sql.DB, app *config.App, 
 								newChannelModel := new(models.Channel)
 								if err := db.QueryRow("SELECT id,channelName,channelType from `channels` where channelID=?", channelID).Scan(&newChannelModel.ID, &newChannelModel.ChannelName, &newChannelModel.ChannelType); err == nil {
 									newChannelModelID := strconv.FormatInt(newChannelModel.ID, 10)
-									insertedMessage, err := db.Query("INSERT INTO `messages` (`message`,`userID`,`channelID`,`channelMessageID`,`botMessageID`,`parentID`,`createdAt`) VALUES(?,?,?,?,?,?,?)", m.Text, senderID, newChannelModelID, newChannelMessageID, newBotMessageID, parentID, app.CurrentTime)
+									insertedMessage, err := db.Query("INSERT INTO `messages` (`message`,`userID`,`channelID`,`channelMessageID`,`botMessageID`,`parentID`,`type`,`createdAt`) VALUES(?,?,?,?,?,?,?,?)", m.Text, senderID, newChannelModelID, newChannelMessageID, newBotMessageID, parentID, "REPLY", app.CurrentTime)
 									if err != nil {
 										log.Println(err)
 										return true
@@ -525,7 +525,7 @@ func (service *BotService) SendAndSaveDirectMessage(db *sql.DB, app *config.App,
 								newChannelModel := new(models.Channel)
 								if err := db.QueryRow("SELECT id from `channels` where channelID=?", channelID).Scan(&newChannelModel.ID); err == nil {
 									newChannelModelID := strconv.FormatInt(newChannelModel.ID, 10)
-									insertedMessage, err := db.Query("INSERT INTO `messages` (`userID`,`channelID`,`channelMessageID`,`botMessageID`,`parentID`,`createdAt`) VALUES('" + senderID + "','" + newChannelModelID + "','" + newChannelMessageID + "','" + newBotMessageID + "','" + parentID + "','" + app.CurrentTime + "')")
+									insertedMessage, err := db.Query("INSERT INTO `messages` (`message`,`userID`,`channelID`,`channelMessageID`,`botMessageID`,`parentID`,`receiver`,`type`,`createdAt`) VALUES(?,?,?,?,?,?,?,?,?)", m.Text, senderID, newChannelModelID, newChannelMessageID, newBotMessageID, parentID, userIDInInt, "DM", app.CurrentTime)
 									if err != nil {
 										log.Println(err)
 										return true
@@ -606,7 +606,7 @@ func (service *BotService) SendAnswerAndSaveDirectMessage(db *sql.DB, app *confi
 							if err == nil {
 								newChannelMessageID := strconv.Itoa(sendMessage.ID)
 								newChannelModelID := strconv.FormatInt(newChannelModel.ID, 10)
-								insertedMessage, err := db.Query("INSERT INTO `messages` (`userID`,`channelID`,`channelMessageID`,`botMessageID`,`createdAt`) VALUES('" + senderID + "','" + newChannelModelID + "','" + newChannelMessageID + "','" + newBotMessageID + "','" + app.CurrentTime + "')")
+								insertedMessage, err := db.Query("INSERT INTO `messages` (`message`,`userID`,`channelID`,`channelMessageID`,`botMessageID`,`receiver`,`type`,`createdAt`) VALUES(?,?,?,?,?,?,?,?)", m.Text, senderID, newChannelModelID, newChannelMessageID, newBotMessageID, userIDInInt, "DM", app.CurrentTime)
 								if err != nil {
 									log.Println(err)
 									return true
