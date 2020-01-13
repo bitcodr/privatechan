@@ -226,8 +226,10 @@ func GetUserLastState(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, u
 	return userLastState
 }
 
+//TODO check unique email
+
 func (service *BotService) CheckUserRegisteredOrNot(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *Event, lastState *models.UserLastState, text string, userID int) bool {
-	channel := service.GetUserCurrentActiveChannel(db, app, bot, m)
+	channel := service.GetUserCurrentActiveChannel(db, app, bot, m, userID)
 	if channel.ChannelModel != "" {
 		userModel := new(models.User)
 		err := db.QueryRow("SELECT us.`id` from `users` as us inner join `users_channels` as uc on us.id=uc.userID and uc.channelID=? where us.userID=? and uc.status = 'ACTIVE' limit 1", channel.ID, userID).Scan(&userModel.ID)
@@ -243,8 +245,5 @@ func (service *BotService) CheckUserRegisteredOrNot(db *sql.DB, app *config.App,
 		}
 	}
 	return false
-	//TODO check the channel is registered or not = ok
-	//TODO if the channel is one of the company that user is registered verification is not necessary = ok
 	//TODO also check it according to event channel is required a action for instance reply is mandatory or not
-	//TODO check if user is registered to company or not = ok
 }

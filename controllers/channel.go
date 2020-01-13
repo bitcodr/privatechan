@@ -144,6 +144,10 @@ func (service *BotService) SendReply(app *config.App, bot *tb.Bot, m *tb.Message
 		db := app.DB()
 		defer db.Close()
 		service.CheckIfBotIsAdmin(app, bot, m, db, request)
+		lastState := GetUserLastState(db, app, bot, m, m.Sender.ID)
+		if service.CheckUserRegisteredOrNot(db, app, bot, m, request, lastState, m.Text, m.Sender.ID) {
+			return true
+		}
 		if m.Sender != nil {
 			SaveUserLastState(db, app, bot, m.Text, m.Sender.ID, request.UserState)
 		}
@@ -189,6 +193,10 @@ func (service *BotService) SanedDM(app *config.App, bot *tb.Bot, m *tb.Message, 
 		db := app.DB()
 		defer db.Close()
 		service.CheckIfBotIsAdmin(app, bot, m, db, request)
+		lastState := GetUserLastState(db, app, bot, m, m.Sender.ID)
+		if service.CheckUserRegisteredOrNot(db, app, bot, m, request, lastState, m.Text, m.Sender.ID) {
+			return true
+		}
 		ids := strings.TrimPrefix(m.Text, request.Command1)
 		data := strings.Split(ids, "_")
 		directSenderID, err := strconv.Atoi(data[1])
@@ -235,6 +243,10 @@ func (service *BotService) SanedAnswerDM(app *config.App, bot *tb.Bot, m *tb.Cal
 	if strings.Contains(m.Data, request.Command) {
 		db := app.DB()
 		defer db.Close()
+		lastState := GetUserLastState(db, app, bot, m.Message, m.Sender.ID)
+		if service.CheckUserRegisteredOrNot(db, app, bot, m.Message, request, lastState, m.Data, m.Sender.ID) {
+			return true
+		}
 		text := strings.TrimPrefix(m.Data, request.Command1)
 		ids := strings.ReplaceAll(text, request.Command, "")
 		data := strings.Split(ids, "_")
@@ -278,7 +290,7 @@ func (service *BotService) SanedAnswerDM(app *config.App, bot *tb.Bot, m *tb.Cal
 }
 
 func (service *BotService) SaveAndSendMessage(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *Event, lastState *models.UserLastState) bool {
-	activeChannel := service.GetUserCurrentActiveChannel(db, app, bot, m)
+	activeChannel := service.GetUserCurrentActiveChannel(db, app, bot, m, m.Sender.ID)
 	if activeChannel != nil {
 		senderID := strconv.Itoa(m.Sender.ID)
 		botMessageID := strconv.Itoa(m.ID)
@@ -392,7 +404,7 @@ func (service *BotService) SendAndSaveReplyMessage(db *sql.DB, app *config.App, 
 						}
 						ChannelMessageDataID, err := strconv.Atoi(messageModel.ChannelMessageID)
 						if err == nil {
-							activeChannel := service.GetUserCurrentActiveChannel(db, app, bot, m)
+							activeChannel := service.GetUserCurrentActiveChannel(db, app, bot, m, m.Sender.ID)
 							sendMessageModel := new(tb.Message)
 							sendMessageModel.ID = ChannelMessageDataID
 							newReplyModel := new(tb.ReplyMarkup)
@@ -623,8 +635,7 @@ func (service *BotService) SendAnswerAndSaveDirectMessage(db *sql.DB, app *confi
 	return true
 }
 
-func (service *BotService) GetUserCurrentActiveChannel(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message) *models.Channel {
-	userID := strconv.Itoa(m.Sender.ID)
+func (service *BotService) GetUserCurrentActiveChannel(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, userID int) *models.Channel {
 	userModel := new(models.User)
 	channelModel := new(models.Channel)
 	companyModel := new(models.Company)

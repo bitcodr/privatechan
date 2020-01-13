@@ -180,8 +180,10 @@ func (service *BotService) NewMessageGroupHandlerCallback(app *config.App, bot *
 	if strings.Contains(c.Data, request.Command) {
 		db := app.DB()
 		defer db.Close()
-		// lastState := GetUserLastState(db, app, bot, m, m.Sender.ID)
-		// service.CheckUserRegisteredOrNot(db, app, bot, m, request, lastState, m.Text, m.Sender.ID)
+		lastState := GetUserLastState(db, app, bot, c.Message, c.Sender.ID)
+		if service.CheckUserRegisteredOrNot(db, app, bot, c.Message, request, lastState, c.Data, c.Sender.ID) {
+			return true
+		}
 		if c.Sender != nil {
 			SaveUserLastState(db, app, bot, c.Data, c.Sender.ID, request.UserState)
 		}
