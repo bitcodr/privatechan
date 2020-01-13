@@ -147,7 +147,7 @@ func (service *BotService) NewMessageGroupHandler(app *config.App, bot *tb.Bot, 
 		defer db.Close()
 		service.CheckIfBotIsAdmin(app, bot, m, db, request)
 		lastState := GetUserLastState(db, app, bot, m, m.Sender.ID)
-		if service.CheckUserRegisteredOrNot(db, app, bot, m, request, lastState, m.Text, m.Sender.ID){
+		if service.CheckUserRegisteredOrNot(db, app, bot, m, request, lastState, m.Text, m.Sender.ID) {
 			return true
 		}
 		if m.Sender != nil {
@@ -337,7 +337,8 @@ func (service *BotService) CheckIfBotIsAdmin(app *config.App, bot *tb.Bot, m *tb
 		for _, admin := range admins {
 			if admin.User.ID == bot.Me.ID {
 				channelModel := new(models.Channel)
-				if err := db.QueryRow("SELECT id from `channels` where `channelID`=? and (`channelURL` is NULL OR `channelURL` = '')", id).Scan(&channelModel.ID); err == nil {
+				row := db.QueryRow("select id from `channels` where `channelID`=? and (`channelURL` is NULL OR `channelURL` = '')", id)
+				if err := row.Scan(channelModel.ID); err == nil {
 					inviteLink, err := bot.GetInviteLink(chatModel)
 					if err != nil {
 						log.Println(err)
