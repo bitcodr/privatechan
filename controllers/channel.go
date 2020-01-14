@@ -494,6 +494,10 @@ func (service *BotService) SendAndSaveDirectMessage(db *sql.DB, app *config.App,
 								Unique: config.LangConfig.GetString("STATE.ANSWER_TO_DM") + "_" + channelID + "_" + userID + "_" + newBotMessageID,
 								Text:   config.LangConfig.GetString("MESSAGES.ANOTHER_DIRECT_REPLY") + " [User " + userDataModel.CustomID + "]",
 							}
+							dmHistory := tb.InlineButton{
+								Text: config.LangConfig.GetString("MESSAGES.DM_HISTORY") + " [User " + userDataModel.CustomID + "]",
+								URL:  app.APIURL + "/user" + senderID + "/receiver/" + userID + "/direct-messages",
+							}
 							var AnotherDMKeys [][]tb.InlineButton
 							if channelModel.ChannelURL != "" {
 								redirectBTN := tb.InlineButton{
@@ -502,12 +506,14 @@ func (service *BotService) SendAndSaveDirectMessage(db *sql.DB, app *config.App,
 								}
 								AnotherDMKeys = [][]tb.InlineButton{
 									[]tb.InlineButton{SendAnotherDM},
+									[]tb.InlineButton{dmHistory},
 									[]tb.InlineButton{redirectBTN},
 								}
 
 							} else {
 								AnotherDMKeys = [][]tb.InlineButton{
 									[]tb.InlineButton{SendAnotherDM},
+									[]tb.InlineButton{dmHistory},
 								}
 							}
 							markup.InlineKeyboard = AnotherDMKeys
@@ -576,6 +582,10 @@ func (service *BotService) SendAnswerAndSaveDirectMessage(db *sql.DB, app *confi
 							Unique: config.LangConfig.GetString("STATE.ANSWER_TO_DM") + "_" + channelID + "_" + userID + "_" + newBotMessageID,
 							Text:   config.LangConfig.GetString("MESSAGES.ANOTHER_DIRECT_REPLY") + " [User " + userDataModel.CustomID + "]",
 						}
+						dmHistory := tb.InlineButton{
+							Text: config.LangConfig.GetString("MESSAGES.DM_HISTORY") + " [User " + userDataModel.CustomID + "]",
+							URL:  app.APIURL + "/user/" + senderID + "/receiver/" + userID + "/direct-messages",
+						}
 						var AnotherDMKeys [][]tb.InlineButton
 						if channelModel.ChannelURL != "" {
 							redirectBTN := tb.InlineButton{
@@ -584,12 +594,14 @@ func (service *BotService) SendAnswerAndSaveDirectMessage(db *sql.DB, app *confi
 							}
 							AnotherDMKeys = [][]tb.InlineButton{
 								[]tb.InlineButton{SendAnotherDM},
+								[]tb.InlineButton{dmHistory},
 								[]tb.InlineButton{redirectBTN},
 							}
 
 						} else {
 							AnotherDMKeys = [][]tb.InlineButton{
 								[]tb.InlineButton{SendAnotherDM},
+								[]tb.InlineButton{dmHistory},
 							}
 						}
 						markup.InlineKeyboard = AnotherDMKeys

@@ -12,6 +12,8 @@ import (
 	tb "gopkg.in/tucnak/telebot.v2"
 )
 
+//TODO register company with free email suffixes isn't possible
+
 func (service *BotService) SetUpCompanyByAdmin(db *sql.DB, app *config.App, bot *tb.Bot, m *tb.Message, request *Event, lastState *models.UserLastState, text string, userID int) bool {
 	if lastState.Data != "" && lastState.State == request.UserState {
 		questions := config.QConfig.GetStringMap("SUPERADMIN.COMPANY.SETUP.QUESTIONS")

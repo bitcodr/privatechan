@@ -91,7 +91,8 @@ MESSAGES:
   ANOTHER_DIRECT_REPLY: "📲Send another DM"
   BACK_TO: "⬅️Back to "
   YOU_DO_NOT_HAVE_PREMISSION_TO_SEND_A_MESSAGE: "You should first confirm your company email for sending a message"
-
+  DM_HISTORY: "DM histories between you and "
+  
 COMMANDS:
   ENABLE_CHAT: "/enable_anonymity_support"
   START: "/start"
