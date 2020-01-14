@@ -193,10 +193,6 @@ func (service *BotService) SanedDM(app *config.App, bot *tb.Bot, m *tb.Message, 
 		db := app.DB()
 		defer db.Close()
 		service.CheckIfBotIsAdmin(app, bot, m, db, request)
-		lastState := GetUserLastState(db, app, bot, m, m.Sender.ID)
-		if service.CheckUserRegisteredOrNot(db, app, bot, m, request, lastState, m.Text, m.Sender.ID) {
-			return true
-		}
 		ids := strings.TrimPrefix(m.Text, request.Command1)
 		data := strings.Split(ids, "_")
 		directSenderID, err := strconv.Atoi(data[1])
@@ -216,6 +212,10 @@ func (service *BotService) SanedDM(app *config.App, bot *tb.Bot, m *tb.Message, 
 		}
 		channelID := strings.TrimSpace(data[0])
 		service.JoinFromGroup(db, app, bot, m, channelID)
+		lastState := GetUserLastState(db, app, bot, m, m.Sender.ID)
+		if service.CheckUserRegisteredOrNot(db, app, bot, m, request, lastState, m.Text, m.Sender.ID) {
+			return true
+		}
 		options := new(tb.SendOptions)
 		markup := new(tb.ReplyMarkup)
 		homeBTN := tb.ReplyButton{

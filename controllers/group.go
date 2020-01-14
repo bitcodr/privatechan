@@ -146,15 +146,15 @@ func (service *BotService) NewMessageGroupHandler(app *config.App, bot *tb.Bot, 
 		db := app.DB()
 		defer db.Close()
 		service.CheckIfBotIsAdmin(app, bot, m, db, request)
-		lastState := GetUserLastState(db, app, bot, m, m.Sender.ID)
-		if service.CheckUserRegisteredOrNot(db, app, bot, m, request, lastState, m.Text, m.Sender.ID) {
-			return true
-		}
 		if m.Sender != nil {
 			SaveUserLastState(db, app, bot, m.Text, m.Sender.ID, request.UserState)
 		}
 		channelID := strings.ReplaceAll(m.Text, request.Command1, "")
 		service.JoinFromGroup(db, app, bot, m, channelID)
+		lastState := GetUserLastState(db, app, bot, m, m.Sender.ID)
+		if service.CheckUserRegisteredOrNot(db, app, bot, m, request, lastState, m.Text, m.Sender.ID) {
+			return true
+		}
 		channelModel := new(models.Channel)
 		if err := db.QueryRow("SELECT `channelName`,`channelType` FROM `channels` where `channelID`=?", channelID).Scan(&channelModel.ChannelName, &channelModel.ChannelType); err != nil {
 			log.Println(err)
