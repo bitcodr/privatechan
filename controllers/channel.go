@@ -496,7 +496,7 @@ func (service *BotService) SendAndSaveDirectMessage(db *sql.DB, app *config.App,
 							}
 							dmHistory := tb.InlineButton{
 								Text: config.LangConfig.GetString("MESSAGES.DM_HISTORY") + " [User " + userDataModel.CustomID + "]",
-								URL:  app.APIURL + "/user" + senderID + "/receiver/" + userID + "/direct-messages",
+								URL:  app.APIURL + "/user/" + senderID + "/receiver/" + userID + "/direct-messages",
 							}
 							var AnotherDMKeys [][]tb.InlineButton
 							if channelModel.ChannelURL != "" {
